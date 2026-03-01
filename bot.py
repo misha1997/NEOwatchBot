@@ -3,6 +3,7 @@ Refactored version with modular architecture
 """
 import logging
 import os
+import asyncio
 from datetime import datetime
 from telegram import Update
 from telegram.ext import (
@@ -19,12 +20,23 @@ from database import init_db
 # Import handlers
 from handlers import CommandHandlers, CallbackHandlers, MessageHandlers
 
+# Import scheduler
+from services.scheduler import NotificationScheduler
+
 # Setup logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+
+async def post_init(application: Application):
+    """Run after bot initialization"""
+    # Start scheduler as background task
+    scheduler = NotificationScheduler()
+    application.create_task(scheduler.run_scheduled_tasks())
+    logger.info("Scheduler started")
 
 
 def main():
@@ -35,6 +47,9 @@ def main():
     
     # Create Application
     application = Application.builder().token(BOT_TOKEN).build()
+    
+    # Add post_init handler
+    application.post_init = post_init
     
     # Add handlers
     application.add_handler(CommandHandler("start", CommandHandlers.start))

@@ -36,24 +36,26 @@ class CommandHandlers:
         keyboard = [
             [
                 InlineKeyboardButton("🌑 Астероїди", callback_data='neo'),
+                InlineKeyboardButton("🌠 Метеоритні потоки", callback_data='meteor_showers'),
+            ],
+            [
                 InlineKeyboardButton("🌌 Фото дня", callback_data='apod'),
                 InlineKeyboardButton("🚀 Запуски", callback_data='launches'),
+                InlineKeyboardButton("🛰️ Starlink", callback_data='starlink'),
             ],
             [
                 InlineKeyboardButton("🛰️ МКС зараз", callback_data='iss_now'),
-                InlineKeyboardButton("📡 Проходження", callback_data='iss_passes'),
+                InlineKeyboardButton("📡 МКС Проходження", callback_data='iss_passes'),
                 InlineKeyboardButton("👨‍🚀 Екіпаж", callback_data='iss_crew'),
             ],
             [
-                InlineKeyboardButton("🛰️ Starlink", callback_data='starlink'),
-                InlineKeyboardButton("🌌 Космопогода", callback_data='space_weather'),
+                InlineKeyboardButton("☀️ Космопогода", callback_data='space_weather'),
+                InlineKeyboardButton("👽 Погода на Марсі", callback_data='mars'),
             ],
             [
                 InlineKeyboardButton("🌙 Фаза місяця", callback_data='moon'),
-                InlineKeyboardButton("🔴 Погода на Марсі", callback_data='mars'),
             ],
             [
-                InlineKeyboardButton("📍 Вказати місто", callback_data='set_location'),
                 InlineKeyboardButton("⚙️ Налаштування", callback_data='settings'),
             ]
         ]

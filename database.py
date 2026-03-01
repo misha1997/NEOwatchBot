@@ -29,6 +29,7 @@ def init_db():
             lon REAL,
             subscribed_iss BOOLEAN DEFAULT 1,
             subscribed_apod BOOLEAN DEFAULT 1,
+            subscribed_launches BOOLEAN DEFAULT 1,
             last_iss_pass INTEGER,
             last_apod_date TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -113,7 +114,7 @@ def update_user_location(user_id: int, city: str, lat: float, lon: float):
 
 def toggle_subscription(user_id: int, subscription_type: str) -> bool:
     """Toggle subscription status. Returns new status"""
-    if subscription_type not in ('iss', 'apod'):
+    if subscription_type not in ('iss', 'apod', 'launches'):
         return False
     
     conn = sqlite3.connect(DATABASE_FILE)
@@ -145,13 +146,13 @@ def get_subscription_status(user_id: int) -> Dict[str, bool]:
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
     
-    cursor.execute('SELECT subscribed_iss, subscribed_apod FROM users WHERE user_id = ?', (user_id,))
+    cursor.execute('SELECT subscribed_iss, subscribed_apod, subscribed_launches FROM users WHERE user_id = ?', (user_id,))
     row = cursor.fetchone()
     conn.close()
     
     if row:
-        return {'iss': bool(row[0]), 'apod': bool(row[1])}
-    return {'iss': False, 'apod': False}
+        return {'iss': bool(row[0]), 'apod': bool(row[1]), 'launches': bool(row[2])}
+    return {'iss': False, 'apod': False, 'launches': False}
 
 
 def get_iss_subscribers() -> List[Dict]:
@@ -177,6 +178,19 @@ def get_apod_subscribers() -> List[Dict]:
     cursor = conn.cursor()
     
     cursor.execute('SELECT * FROM users WHERE subscribed_apod = 1')
+    
+    users = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return users
+
+
+def get_launch_subscribers() -> List[Dict]:
+    """Get all users subscribed to launch notifications"""
+    conn = sqlite3.connect(DATABASE_FILE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT * FROM users WHERE subscribed_launches = 1')
     
     users = [dict(row) for row in cursor.fetchall()]
     conn.close()
