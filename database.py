@@ -27,8 +27,8 @@ def init_db():
             city TEXT,
             lat REAL,
             lon REAL,
-            subscribed_iss BOOLEAN DEFAULT 0,
-            subscribed_apod BOOLEAN DEFAULT 0,
+            subscribed_iss BOOLEAN DEFAULT 1,
+            subscribed_apod BOOLEAN DEFAULT 1,
             last_iss_pass INTEGER,
             last_apod_date TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -261,3 +261,34 @@ def get_user_count() -> int:
     conn.close()
     
     return count
+
+
+def get_city_suggestions(city_name: str) -> List[Dict]:
+    """Get city suggestions from OpenStreetMap"""
+    try:
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {
+            'q': city_name,
+            'format': 'json',
+            'limit': 5,
+            'accept-language': 'uk,en'
+        }
+        headers = {'User-Agent': 'NEOwatchBot/1.0'}
+        
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        data = response.json()
+        
+        suggestions = []
+        for item in data:
+            suggestions.append({
+                'name': item.get('display_name', '').split(',')[0],
+                'display_name': item.get('display_name'),
+                'lat': item.get('lat'),
+                'lon': item.get('lon'),
+                'country': item.get('display_name', '').split(',')[-1].strip() if ',' in item.get('display_name', '') else ''
+            })
+        
+        return suggestions
+    except Exception as e:
+        logger.error(f"Error getting city suggestions for '{city_name}': {e}")
+        return []
