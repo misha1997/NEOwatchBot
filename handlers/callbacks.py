@@ -3,6 +3,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from services import NasaAPI, N2YOAPI, LaunchAPI, SpaceWeatherAPI, ISSCrewAPI
 from services.moon_mars import MoonMarsAPI
+from services.meteor_shower import MeteorShower
 from database import get_user, update_user_location, get_subscription_status, toggle_subscription, geocode_city
 import logging
 
@@ -34,6 +35,7 @@ class CallbackHandlers:
             'iss_crew': CallbackHandlers.iss_crew,
             'starlink': CallbackHandlers.starlink,
             'space_weather': CallbackHandlers.space_weather,
+            'meteor_showers': CallbackHandlers.meteor_showers,
             'moon': CallbackHandlers.moon,
             'mars': CallbackHandlers.mars,
             'settings': CallbackHandlers.settings,
@@ -65,6 +67,7 @@ class CallbackHandlers:
             [
                 InlineKeyboardButton("🛰️ Starlink", callback_data='starlink'),
                 InlineKeyboardButton("🌌 Космопогода", callback_data='space_weather'),
+                InlineKeyboardButton("🌠 Метеори", callback_data='meteor_showers'),
             ],
             [
                 InlineKeyboardButton("🌙 Фаза місяця", callback_data='moon'),
@@ -275,6 +278,16 @@ class CallbackHandlers:
         )
     
     @staticmethod
+    async def meteor_showers(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle meteor showers button"""
+        result = MeteorShower.format_upcoming_showers()
+        await update.callback_query.message.edit_text(
+            result,
+            parse_mode='HTML',
+            reply_markup=CallbackHandlers.get_main_menu()
+        )
+    
+    @staticmethod
     async def moon(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle moon button"""
         moon_data = MoonMarsAPI.get_moon_phase()
@@ -333,6 +346,7 @@ class CallbackHandlers:
         
         iss_sub = '✅' if user and user.get('subscribed_iss') else '☑️'
         apod_sub = '✅' if user and user.get('subscribed_apod') else '☑️'
+        launches_sub = '✅' if user and user.get('subscribed_launches') else '☑️'
         city = user.get('city', 'Не вказано') if user else 'Не вказано'
         
         message = f"⚙️ <b>Налаштування</b>\n\n"
@@ -340,6 +354,7 @@ class CallbackHandlers:
         message += f"🔔 Сповіщення:\n"
         message += f"{iss_sub} Проходження МКС\n"
         message += f"{apod_sub} Фото дня (9:00)\n"
+        message += f"{launches_sub} Запуски ракет\n"
         
         keyboard = [
             [
@@ -347,6 +362,7 @@ class CallbackHandlers:
                 InlineKeyboardButton(f"{apod_sub} Фото дня", callback_data='sub_apod'),
             ],
             [
+                InlineKeyboardButton(f"{launches_sub} Запуски", callback_data='sub_launches'),
                 InlineKeyboardButton("📍 Змінити місто", callback_data='set_location'),
             ],
             [
