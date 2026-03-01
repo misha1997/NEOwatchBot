@@ -96,49 +96,75 @@ class CallbackHandlers:
             # Check if it's a video
             if data.get('media_type') == 'video':
                 video_url = data.get('url', '')
-                thumbnail = data.get('thumbnail', '')
-                
-                # Try to get YouTube thumbnail if it's a YouTube video
-                if 'youtube.com' in video_url or 'youtu.be' in video_url:
-                    import re
-                    # Extract video ID
-                    if 'youtu.be' in video_url:
-                        video_id = video_url.split('/')[-1].split('?')[0]
-                    else:
-                        match = re.search(r'[?&]v=([^&]+)', video_url)
-                        video_id = match.group(1) if match else ''
-                    
-                    if video_id:
-                        thumbnail = f"https://img.youtube.com/vi/{video_id}/0.jpg"
-                
-                # If still no thumbnail, use a placeholder or skip
-                if not thumbnail:
-                    thumbnail = video_url  # fallback
                 
                 caption = f"🎥 <b>Відео дня від NASA</b>\n\n"
                 caption += f"📅 {data.get('date', '')}\n"
                 caption += f"🎬 {data.get('title', '')}\n\n"
-                caption += f"<a href='{video_url}'>▶️ Дивитись відео</a>\n\n"
                 caption += "<i>Повний опис нижче ↓</i>"
                 
-                try:
-                    # Skip sending photo if thumbnail is video file
-                    if thumbnail.endswith('.mp4') or thumbnail.endswith('.mov') or thumbnail.endswith('.avi'):
-                        raise Exception("Cannot send video as photo")
+                # Check if it's a direct video file (MP4, etc.) - handle query params
+                clean_url = video_url.split('?')[0].lower()
+                is_direct_video = clean_url.endswith(('.mp4', '.mov', '.avi', '.mkv', '.webm'))
+                
+                if is_direct_video:
+                    try:
+                        # Send video directly from URL
+                        await context.bot.send_video(
+                            chat_id=update.effective_chat.id,
+                            video=video_url,
+                            caption=caption,
+                            parse_mode='HTML',
+                            supports_streaming=True
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to send video: {e}")
+                        # Fallback: send as link
+                        await update.callback_query.message.reply_text(
+                            f"🎥 <b>Відео дня від NASA</b>\n\n"
+                            f"📅 {data.get('date', '')}\n"
+                            f"🎬 {data.get('title', '')}\n\n"
+                            f"<a href='{video_url}'>▶️ Дивитись відео</a>\n\n"
+                            f"<i>Повний опис нижче ↓</i>",
+                            parse_mode='HTML',
+                            disable_web_page_preview=False
+                        )
+                else:
+                    # YouTube or other embedded video - send thumbnail with link
+                    thumbnail = data.get('thumbnail', '')
                     
-                    await context.bot.send_photo(
-                        chat_id=update.effective_chat.id,
-                        photo=thumbnail,
-                        caption=caption,
-                        parse_mode='HTML'
-                    )
-                except:
-                    # If thumbnail fails, send text with link
-                    await update.callback_query.message.reply_text(
-                        caption,
-                        parse_mode='HTML',
-                        disable_web_page_preview=False
-                    )
+                    # Try to get YouTube thumbnail
+                    if 'youtube.com' in video_url or 'youtu.be' in video_url:
+                        import re
+                        if 'youtu.be' in video_url:
+                            video_id = video_url.split('/')[-1].split('?')[0]
+                        else:
+                            match = re.search(r'[?&]v=([^&]+)', video_url)
+                            video_id = match.group(1) if match else ''
+                        
+                        if video_id:
+                            thumbnail = f"https://img.youtube.com/vi/{video_id}/0.jpg"
+                    
+                    try:
+                        await context.bot.send_photo(
+                            chat_id=update.effective_chat.id,
+                            photo=thumbnail or video_url,
+                            caption=f"🎥 <b>Відео дня від NASA</b>\n\n"
+                                    f"📅 {data.get('date', '')}\n"
+                                    f"🎬 {data.get('title', '')}\n\n"
+                                    f"<a href='{video_url}'>▶️ Дивитись відео</a>\n\n"
+                                    f"<i>Повний опис нижче ↓</i>",
+                            parse_mode='HTML'
+                        )
+                    except:
+                        await update.callback_query.message.reply_text(
+                            f"🎥 <b>Відео дня від NASA</b>\n\n"
+                            f"📅 {data.get('date', '')}\n"
+                            f"🎬 {data.get('title', '')}\n\n"
+                            f"<a href='{video_url}'>▶️ Дивитись відео</a>\n\n"
+                            f"<i>Повний опис нижче ↓</i>",
+                            parse_mode='HTML',
+                            disable_web_page_preview=False
+                        )
             else:
                 # Send photo with short caption
                 await context.bot.send_photo(

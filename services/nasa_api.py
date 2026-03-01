@@ -3,6 +3,7 @@ import requests
 import logging
 from datetime import datetime
 from config import NASA_API_KEY, NASA_NEO_URL, NASA_APOD_URL
+from utils.translator import Translator
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +100,9 @@ class NasaAPI:
         date = data['date']
         explanation = data['explanation']
         
+        # Translate explanation to Ukrainian
+        explanation_uk = Translator.translate_apod(explanation)
+        
         # Short caption for photo
         caption = f"🌌 <b>Фото дня від NASA</b>\n\n"
         caption += f"📅 {date}\n"
@@ -110,9 +114,10 @@ class NasaAPI:
         full_text += f"📅 {date}\n\n"
         
         # Truncate explanation if too long
-        if len(explanation) > 3800:
-            explanation = explanation[:3800] + "..."
-        full_text += explanation
+        if len(explanation_uk) > 3800:
+            explanation_uk = explanation_uk[:3800] + "..."
+        full_text += explanation_uk
+        full_text += "\n\n🌐 apod.nasa.gov"
         
         image_url = data.get('hdurl') or data.get('url', '')
         
