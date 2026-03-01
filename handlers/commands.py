@@ -49,6 +49,10 @@ class CommandHandlers:
                 InlineKeyboardButton("🌌 Космопогода", callback_data='space_weather'),
             ],
             [
+                InlineKeyboardButton("🌙 Фаза місяця", callback_data='moon'),
+                InlineKeyboardButton("🔴 Погода на Марсі", callback_data='mars'),
+            ],
+            [
                 InlineKeyboardButton("📍 Вказати місто", callback_data='set_location'),
                 InlineKeyboardButton("⚙️ Налаштування", callback_data='settings'),
             ]

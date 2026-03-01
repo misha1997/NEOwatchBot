@@ -2,6 +2,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from services import NasaAPI, N2YOAPI, LaunchAPI, SpaceWeatherAPI, ISSCrewAPI
+from services.moon_mars import MoonMarsAPI
 from database import get_user, update_user_location, get_subscription_status, toggle_subscription, geocode_city
 import logging
 
@@ -33,6 +34,8 @@ class CallbackHandlers:
             'iss_crew': CallbackHandlers.iss_crew,
             'starlink': CallbackHandlers.starlink,
             'space_weather': CallbackHandlers.space_weather,
+            'moon': CallbackHandlers.moon,
+            'mars': CallbackHandlers.mars,
             'settings': CallbackHandlers.settings,
             'set_location': CallbackHandlers.set_location,
             'back_menu': CallbackHandlers.back_to_menu,
@@ -64,6 +67,10 @@ class CallbackHandlers:
                 InlineKeyboardButton("🌌 Космопогода", callback_data='space_weather'),
             ],
             [
+                InlineKeyboardButton("🌙 Фаза місяця", callback_data='moon'),
+                InlineKeyboardButton("🔴 Погода на Марсі", callback_data='mars'),
+            ],
+            [
                 InlineKeyboardButton("📍 Вказати місто", callback_data='set_location'),
                 InlineKeyboardButton("⚙️ Налаштування", callback_data='settings'),
             ]
@@ -85,13 +92,62 @@ class CallbackHandlers:
         data = NasaAPI.get_apod()
         if data:
             formatted = NasaAPI.format_apod(data)
-            # Send photo with short caption
-            await context.bot.send_photo(
-                chat_id=update.effective_chat.id,
-                photo=formatted['image'],
-                caption=formatted['caption'],
-                parse_mode='HTML'
-            )
+            
+            # Check if it's a video
+            if data.get('media_type') == 'video':
+                video_url = data.get('url', '')
+                thumbnail = data.get('thumbnail', '')
+                
+                # Try to get YouTube thumbnail if it's a YouTube video
+                if 'youtube.com' in video_url or 'youtu.be' in video_url:
+                    import re
+                    # Extract video ID
+                    if 'youtu.be' in video_url:
+                        video_id = video_url.split('/')[-1].split('?')[0]
+                    else:
+                        match = re.search(r'[?&]v=([^&]+)', video_url)
+                        video_id = match.group(1) if match else ''
+                    
+                    if video_id:
+                        thumbnail = f"https://img.youtube.com/vi/{video_id}/0.jpg"
+                
+                # If still no thumbnail, use a placeholder or skip
+                if not thumbnail:
+                    thumbnail = video_url  # fallback
+                
+                caption = f"🎥 <b>Відео дня від NASA</b>\n\n"
+                caption += f"📅 {data.get('date', '')}\n"
+                caption += f"🎬 {data.get('title', '')}\n\n"
+                caption += f"<a href='{video_url}'>▶️ Дивитись відео</a>\n\n"
+                caption += "<i>Повний опис нижче ↓</i>"
+                
+                try:
+                    # Skip sending photo if thumbnail is video file
+                    if thumbnail.endswith('.mp4') or thumbnail.endswith('.mov') or thumbnail.endswith('.avi'):
+                        raise Exception("Cannot send video as photo")
+                    
+                    await context.bot.send_photo(
+                        chat_id=update.effective_chat.id,
+                        photo=thumbnail,
+                        caption=caption,
+                        parse_mode='HTML'
+                    )
+                except:
+                    # If thumbnail fails, send text with link
+                    await update.callback_query.message.reply_text(
+                        caption,
+                        parse_mode='HTML',
+                        disable_web_page_preview=False
+                    )
+            else:
+                # Send photo with short caption
+                await context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
+                    photo=formatted['image'],
+                    caption=formatted['caption'],
+                    parse_mode='HTML'
+                )
+            
             # Send full description as separate message
             await update.callback_query.message.reply_text(
                 formatted['text'],
@@ -188,6 +244,57 @@ class CallbackHandlers:
         result = SpaceWeatherAPI.get_space_weather(user_lat=lat)
         await update.callback_query.message.edit_text(
             result,
+            parse_mode='HTML',
+            reply_markup=CallbackHandlers.get_main_menu()
+        )
+    
+    @staticmethod
+    async def moon(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle moon button"""
+        moon_data = MoonMarsAPI.get_moon_phase()
+        
+        message = "🌙 <b>Фаза Місяця</b>\n\n"
+        if moon_data:
+            message += f"{moon_data['phase_name']}\n"
+            message += f"💡 Освітленість: {moon_data['illumination']}%\n\n"
+            if moon_data['days_to_full'] < moon_data['days_to_new']:
+                message += f"🌕 Повний Місяць через: {moon_data['days_to_full']} дн.\n"
+            else:
+                message += f"🌑 Новий Місяць через: {moon_data['days_to_new']} дн.\n"
+        else:
+            message += "❌ Не вдалося розрахувати фазу\n"
+        
+        message += "\n📖 Синодичний період: 29.5 днів"
+        
+        await update.callback_query.message.edit_text(
+            message,
+            parse_mode='HTML',
+            reply_markup=CallbackHandlers.get_main_menu()
+        )
+    
+    @staticmethod
+    async def mars(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle mars button"""
+        mars_data = MoonMarsAPI.get_mars_weather()
+        
+        message = "🔴 <b>Погода на Марсі</b>\n\n"
+        if mars_data:
+            message += f"🌡️ Температура: {mars_data['temp_low']}°C ... {mars_data['temp_high']}°C\n"
+            message += f"💨 Тиск: {mars_data['pressure']} Па (~0.6% від Земного)\n"
+            message += f"🌬️ Вітер: змінний, до 100 км/год\n\n"
+            if mars_data['temp_high'] > -20:
+                message += "☀️ Зараз місцеве літо\n"
+            else:
+                message += "❄️ Зараз місцева зима\n"
+            if mars_data['source'] == 'InSight':
+                message += f"\n📡 Джерело: InSight, Sol {mars_data.get('sol', '?')}"
+            else:
+                message += "\n📊 Середні показники для екватора Марса"
+        else:
+            message += "❌ Не вдалося отримати дані\n"
+        
+        await update.callback_query.message.edit_text(
+            message,
             parse_mode='HTML',
             reply_markup=CallbackHandlers.get_main_menu()
         )
