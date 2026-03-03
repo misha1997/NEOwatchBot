@@ -2,7 +2,7 @@
 import logging
 import asyncio
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict, List, Set
 from telegram import Bot
 from telegram.constants import ParseMode
 
@@ -22,10 +22,20 @@ class NotificationScheduler:
     
     def __init__(self):
         self.bot = Bot(token=BOT_TOKEN)
+        self._last_apod_date = None  # Track last APOD sent
+        self._notified_launches: Set[str] = set()  # Track notified launches
+        self._last_iss_check = {}  # user_id -> last_check_time
     
     async def send_apod_to_subscribers(self):
-        """Send APOD to all subscribers"""
+        """Send APOD to all subscribers - once per day"""
         try:
+            today = datetime.now().strftime('%Y-%m-%d')
+            
+            # Skip if already sent today
+            if self._last_apod_date == today:
+                logger.info(f"APOD already sent today ({today})")
+                return
+            
             subscribers = get_apod_subscribers()
             data = NasaAPI.get_apod()
             
@@ -34,26 +44,43 @@ class NotificationScheduler:
                 return
             
             formatted = NasaAPI.format_apod(data)
-            today = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+            apod_date = data.get('date', today)
             
+            if not subscribers:
+                logger.info("No APOD subscribers")
+                return
+            
+            success_count = 0
             for user in subscribers:
                 try:
                     chat_id = user.get('chat_id')
-                    last_apod = user.get('last_apod_date')
+                    user_last_apod = user.get('last_apod_date')
                     
-                    # Skip if already sent today
-                    if last_apod == today:
+                    # Skip if user already got today's APOD
+                    if user_last_apod == apod_date:
                         continue
                     
-                    # Send photo with caption
-                    await self.bot.send_photo(
-                        chat_id=chat_id,
-                        photo=formatted['image'],
-                        caption=formatted['caption'],
-                        parse_mode=ParseMode.HTML
-                    )
+                    # Send based on media type
+                    media_type = data.get('media_type', 'image')
                     
-                    # Send description
+                    if media_type == 'video':
+                        # Send video
+                        await self.bot.send_video(
+                            chat_id=chat_id,
+                            video=formatted['image'],
+                            caption=formatted['caption'][:1024],  # Telegram limit
+                            parse_mode=ParseMode.HTML
+                        )
+                    else:
+                        # Send photo
+                        await self.bot.send_photo(
+                            chat_id=chat_id,
+                            photo=formatted['image'],
+                            caption=formatted['caption'][:1024],
+                            parse_mode=ParseMode.HTML
+                        )
+                    
+                    # Send description as separate message
                     await self.bot.send_message(
                         chat_id=chat_id,
                         text=formatted['text'],
@@ -61,15 +88,85 @@ class NotificationScheduler:
                     )
                     
                     # Update last sent date
-                    update_last_apod_date(user['user_id'], today)
+                    update_last_apod_date(user['user_id'], apod_date)
+                    success_count += 1
                     
                 except Exception as e:
                     logger.error(f"Failed to send APOD to {user.get('user_id')}: {e}")
-                    
-            logger.info(f"Sent APOD to {len(subscribers)} subscribers")
+            
+            self._last_apod_date = apod_date
+            logger.info(f"Sent APOD to {success_count}/{len(subscribers)} subscribers")
             
         except Exception as e:
             logger.error(f"APOD scheduler error: {e}")
+    
+    async def check_iss_passes(self):
+        """Check for upcoming ISS passes and notify subscribers"""
+        try:
+            logger.info("Checking ISS passes...")
+            subscribers = get_iss_subscribers()
+            
+            if not subscribers:
+                logger.info("No ISS subscribers")
+                return
+            
+            now = datetime.now()
+            
+            for user in subscribers:
+                try:
+                    user_id = user['user_id']
+                    chat_id = user['chat_id']
+                    lat = user.get('lat')
+                    lon = user.get('lon')
+                    
+                    if lat is None or lon is None:
+                        continue
+                    
+                    # Check if we already notified about ISS pass recently (within 30 min)
+                    last_check = self._last_iss_check.get(user_id)
+                    if last_check and (now - last_check).seconds < 1800:
+                        continue
+                    
+                    # Get upcoming passes
+                    passes = N2YOAPI.get_iss_passes(lat, lon, days=2)
+                    
+                    if not passes or 'passes' not in passes:
+                        continue
+                    
+                    # Check for passes within next 6 hours
+                    for iss_pass in passes['passes']:
+                        pass_time = datetime.fromtimestamp(iss_pass['startUTC'])
+                        time_until = (pass_time - now).total_seconds()
+                        
+                        # Notify if pass is in 1-6 hours
+                        if 3600 <= time_until <= 21600:  # 1-6 hours
+                            duration = iss_pass.get('duration', 0)
+                            max_elevation = iss_pass.get('maxEl', 0)
+                            
+                            msg = f"🛰 <b>Проліт МКС!</b>\n\n"
+                            msg += f"⏰ Час: {pass_time.strftime('%d.%m %H:%M')}\n"
+                            msg += f"⏱ Тривалість: {duration} сек\n"
+                            msg += f"📐 Максимальна висота: {max_elevation}°\n"
+                            msg += f"📍 Місце: {user.get('city', 'Ваше місто')}\n\n"
+                            msg += "<i>Дивіться на південно-західне небо!</i>"
+                            
+                            await self.bot.send_message(
+                                chat_id=chat_id,
+                                text=msg,
+                                parse_mode=ParseMode.HTML
+                            )
+                            
+                            update_last_iss_pass(user_id, int(pass_time.timestamp()))
+                            self._last_iss_check[user_id] = now
+                            break  # Only notify about next pass
+                    
+                except Exception as e:
+                    logger.error(f"Failed to check ISS for {user.get('user_id')}: {e}")
+            
+            logger.info("ISS check completed")
+            
+        except Exception as e:
+            logger.error(f"ISS scheduler error: {e}")
     
     async def check_upcoming_launches(self):
         """Check for upcoming launches and notify subscribers"""
@@ -81,7 +178,6 @@ class NotificationScheduler:
             if not launches_data:
                 return
             
-            # Parse launches from text (simplified)
             launches = self._parse_launches(launches_data)
             
             if not launches:
@@ -93,26 +189,40 @@ class NotificationScheduler:
                 logger.info("No launch subscribers")
                 return
             
+            now = datetime.now()
+            
             for launch in launches:
+                launch_id = launch.get('id')
                 launch_time = launch.get('time')
-                if not launch_time:
+                
+                if not launch_time or not launch_id:
                     continue
                 
-                # Check if launch is within next 24 hours
-                now = datetime.now()
+                # Skip if already notified
+                notification_key = f"{launch_id}_{launch_time.strftime('%Y%m%d')}"
+                if notification_key in self._notified_launches:
+                    continue
+                
                 time_until = (launch_time - now).total_seconds()
                 
                 # Notify 24 hours before
                 if 82800 < time_until <= 86400:  # 23-24 hours
                     await self._send_launch_notification(launch, subscribers, hours=24)
+                    self._notified_launches.add(notification_key)
                 
                 # Notify 2 hours before
                 elif 3600 < time_until <= 7200:  # 1-2 hours
                     await self._send_launch_notification(launch, subscribers, hours=2)
+                    self._notified_launches.add(notification_key)
                 
                 # Notify 30 minutes before
                 elif 1500 < time_until <= 1800:  # 25-30 minutes
                     await self._send_launch_notification(launch, subscribers, minutes=30)
+                    self._notified_launches.add(notification_key)
+            
+            # Cleanup old notifications (keep last 100)
+            if len(self._notified_launches) > 100:
+                self._notified_launches = set(list(self._notified_launches)[-100:])
             
             logger.info("Launch check completed")
             
@@ -123,51 +233,53 @@ class NotificationScheduler:
         """Parse launches from API response"""
         launches = []
         
-        # Extract from LaunchAPI format
-        text = launches_data.get('text', '')
-        
-        # Simple parsing (for full implementation, track sent launches in DB)
-        lines = text.split('\n')
-        current_launch = {}
-        
-        for line in lines:
-            if line.startswith('🚀'):
-                if current_launch:
-                    launches.append(current_launch)
-                current_launch = {'name': line.strip()}
-            elif '📅' in line and 'current_launch' in locals():
+        try:
+            # Handle LaunchLibrary v2.2.0 format
+            results = launches_data.get('results', [])
+            
+            for result in results:
                 try:
-                    # Simple date extraction
-                    date_str = line.replace('📅', '').strip()
-                    # Try to parse date (simplified)
-                    current_launch['date_str'] = date_str
-                except:
-                    pass
+                    launch_id = result.get('id')
+                    name = result.get('name', 'Unknown Launch')
+                    net = result.get('net')  # ISO format datetime
+                    
+                    if net:
+                        # Parse ISO datetime
+                        launch_time = datetime.fromisoformat(net.replace('Z', '+00:00'))
+                        launch_time = launch_time.replace(tzinfo=None)  # Make naive
+                        
+                        launches.append({
+                            'id': str(launch_id),
+                            'name': name,
+                            'time': launch_time
+                        })
+                except Exception as e:
+                    logger.warning(f"Failed to parse launch: {e}")
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"Error parsing launches: {e}")
         
-        if current_launch:
-            launches.append(current_launch)
-        
-        return []
+        return launches
     
     async def _send_launch_notification(self, launch: dict, subscribers: list,
                                         hours: int = None, minutes: int = None):
         """Send launch notification to subscribers"""
         try:
             launch_name = launch.get('name', 'Rocket Launch')
+            launch_time = launch.get('time', datetime.now())
             
             if hours:
-                when_text = f"через {hours} години!"
+                when_text = f"через {hours} години"
                 emoji = "⏰"
             else:
-                when_text = f"через {minutes} хвилин!"
+                when_text = f"через {minutes} хвилин"
                 emoji = "🚨"
             
-            message = f"{emoji} <b>Запуск ракети {when_text}</b>\n\n"
+            message = f"{emoji} <b>Запуск ракети {when_text}!</b>\n\n"
             message += f"🚀 {launch_name}\n"
-            if 'date_str' in launch:
-                message += f"📅 {launch['date_str']}\n"
-            
-            message += f"\n<i>Дивіться трансляцію на spaceflightnow.com</i>"
+            message += f"📅 {launch_time.strftime('%d.%m.%Y %H:%M UTC')}\n"
+            message += f"\n<i>Дивіться трансляцію на spaceflightnow.com або youtube.com/nasaspaceflight</i>"
             
             for user in subscribers:
                 try:
@@ -179,26 +291,33 @@ class NotificationScheduler:
                 except Exception as e:
                     logger.error(f"Failed to notify {user['user_id']}: {e}")
             
-            logger.info(f"Sent launch notification to {len(subscribers)} users")
+            logger.info(f"Sent launch notification to {len(subscribers)} users for {launch_name}")
             
         except Exception as e:
             logger.error(f"Launch notification error: {e}")
     
     async def run_scheduled_tasks(self):
-        """Main scheduler loop"""
+        """Main scheduler loop - runs every minute"""
+        logger.info("Scheduler started")
+        
         while True:
             try:
                 now = datetime.now()
                 
-                # APOD daily at 09:00 Kyiv time (UTC+2)
-                if now.hour == 9 and now.minute == 0:
+                # APOD at 09:00 Kyiv time (with 1-minute window)
+                if now.hour == 9 and 0 <= now.minute <= 1:
                     await self.send_apod_to_subscribers()
                 
-                # Check launches every 10 minutes
-                await self.check_upcoming_launches()
+                # Check ISS passes every 10 minutes
+                if now.minute % 10 == 0:
+                    await self.check_iss_passes()
                 
-                # Sleep for 10 minutes
-                await asyncio.sleep(600)
+                # Check launches every 5 minutes
+                if now.minute % 5 == 0:
+                    await self.check_upcoming_launches()
+                
+                # Sleep for 1 minute
+                await asyncio.sleep(60)
                 
             except Exception as e:
                 logger.error(f"Scheduler error: {e}")
