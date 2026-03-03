@@ -93,9 +93,19 @@ class CallbackHandlers:
     @staticmethod
     async def apod(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle APOD button"""
-        data = NasaAPI.get_apod()
-        if data:
+        try:
+            data = NasaAPI.get_apod()
+            if not data:
+                logger.error("APOD: get_apod() returned None")
+                await update.callback_query.message.reply_text(
+                    "❌ Не вдалося отримати фото дня від NASA (API error)",
+                    reply_markup=CallbackHandlers.get_main_menu()
+                )
+                return
             formatted = NasaAPI.format_apod(data)
+            
+            logger.info(f"APOD data: media_type={data.get('media_type')}, url={data.get('url', '')[:50]}...")
+            logger.info(f"APOD image URL: {formatted.get('image', 'N/A')[:50]}...")
             
             # Check if it's a video
             if data.get('media_type') == 'video':
@@ -171,12 +181,23 @@ class CallbackHandlers:
                         )
             else:
                 # Send photo with short caption
-                await context.bot.send_photo(
-                    chat_id=update.effective_chat.id,
-                    photo=formatted['image'],
-                    caption=formatted['caption'],
-                    parse_mode='HTML'
-                )
+                try:
+                    await context.bot.send_photo(
+                        chat_id=update.effective_chat.id,
+                        photo=formatted['image'],
+                        caption=formatted['caption'],
+                        parse_mode='HTML'
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send APOD photo: {e}")
+                    # Fallback: send as link
+                    await context.bot.send_message(
+                        chat_id=update.effective_chat.id,
+                        text=f"🌌 <b>{data.get('title', '')}</b>\n\n"
+                             f"📅 {data.get('date', '')}\n\n"
+                             f"<a href='{formatted['image']}'>📷 Дивитись фото</a>\n\n",
+                        parse_mode='HTML'
+                    )
             
             # Send full description as separate message
             await update.callback_query.message.reply_text(
@@ -184,9 +205,12 @@ class CallbackHandlers:
                 parse_mode='HTML',
                 reply_markup=CallbackHandlers.get_main_menu()
             )
-        else:
+        except Exception as e:
+            logger.error(f"APOD handler error: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             await update.callback_query.message.reply_text(
-                "❌ Не вдалося отримати фото дня",
+                f"❌ Помилка при отриманні фото дня: {str(e)[:200]}",
                 reply_markup=CallbackHandlers.get_main_menu()
             )
     

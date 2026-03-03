@@ -76,8 +76,16 @@ class NasaAPI:
                 'api_key': NASA_API_KEY,
                 'thumbs': 'True'
             }
+            logger.info(f"Fetching APOD from {NASA_APOD_URL}")
             response = requests.get(NASA_APOD_URL, params=params, timeout=10)
+            logger.info(f"APOD response status: {response.status_code}")
+            
+            if response.status_code != 200:
+                logger.error(f"APOD API error: {response.status_code} - {response.text[:200]}")
+                return None
+            
             data = response.json()
+            logger.info(f"APOD data received: media_type={data.get('media_type')}, title={data.get('title', 'N/A')[:30]}")
             
             return {
                 'title': data.get('title', ''),
