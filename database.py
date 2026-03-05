@@ -123,10 +123,13 @@ def get_user(user_id: int) -> Optional[Dict]:
         conn.close()
 
 
-def create_or_update_user(user_id: int, chat_id: int, username: str = None,
+def create_or_update_user(user_id: int, chat_id: int = None, username: str = None,
                           first_name: str = None, last_name: str = None,
                           city: str = None, lat: float = None, lon: float = None) -> Dict:
     """Create or update user"""
+    # If chat_id not provided, use user_id
+    if chat_id is None:
+        chat_id = user_id
     conn = get_db_connection()
     cursor = conn.cursor()
     

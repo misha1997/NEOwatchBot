@@ -18,7 +18,13 @@ class CommandHandlers:
         username = user.username
         
         # Create/update user in database
-        create_or_update_user(user_id, username)
+        create_or_update_user(
+            user_id=user_id,
+            chat_id=update.effective_chat.id,
+            username=username,
+            first_name=user.first_name,
+            last_name=user.last_name
+        )
         
         message = f"🚀 <b>NEOwatch - Космічний бот</b>\n\n"
         message += f"Привіт, {user.first_name}! 👋\n\n"
