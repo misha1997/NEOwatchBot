@@ -1,115 +1,183 @@
-"""SQLite database for NEOwatch Bot"""
-import sqlite3
+"""MySQL database for NEOwatch Bot"""
 import logging
 import requests
 from datetime import datetime
 from typing import Optional, Dict, List
-from config import N2YO_API_KEY, DEFAULT_LAT, DEFAULT_LON
+import mysql.connector
+from mysql.connector import Error, pooling
+from config import (
+    N2YO_API_KEY, DEFAULT_LAT, DEFAULT_LON,
+    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+)
 
 logger = logging.getLogger(__name__)
 
-DATABASE_FILE = 'neowatch.db'
+# Database connection pool
+_db_pool = None
+
+
+def get_db_connection():
+    """Get database connection from pool or create new one"""
+    global _db_pool
+    
+    try:
+        if _db_pool is None:
+            _db_pool = pooling.MySQLConnectionPool(
+                pool_name="neowatch_pool",
+                pool_size=5,
+                host=DB_HOST,
+                port=DB_PORT,
+                database=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWORD,
+                charset='utf8mb4',
+                collation='utf8mb4_unicode_ci',
+                autocommit=True
+            )
+        
+        return _db_pool.get_connection()
+    except Error as e:
+        logger.error(f"Database connection error: {e}")
+        # Fallback to direct connection if pool fails
+        return mysql.connector.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            database=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            charset='utf8mb4',
+            collation='utf8mb4_unicode_ci',
+            autocommit=True
+        )
 
 
 def init_db():
     """Initialize database with tables"""
-    conn = sqlite3.connect(DATABASE_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Users table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            chat_id INTEGER NOT NULL,
-            username TEXT,
-            first_name TEXT,
-            last_name TEXT,
-            city TEXT,
-            lat REAL,
-            lon REAL,
-            subscribed_iss BOOLEAN DEFAULT 1,
-            subscribed_apod BOOLEAN DEFAULT 1,
-            subscribed_launches BOOLEAN DEFAULT 1,
-            last_iss_pass INTEGER,
-            last_apod_date TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # ISS passes history
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS iss_passes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            pass_time TIMESTAMP,
-            duration INTEGER,
-            max_elevation REAL,
-            notified BOOLEAN DEFAULT 0,
-            FOREIGN KEY (user_id) REFERENCES users(user_id)
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
-    logger.info("Database initialized")
+    try:
+        # Users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                user_id BIGINT PRIMARY KEY,
+                chat_id BIGINT NOT NULL,
+                username VARCHAR(255),
+                first_name VARCHAR(255),
+                last_name VARCHAR(255),
+                city VARCHAR(255),
+                lat DECIMAL(10, 8),
+                lon DECIMAL(11, 8),
+                subscribed_iss BOOLEAN DEFAULT TRUE,
+                subscribed_apod BOOLEAN DEFAULT TRUE,
+                subscribed_launches BOOLEAN DEFAULT TRUE,
+                last_iss_pass INT,
+                last_apod_date VARCHAR(10),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_subscribed_iss (subscribed_iss),
+                INDEX idx_subscribed_apod (subscribed_apod),
+                INDEX idx_subscribed_launches (subscribed_launches)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+        
+        # ISS passes history
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS iss_passes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id BIGINT,
+                pass_time TIMESTAMP,
+                duration INT,
+                max_elevation DECIMAL(5, 2),
+                notified BOOLEAN DEFAULT FALSE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                INDEX idx_user_pass (user_id, pass_time)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+        
+        conn.commit()
+        logger.info("Database initialized (MySQL)")
+        
+    except Error as e:
+        logger.error(f"Database initialization error: {e}")
+        raise
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def get_user(user_id: int) -> Optional[Dict]:
     """Get user by ID"""
-    conn = sqlite3.connect(DATABASE_FILE)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
     
-    cursor.execute('SELECT * FROM users WHERE user_id = ?', (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-    
-    if row:
-        return dict(row)
-    return None
+    try:
+        cursor.execute('SELECT * FROM users WHERE user_id = %s', (user_id,))
+        row = cursor.fetchone()
+        return row
+    except Error as e:
+        logger.error(f"Error getting user: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def create_or_update_user(user_id: int, chat_id: int, username: str = None,
                           first_name: str = None, last_name: str = None,
                           city: str = None, lat: float = None, lon: float = None) -> Dict:
     """Create or update user"""
-    conn = sqlite3.connect(DATABASE_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('''
-        INSERT INTO users (user_id, chat_id, username, first_name, last_name, city, lat, lon)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET
-            chat_id = excluded.chat_id,
-            username = COALESCE(excluded.username, users.username),
-            first_name = COALESCE(excluded.first_name, users.first_name),
-            last_name = COALESCE(excluded.last_name, users.last_name),
-            city = COALESCE(excluded.city, users.city),
-            lat = COALESCE(excluded.lat, users.lat),
-            lon = COALESCE(excluded.lon, users.lon),
-            updated_at = CURRENT_TIMESTAMP
-    ''', (user_id, chat_id, username, first_name, last_name, city, lat, lon))
-    
-    conn.commit()
-    conn.close()
-    
-    return get_user(user_id)
+    try:
+        # Insert or update user
+        cursor.execute('''
+            INSERT INTO users (user_id, chat_id, username, first_name, last_name, city, lat, lon)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                chat_id = VALUES(chat_id),
+                username = COALESCE(VALUES(username), username),
+                first_name = COALESCE(VALUES(first_name), first_name),
+                last_name = COALESCE(VALUES(last_name), last_name),
+                city = COALESCE(VALUES(city), city),
+                lat = COALESCE(VALUES(lat), lat),
+                lon = COALESCE(VALUES(lon), lon),
+                updated_at = CURRENT_TIMESTAMP
+        ''', (user_id, chat_id, username, first_name, last_name, city, lat, lon))
+        
+        conn.commit()
+        return get_user(user_id)
+        
+    except Error as e:
+        logger.error(f"Error creating/updating user: {e}")
+        conn.rollback()
+        return None
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def update_user_location(user_id: int, city: str, lat: float, lon: float):
     """Update user location"""
-    conn = sqlite3.connect(DATABASE_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('''
-        UPDATE users SET city = ?, lat = ?, lon = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = ?
-    ''', (city, lat, lon, user_id))
-    
-    conn.commit()
-    conn.close()
-    logger.info(f"Updated location for user {user_id}: {city} ({lat}, {lon})")
+    try:
+        cursor.execute('''
+            UPDATE users SET city = %s, lat = %s, lon = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = %s
+        ''', (city, lat, lon, user_id))
+        
+        conn.commit()
+        logger.info(f"Updated location for user {user_id}: {city} ({lat}, {lon})")
+        
+    except Error as e:
+        logger.error(f"Error updating location: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def toggle_subscription(user_id: int, subscription_type: str) -> bool:
@@ -117,126 +185,173 @@ def toggle_subscription(user_id: int, subscription_type: str) -> bool:
     if subscription_type not in ('iss', 'apod', 'launches'):
         return False
     
-    conn = sqlite3.connect(DATABASE_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
-    column = f'subscribed_{subscription_type}'
-    
-    cursor.execute(f'SELECT {column} FROM users WHERE user_id = ?', (user_id,))
-    row = cursor.fetchone()
-    if not row:
-        conn.close()
+    try:
+        column = f'subscribed_{subscription_type}'
+        
+        # Get current status
+        cursor.execute(f'SELECT {column} FROM users WHERE user_id = %s', (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return False
+        
+        current_status = bool(row[0])
+        new_status = not current_status
+        
+        # Update status
+        cursor.execute(f''
+            f'UPDATE users SET {column} = %s WHERE user_id = %s'
+        '', (new_status, user_id))
+        
+        conn.commit()
+        return new_status
+        
+    except Error as e:
+        logger.error(f"Error toggling subscription: {e}")
+        conn.rollback()
         return False
-    
-    new_status = not row[0]
-    
-    cursor.execute(f'''
-        UPDATE users SET {column} = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = ?
-    ''', (new_status, user_id))
-    
-    conn.commit()
-    conn.close()
-    
-    return new_status
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def get_subscription_status(user_id: int) -> Dict[str, bool]:
     """Get subscription status for user"""
-    conn = sqlite3.connect(DATABASE_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('SELECT subscribed_iss, subscribed_apod, subscribed_launches FROM users WHERE user_id = ?', (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-    
-    if row:
-        return {'iss': bool(row[0]), 'apod': bool(row[1]), 'launches': bool(row[2])}
-    return {'iss': False, 'apod': False, 'launches': False}
+    try:
+        cursor.execute(
+            'SELECT subscribed_iss, subscribed_apod, subscribed_launches FROM users WHERE user_id = %s',
+            (user_id,)
+        )
+        row = cursor.fetchone()
+        
+        if row:
+            return {'iss': bool(row[0]), 'apod': bool(row[1]), 'launches': bool(row[2])}
+        return {'iss': False, 'apod': False, 'launches': False}
+        
+    except Error as e:
+        logger.error(f"Error getting subscription status: {e}")
+        return {'iss': False, 'apod': False, 'launches': False}
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def get_iss_subscribers() -> List[Dict]:
     """Get all users subscribed to ISS notifications"""
-    conn = sqlite3.connect(DATABASE_FILE)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
     
-    cursor.execute('''
-        SELECT * FROM users
-        WHERE subscribed_iss = 1 AND lat IS NOT NULL AND lon IS NOT NULL
-    ''')
-    
-    users = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return users
+    try:
+        cursor.execute('''
+            SELECT * FROM users
+            WHERE subscribed_iss = TRUE AND lat IS NOT NULL AND lon IS NOT NULL
+        ''')
+        
+        return cursor.fetchall()
+        
+    except Error as e:
+        logger.error(f"Error getting ISS subscribers: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def get_apod_subscribers() -> List[Dict]:
     """Get all users subscribed to APOD"""
-    conn = sqlite3.connect(DATABASE_FILE)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
     
-    cursor.execute('SELECT * FROM users WHERE subscribed_apod = 1')
-    
-    users = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return users
+    try:
+        cursor.execute('SELECT * FROM users WHERE subscribed_apod = TRUE')
+        return cursor.fetchall()
+        
+    except Error as e:
+        logger.error(f"Error getting APOD subscribers: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def get_launch_subscribers() -> List[Dict]:
     """Get all users subscribed to launch notifications"""
-    conn = sqlite3.connect(DATABASE_FILE)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
     
-    cursor.execute('SELECT * FROM users WHERE subscribed_launches = 1')
-    
-    users = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return users
+    try:
+        cursor.execute('SELECT * FROM users WHERE subscribed_launches = TRUE')
+        return cursor.fetchall()
+        
+    except Error as e:
+        logger.error(f"Error getting launch subscribers: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def update_last_iss_pass(user_id: int, pass_timestamp: int):
     """Update last notified ISS pass"""
-    conn = sqlite3.connect(DATABASE_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('''
-        UPDATE users SET last_iss_pass = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = ?
-    ''', (pass_timestamp, user_id))
-    
-    conn.commit()
-    conn.close()
+    try:
+        cursor.execute(
+            'UPDATE users SET last_iss_pass = %s WHERE user_id = %s',
+            (pass_timestamp, user_id)
+        )
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error updating last ISS pass: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def update_last_apod_date(user_id: int, date: str):
     """Update last sent APOD date"""
-    conn = sqlite3.connect(DATABASE_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('''
-        UPDATE users SET last_apod_date = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE user_id = ?
-    ''', (date, user_id))
-    
-    conn.commit()
-    conn.close()
+    try:
+        cursor.execute(
+            'UPDATE users SET last_apod_date = %s WHERE user_id = %s',
+            (date, user_id)
+        )
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error updating last APOD date: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def get_last_apod_for_user(user_id: int) -> Optional[str]:
     """Get last sent APOD date for user"""
-    conn = sqlite3.connect(DATABASE_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('SELECT last_apod_date FROM users WHERE user_id = ?', (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-    
-    if row:
-        return row[0]
-    return None
+    try:
+        cursor.execute('SELECT last_apod_date FROM users WHERE user_id = %s', (user_id,))
+        row = cursor.fetchone()
+        
+        if row:
+            return row[0]
+        return None
+    except Error as e:
+        logger.error(f"Error getting last APOD: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def geocode_city(city_name: str) -> Optional[tuple]:
@@ -267,14 +382,19 @@ def geocode_city(city_name: str) -> Optional[tuple]:
 
 def get_user_count() -> int:
     """Get total user count"""
-    conn = sqlite3.connect(DATABASE_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute('SELECT COUNT(*) FROM users')
-    count = cursor.fetchone()[0]
-    conn.close()
-    
-    return count
+    try:
+        cursor.execute('SELECT COUNT(*) FROM users')
+        count = cursor.fetchone()[0]
+        return count
+    except Error as e:
+        logger.error(f"Error getting user count: {e}")
+        return 0
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def get_city_suggestions(city_name: str) -> List[Dict]:

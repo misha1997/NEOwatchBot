@@ -84,6 +84,22 @@ class N2YOAPI:
             return "❌ Не вдалося отримати дані про проходження"
     
     @staticmethod
+    def get_iss_passes_raw(lat, lon, alt=0, days=10):
+        """Get ISS passes raw data for scheduler"""
+        try:
+            url = f"{N2YO_BASE_URL}/visualpasses/{ISS_NORAD_ID}/{lat}/{lon}/{alt}/{days}/60"
+            params = {'apiKey': N2YO_API_KEY}
+            
+            response = requests.get(url, params=params, timeout=10)
+            data = response.json()
+            
+            return data
+            
+        except Exception as e:
+            logger.error(f"ISS passes raw error: {e}")
+            return None
+    
+    @staticmethod
     def _format_passes(passes):
         """Format ISS passes for Telegram"""
         message = "🛰️ <b>Найближчі проходження МКС</b>\n\n"

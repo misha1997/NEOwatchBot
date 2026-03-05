@@ -27,11 +27,16 @@ NOAA_SPACEWEATHER_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-
 OPEN_NOTIFY_CREW = "http://api.open-notify.org/astros.json"
 
 # Default location (Kyiv, Ukraine)
-DEFAULT_LAT = float(os.getenv('DEFAULT_LAT', 50.4501))
-DEFAULT_LON = float(os.getenv('DEFAULT_LON', 30.5234))
+DEFAULT_LAT = float(os.getenv('DEFAULT_LAT', ''))
+DEFAULT_LON = float(os.getenv('DEFAULT_LON', ''))
 DEFAULT_ALT = int(os.getenv('DEFAULT_ALT', 0))
 
-# Satellite IDs
+# Database Configuration
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_PORT = int(os.getenv('DB_PORT', 3306))
+DB_NAME = os.getenv('DB_NAME', '')
+DB_USER = os.getenv('DB_USER', '')
+DB_PASSWORD = os.getenv('DB_PASSWORD', '')
 ISS_NORAD_ID = 25544
 
 # Starlink satellite IDs (most visible ones)

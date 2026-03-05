@@ -128,7 +128,7 @@ class NotificationScheduler:
                         continue
                     
                     # Get upcoming passes
-                    passes = N2YOAPI.get_iss_passes(lat, lon, days=2)
+                    passes = N2YOAPI.get_iss_passes_raw(lat, lon, days=2)
                     
                     if not passes or 'passes' not in passes:
                         continue
