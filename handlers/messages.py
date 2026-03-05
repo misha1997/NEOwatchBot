@@ -39,7 +39,7 @@ class MessageHandlers:
         try:
             # First try direct geocoding
             lat, lon, display_name = geocode_city(city_name)
-            update_user_location(user_id, lat, lon, city_name)
+            update_user_location(user_id, city_name, lat, lon)
             
             # Clear state
             del user_states[user_id]

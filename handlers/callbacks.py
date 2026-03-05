@@ -423,7 +423,7 @@ class CallbackHandlers:
         
         try:
             lat, lon, display_name = geocode_city(city_name)
-            update_user_location(user_id, lat, lon, city_name)
+            update_user_location(user_id, city_name, lat, lon)
             
             await update.callback_query.message.edit_text(
                 f"✅ Місто встановлено: <b>{city_name}</b>\n"
