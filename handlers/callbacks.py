@@ -573,10 +573,20 @@ class CallbackHandlers:
         if user_id in user_states:
             del user_states[user_id]
 
+        message = "🛰️ <b>NEOwatch — Твій провідник у космосі</b>\n\n"
+        message += "Відстежуй все, що відбувається над головою:\n\n"
+        message += "🌑 <b>Астероїди</b> — небезпечні об'єкти поблизу Землі\n"
+        message += "🛰️ <b>МКС</b> — позиція та проходження над твоїм містом\n"
+        message += "🚀 <b>Запуски</b> — ракети SpaceX, NASA та інших\n"
+        message += "🌠 <b>Метеори</b> — потоки зірок у нічному небі\n"
+        message += "🌌 <b>Фото дня</b> — вражаючі кадри від NASA\n"
+        message += "👨‍🚀 <b>Екіпаж</b> — хто зараз у космосі\n\n"
+        message += "☀️ Налаштуй сповіщення, щоб нічого не пропустити!"
+
         try:
             # Try to edit existing message
             await update.callback_query.message.edit_text(
-                "🚀 <b>NEOwatch - Космічний бот</b>\n\nОбери дію:",
+                message,
                 parse_mode='HTML',
                 reply_markup=CallbackHandlers.get_main_menu()
             )
@@ -585,7 +595,7 @@ class CallbackHandlers:
             logger.debug(f"Could not edit message, sending new one: {e}")
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="🚀 <b>NEOwatch - Космічний бот</b>\n\nОбери дію:",
+                text=message,
                 parse_mode='HTML',
                 reply_markup=CallbackHandlers.get_main_menu()
             )
