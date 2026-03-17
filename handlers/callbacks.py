@@ -572,9 +572,20 @@ class CallbackHandlers:
         user_id = update.effective_user.id
         if user_id in user_states:
             del user_states[user_id]
-        
-        await update.callback_query.message.edit_text(
-            "🚀 <b>NEOwatch - Космічний бот</b>\n\nОбери дію:",
-            parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
-        )
+
+        try:
+            # Try to edit existing message
+            await update.callback_query.message.edit_text(
+                "🚀 <b>NEOwatch - Космічний бот</b>\n\nОбери дію:",
+                parse_mode='HTML',
+                reply_markup=CallbackHandlers.get_main_menu()
+            )
+        except Exception as e:
+            # If editing fails (e.g., message was deleted), send new message
+            logger.debug(f"Could not edit message, sending new one: {e}")
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="🚀 <b>NEOwatch - Космічний бот</b>\n\nОбери дію:",
+                parse_mode='HTML',
+                reply_markup=CallbackHandlers.get_main_menu()
+            )
