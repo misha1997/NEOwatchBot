@@ -82,10 +82,38 @@ class CallbackHandlers:
     
     @staticmethod
     async def neo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle asteroids button"""
-        result = NasaAPI.get_asteroids_today()
+        """Handle asteroids button - show today + upcoming hazardous"""
+        # Get today's asteroids
+        today_result = NasaAPI.get_asteroids_today()
+
+        # Get upcoming hazardous asteroids
+        hazardous = NasaAPI.get_hazardous_asteroids()
+
+        # Build combined message
+        message = today_result + "\n\n"
+
+        # Add upcoming hazardous section
+        if hazardous:
+            message += "⚠️ <b>Небезпечні астероїди (наступні 7 днів):</b>\n\n"
+            for i, neo in enumerate(hazardous[:3], 1):
+                name = neo['name']
+                distance_km = neo['miss_distance_km']
+                approach_date = neo['approach_date']
+                is_hazardous = neo.get('is_hazardous', True)
+
+                # Format distance
+                if distance_km >= 1_000_000:
+                    distance_str = f"{distance_km/1_000_000:.2f} млн км"
+                else:
+                    distance_str = f"{distance_km/1000:,.0f} тис км"
+
+                message += f"{i}. 🌑 <b>{name}</b>\n"
+                message += f"   📅 {approach_date}\n"
+                message += f"   📍 {distance_str}\n"
+                message += f"   ⚠️ Потенційно небезпечний\n\n"
+
         await update.callback_query.message.edit_text(
-            result, 
+            message,
             parse_mode='HTML',
             reply_markup=CallbackHandlers.get_main_menu()
         )
@@ -226,13 +254,40 @@ class CallbackHandlers:
     
     @staticmethod
     async def iss_now(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle ISS position button"""
-        result = N2YOAPI.get_iss_position()
-        await update.callback_query.message.edit_text(
-            result,
-            parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
-        )
+        """Handle ISS position button - now with map image"""
+        from services.iss_map import ISSMapService
+        from telegram import InputFile
+        
+        try:
+            # Get map image and caption
+            map_image, caption = ISSMapService.get_iss_map_with_info()
+            
+            if map_image:
+                # Send photo with map
+                await update.callback_query.message.reply_photo(
+                    photo=InputFile(map_image, filename='iss_map.png'),
+                    caption=caption,
+                    parse_mode='HTML',
+                    reply_markup=CallbackHandlers.get_main_menu()
+                )
+                # Delete original message to avoid duplication
+                await update.callback_query.message.delete()
+            else:
+                # Fallback to text only
+                await update.callback_query.message.edit_text(
+                    caption or "❌ Не вдалося отримати позицію МКС",
+                    parse_mode='HTML',
+                    reply_markup=CallbackHandlers.get_main_menu()
+                )
+        except Exception as e:
+            logger.error(f"ISS now handler error: {e}")
+            # Fallback to original method
+            result = N2YOAPI.get_iss_position()
+            await update.callback_query.message.edit_text(
+                result,
+                parse_mode='HTML',
+                reply_markup=CallbackHandlers.get_main_menu()
+            )
     
     @staticmethod
     async def iss_passes(update: Update, context: ContextTypes.DEFAULT_TYPE):
