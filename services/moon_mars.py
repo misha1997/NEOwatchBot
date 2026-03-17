@@ -87,49 +87,95 @@ class MoonMarsAPI:
     
     @staticmethod
     def get_mars_weather():
-        """Get Mars weather (using NASA InSight last data or Perseverance)"""
+        """Get Mars weather from NASA InSight API"""
         try:
-            # InSight stopped transmitting in Dec 2022
-            # Use NASA MAAS API (Mars Atmospheric Aggregation System) if available
-            # Or return static info with last known typical conditions
-            
-            # Try to get from NASA API
-            url = "https://api.nasa.gov/insight_weather/"
-            params = {'api_key': 'DEMO_KEY', 'feedtype': 'json', 'ver': '1.0'}
-            
-            try:
-                response = requests.get(url, params=params, timeout=10)
-                if response.status_code == 200:
-                    data = response.json()
-                    if 'sol_keys' in data and data['sol_keys']:
-                        latest_sol = data['sol_keys'][-1]
-                        sol_data = data[latest_sol]
-                        
-                        temp_high = sol_data.get('AT', {}).get('mx')
-                        temp_low = sol_data.get('AT', {}).get('mn')
-                        pressure = sol_data.get('PRE', {}).get('av')
-                        
-                        if temp_high and temp_low:
-                            return {
-                                'source': 'InSight',
-                                'sol': latest_sol,
-                                'temp_high': round(temp_high, 1),
-                                'temp_low': round(temp_low, 1),
-                                'pressure': round(pressure, 1) if pressure else None,
-                                'season': 'dusty'  # Mars is often dusty
-                            }
-            except:
-                pass
-            
-            # Fallback - return typical Mars conditions
+            url = "https://mars.nasa.gov/rss/api/?feed=weather&category=insight_temperature&feedtype=json"
+
+            response = requests.get(url, timeout=15)
+            if response.status_code != 200:
+                logger.error(f"Mars API error: HTTP {response.status_code}")
+                return None
+
+            data = response.json()
+
+            if 'sol_keys' not in data or not data['sol_keys']:
+                logger.error("Mars API: No sol data available")
+                return None
+
+            # Get the latest sol with data
+            latest_sol = data['sol_keys'][-1]
+            sol_data = data[latest_sol]
+
+            # Extract temperature data (AT = Atmospheric Temperature)
+            at_data = sol_data.get('AT', {})
+            temp_avg = at_data.get('av')
+            temp_min = at_data.get('mn')
+            temp_max = at_data.get('mx')
+            temp_samples = at_data.get('ct', 0)
+
+            # Extract pressure data (PRE = Pressure)
+            pre_data = sol_data.get('PRE', {})
+            pressure_avg = pre_data.get('av')
+            pressure_min = pre_data.get('mn')
+            pressure_max = pre_data.get('mx')
+
+            # Extract wind speed data (HWS = Horizontal Wind Speed)
+            hws_data = sol_data.get('HWS', {})
+            wind_avg = hws_data.get('av')
+            wind_min = hws_data.get('mn')
+            wind_max = hws_data.get('mx')
+
+            # Extract wind direction (WD = Wind Direction)
+            wd_data = sol_data.get('WD', {})
+            most_common_wind = wd_data.get('most_common', {})
+            wind_direction = most_common_wind.get('compass_point', 'N/A')
+            wind_direction_deg = most_common_wind.get('compass_degrees', 0)
+
+            # Extract season info
+            season = sol_data.get('Season', 'Unknown')
+            northern_season = sol_data.get('Northern_season', 'Unknown')
+            southern_season = sol_data.get('Southern_season', 'Unknown')
+
+            # Extract timestamps
+            first_utc = sol_data.get('First_UTC', '')
+            last_utc = sol_data.get('Last_UTC', '')
+
+            # Parse dates for display
+            first_date = ''
+            last_date = ''
+            if first_utc:
+                try:
+                    first_date = first_utc.split('T')[0]
+                except:
+                    pass
+            if last_utc:
+                try:
+                    last_date = last_utc.split('T')[0]
+                except:
+                    pass
+
             return {
-                'source': 'avg',
-                'temp_high': -10,
-                'temp_low': -80,
-                'pressure': 610,
-                'season': 'typical'
+                'sol': latest_sol,
+                'temp_avg': round(temp_avg, 1) if temp_avg else None,
+                'temp_min': round(temp_min, 1) if temp_min else None,
+                'temp_max': round(temp_max, 1) if temp_max else None,
+                'temp_samples': temp_samples,
+                'pressure_avg': round(pressure_avg, 1) if pressure_avg else None,
+                'pressure_min': round(pressure_min, 1) if pressure_min else None,
+                'pressure_max': round(pressure_max, 1) if pressure_max else None,
+                'wind_avg': round(wind_avg, 1) if wind_avg else None,
+                'wind_min': round(wind_min, 1) if wind_min else None,
+                'wind_max': round(wind_max, 1) if wind_max else None,
+                'wind_direction': wind_direction,
+                'wind_direction_deg': wind_direction_deg,
+                'season': season,
+                'northern_season': northern_season,
+                'southern_season': southern_season,
+                'first_date': first_date,
+                'last_date': last_date,
+                'data_count': len(data.get('sol_keys', []))
             }
-            
+
         except Exception as e:
             logger.error(f"Mars weather error: {e}")
             return None
@@ -139,34 +185,70 @@ class MoonMarsAPI:
         """Format combined moon and mars message"""
         moon = MoonMarsAPI.get_moon_phase()
         mars = MoonMarsAPI.get_mars_weather()
-        
+
         message = "🌙 <b>Місяць та Марс</b>\n\n"
-        
+
         # Moon section
         if moon:
             message += f"{moon['phase_name']}\n"
             message += f"💡 Освітленість: {moon['illumination']}%\n"
-            
+
             if moon['days_to_full'] < 15:
                 message += f"🌕 Повний Місяць через: {moon['days_to_full']} дн.\n"
             else:
                 message += f"🌑 Новий Місяць через: {moon['days_to_new']} дн.\n"
-            
+
             message += "\n"
-        
+
         # Mars section
         if mars:
             message += "🔴 <b>Погода на Марсі</b>\n"
-            
-            if mars.get('source') == 'InSight':
-                message += f"Сол {mars['sol']} (марсіанський день)\n"
-            
-            message += f"🌡️ Температура: {mars['temp_low']}°C ... {mars['temp_high']}°C\n"
-            
-            if mars.get('pressure'):
-                message += f"💨 Тиск: {mars['pressure']} Па\n"
-            
-            message += "☀️ Сезон: місцевий літній" if mars['temp_high'] > -20 else "❄️ Сезон: місцевий зимовий"
-            message += "\n"
-        
+            message += f"📅 Сол {mars['sol']} (марсіанський день)\n"
+            message += f"📊 Дані за: {mars.get('first_date', 'N/A')} - {mars.get('last_date', 'N/A')}\n\n"
+
+            # Temperature
+            if mars.get('temp_avg') is not None:
+                message += "🌡️ <b>Температура повітря:</b>\n"
+                message += f"   Середня: {mars['temp_avg']}°C\n"
+                if mars.get('temp_min') is not None and mars.get('temp_max') is not None:
+                    message += f"   Діапазон: {mars['temp_min']}°C ... {mars['temp_max']}°C\n"
+                if mars.get('temp_samples'):
+                    message += f"   Вимірювань: {mars['temp_samples']}\n"
+                message += "\n"
+
+            # Pressure
+            if mars.get('pressure_avg') is not None:
+                message += "💨 <b>Атмосферний тиск:</b>\n"
+                message += f"   Середній: {mars['pressure_avg']} Па\n"
+                if mars.get('pressure_min') is not None and mars.get('pressure_max') is not None:
+                    message += f"   Діапазон: {mars['pressure_min']} ... {mars['pressure_max']} Па\n"
+                message += "\n"
+
+            # Wind
+            if mars.get('wind_avg') is not None:
+                message += "💨 <b>Вітер:</b>\n"
+                message += f"   Середня швидкість: {mars['wind_avg']} м/с\n"
+                if mars.get('wind_min') is not None and mars.get('wind_max') is not None:
+                    message += f"   Діапазон: {mars['wind_min']} ... {mars['wind_max']} м/с\n"
+                if mars.get('wind_direction'):
+                    message += f"   Напрямок: {mars['wind_direction']} ({mars.get('wind_direction_deg', 0)}°)\n"
+                message += "\n"
+
+            # Season
+            if mars.get('season'):
+                season_emoji = "🌸" if "spring" in mars['season'].lower() else \
+                              "☀️" if "summer" in mars['season'].lower() else \
+                              "🍂" if "fall" in mars['season'].lower() else "❄️"
+                message += f"{season_emoji} <b>Сезон:</b> {mars['season']}\n"
+                if mars.get('northern_season'):
+                    message += f"   Північна півкуля: {mars['northern_season']}\n"
+                if mars.get('southern_season'):
+                    message += f"   Південна півкуля: {mars['southern_season']}\n"
+
+            message += "\n<i>📡 Джерело: NASA InSight</i>"
+        else:
+            message += "🔴 <b>Погода на Марсі</b>\n"
+            message += "❌ Немає актуальних даних\n"
+            message += "<i>Можливо, InSight не передає дані</i>"
+
         return message
