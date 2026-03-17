@@ -256,11 +256,17 @@ class CallbackHandlers:
     async def iss_now(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle ISS position button - now with map image"""
         from services.iss_map import ISSMapService
-        from telegram import InputFile
+        from telegram import InlineKeyboardButton
         
         try:
-            # Get map image and caption
-            map_image, caption = ISSMapService.get_iss_map_with_info()
+            # Get map image, caption and map link
+            map_image, caption, maps_link = ISSMapService.get_iss_map_with_info()
+            
+            # Build keyboard with map button
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🗺️ Відкрити на Google Maps", url=maps_link)],
+                [InlineKeyboardButton("🔙 Назад", callback_data='back_menu')]
+            ])
             
             if map_image:
                 # Send photo with map
@@ -268,16 +274,18 @@ class CallbackHandlers:
                     photo=InputFile(map_image, filename='iss_map.png'),
                     caption=caption,
                     parse_mode='HTML',
-                    reply_markup=CallbackHandlers.get_main_menu()
+                    reply_markup=keyboard
                 )
                 # Delete original message to avoid duplication
                 await update.callback_query.message.delete()
             else:
-                # Fallback to text only
+                # Fallback: text with map link (Telegram shows preview)
+                message = caption + f"\n🗺️ Мапа: {maps_link}"
                 await update.callback_query.message.edit_text(
-                    caption or "❌ Не вдалося отримати позицію МКС",
+                    message,
                     parse_mode='HTML',
-                    reply_markup=CallbackHandlers.get_main_menu()
+                    disable_web_page_preview=False,
+                    reply_markup=keyboard
                 )
         except Exception as e:
             logger.error(f"ISS now handler error: {e}")

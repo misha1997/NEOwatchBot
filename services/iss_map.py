@@ -2,7 +2,7 @@
 import requests
 import logging
 from io import BytesIO
-from config import ISS_NORAD_ID
+from config import ISS_NORAD_ID, GEOAPIFY_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -10,12 +10,16 @@ logger = logging.getLogger(__name__)
 class ISSMapService:
     """Generate static map images with ISS position"""
     
+    # Use real API key from config, fallback to demo
+    GEOAPIFY_KEY = GEOAPIFY_KEY if GEOAPIFY_KEY else "demo"
+    
     @staticmethod
     def get_iss_position():
-        """Get current ISS position from WhereTheISS API"""
+        """Get current ISS position from WhereTheISS API with fallback to N2YO"""
+        # Try wheretheiss.at first (usually faster)
         try:
             url = f"https://api.wheretheiss.at/v1/satellites/{ISS_NORAD_ID}"
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=20)
             data = response.json()
             
             return {
@@ -26,81 +30,81 @@ class ISSMapService:
                 'timestamp': data['timestamp']
             }
         except Exception as e:
-            logger.error(f"Error getting ISS position: {e}")
-            return None
+            logger.warning(f"wheretheiss.at failed: {e}, trying N2YO fallback")
+        
+        # Fallback to N2YO API (the one already used in the project)
+        try:
+            from config import N2YO_API_KEY, N2YO_BASE_URL
+            url = f"{N2YO_BASE_URL}/positions/{ISS_NORAD_ID}/0/0/0/1"
+            params = {'apiKey': N2YO_API_KEY}
+            
+            response = requests.get(url, params=params, timeout=20)
+            data = response.json()
+            
+            if 'positions' in data and data['positions']:
+                pos = data['positions'][0]
+                return {
+                    'lat': pos['satlatitude'],
+                    'lon': pos['satlongitude'],
+                    'altitude': pos['sataltitude'],
+                    'velocity': pos.get('satazimuth', 27600) / 100,  # approximate if not available
+                    'timestamp': pos['timestamp']
+                }
+        except Exception as e:
+            logger.error(f"N2YO fallback also failed: {e}")
+        
+        return None
     
     @staticmethod
     def generate_map_image(lat, lon, width=800, height=500):
-        """Generate static map image using OpenStreetMap (free, no API key needed)"""
+        """Generate static map image using free services"""
         try:
-            # Using staticmap API (free service)
-            # Alternative: mapbox (needs token), google static maps (needs key)
-            
-            # Option 1: OpenStreetMap static (simple, no markers)
-            zoom = 3  # World view
-            
-            # Using staticmap.openstreetmap.de (free, no key)
-            url = f"https://staticmap.openstreetmap.de/staticmap.php" \
-                  f"?center={lat},{lon}" \
-                  f"&zoom={zoom}" \
-                  f"&size={width}x{height}" \
-                  f"&maptype=mapnik" \
-                  f"&markers={lat},{lon},red-pushpin"
+            # Try Geoapify with demo key (works with limits)
+            zoom = 2  # World view
+            url = f"https://maps.geoapify.com/v1/staticmap?style=osm-bright-smooth&" \
+                  f"width={width}&height={height}&" \
+                  f"center=lonlat:{lon},{lat}&" \
+                  f"zoom={zoom}&" \
+                  f"marker=lonlat:{lon},{lat};type:material;color:%23ff0000;size:large&" \
+                  f"apiKey={ISSMapService.GEOAPIFY_KEY}"
             
             response = requests.get(url, timeout=15)
             
-            if response.status_code == 200:
-                return BytesIO(response.content)
-            else:
-                logger.error(f"Map API error: {response.status_code}")
-                return None
+            if response.status_code == 200 and len(response.content) > 1000:
+                return BytesIO(response.content), "geoapify"
+            
+            # Try alternative: MapQuest (no API key needed for basic usage)
+            url2 = f"https://www.mapquestapi.com/staticmap/v5/map?" \
+                   f"key=demo&" \
+                   f"center={lat},{lon}&" \
+                   f"size={width},{height}&" \
+                   f"zoom={zoom}&" \
+                   f"locations={lat},{lon}|marker-red-lg"
+            
+            response2 = requests.get(url2, timeout=15)
+            if response2.status_code == 200 and len(response2.content) > 1000:
+                return BytesIO(response2.content), "mapquest"
+            
+            logger.warning(f"Map APIs failed, using fallback")
+            return None, None
                 
         except Exception as e:
             logger.error(f"Error generating map: {e}")
-            return None
+            return None, None
     
     @staticmethod
-    def generate_mapbox_map(lat, lon, mapbox_token=None, width=800, height=500):
-        """Generate map using Mapbox (better quality, needs token)"""
-        try:
-            if not mapbox_token:
-                # Fallback to OpenStreetMap
-                return ISSMapService.generate_map_image(lat, lon, width, height)
-            
-            # Mapbox static API
-            url = f"https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/" \
-                  f"pin-s+ff0000({lon},{lat})/{lon},{lat},2,0/{width}x{height}" \
-                  f"?access_token={mapbox_token}"
-            
-            response = requests.get(url, timeout=15)
-            
-            if response.status_code == 200:
-                return BytesIO(response.content)
-            else:
-                logger.error(f"Mapbox API error: {response.status_code}")
-                # Fallback to OSM
-                return ISSMapService.generate_map_image(lat, lon, width, height)
-                
-        except Exception as e:
-            logger.error(f"Error generating Mapbox map: {e}")
-            return ISSMapService.generate_map_image(lat, lon, width, height)
-    
-    @staticmethod
-    def get_iss_map_with_info(mapbox_token=None):
-        """Get ISS position, map image and formatted info"""
+    def get_iss_map_with_info():
+        """Get ISS position, map image (if available) and formatted info"""
         position = ISSMapService.get_iss_position()
         
         if not position:
-            return None, "❌ Не вдалося отримати позицію МКС"
+            return None, "❌ Не вдалося отримати позицію МКС", None
         
         lat = position['lat']
         lon = position['lon']
         
-        # Generate map
-        if mapbox_token:
-            map_image = ISSMapService.generate_mapbox_map(lat, lon, mapbox_token)
-        else:
-            map_image = ISSMapService.generate_map_image(lat, lon)
+        # Try to generate map
+        map_image, map_source = ISSMapService.generate_map_image(lat, lon)
         
         # Format caption
         lat_dir = 'Пн' if lat >= 0 else 'Пд'
@@ -118,20 +122,15 @@ class ISSMapService:
         if location:
             caption += f"🌍 {location}\n\n"
         
-        # Add map link
+        # Create Google Maps link
         maps_link = f"https://www.google.com/maps?q={lat:.4f},{lon:.4f}"
-        caption += f"🗺️ <a href='{maps_link}'>Відкрити на Google Maps</a>"
         
-        return map_image, caption
+        return map_image, caption, maps_link
     
     @staticmethod
     def _get_location_name(lat, lon):
         """Get rough location description from coordinates"""
-        # Simple bounding box check for major regions
-        # This is a simplified version - you can expand with more regions
-        
-        # Check if over water (simplified)
-        # Major oceans approximation
+        # Major regions
         if -60 < lat < 60:
             if -160 < lon < -80 or (100 < lon < 180 or -180 < lon < -160):
                 return "Над Тихим океаном 🌊"
