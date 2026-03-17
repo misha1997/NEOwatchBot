@@ -9,9 +9,10 @@ from telegram.constants import ParseMode
 from config import BOT_TOKEN
 from services import LaunchAPI
 from database import (
-    get_apod_subscribers, get_launch_subscribers, get_iss_subscribers,
+    get_apod_subscribers, get_launch_subscribers, get_iss_subscribers, get_neo_subscribers,
     update_last_apod_date, get_user, update_last_iss_pass,
-    is_launch_notified, mark_launch_notified, cleanup_old_launch_notifications
+    is_launch_notified, mark_launch_notified, cleanup_old_launch_notifications,
+    is_neo_notified, mark_neo_notified, cleanup_old_neo_notifications
 )
 from services import NasaAPI, N2YOAPI
 
@@ -246,10 +247,89 @@ class NotificationScheduler:
                 cleanup_old_launch_notifications(days=7)
             
             logger.info("Launch check completed")
-            
+
         except Exception as e:
             logger.error(f"Launch scheduler error: {e}")
-    
+
+    async def check_hazardous_asteroids(self):
+        """Check for hazardous asteroids and notify subscribers"""
+        try:
+            logger.info("Checking hazardous asteroids...")
+
+            # Get hazardous asteroids for next 7 days
+            asteroids = NasaAPI.get_hazardous_asteroids()
+
+            if not asteroids:
+                logger.info("No hazardous asteroids found")
+                return
+
+            # Get subscribers
+            subscribers = get_neo_subscribers()
+            if not subscribers:
+                logger.info("No NEO subscribers")
+                return
+
+            notified_count = 0
+
+            for asteroid in asteroids:
+                asteroid_id = asteroid['id']
+                approach_date = asteroid['approach_date']
+
+                # Skip if already notified about this asteroid on this date
+                if is_neo_notified(asteroid_id, approach_date):
+                    continue
+
+                # Format notification message
+                name = asteroid['name']
+                distance_km = asteroid['miss_distance_km']
+                diameter_min = asteroid['diameter_min']
+                diameter_max = asteroid['diameter_max']
+                velocity = asteroid['velocity']
+                url = asteroid['url']
+
+                # Format distance
+                if distance_km >= 1_000_000:
+                    distance_str = f"{distance_km/1_000_000:.2f} млн км"
+                else:
+                    distance_str = f"{distance_km/1000:,.0f} тис км".replace(',', ' ')
+
+                message = f"🚨 <b>НЕБЕЗПЕЧНИЙ АСТЕРОЇД!</b>\n\n"
+                message += f"🌑 {name}\n"
+                message += f"📅 Максимальне наближення: {approach_date}\n"
+                message += f"📍 Відстань: {distance_str}\n"
+                message += f"📏 Розмір: {diameter_min}-{diameter_max} м\n"
+                message += f"🚀 Швидкість: {velocity:,.0f} км/год\n".replace(',', ' ')
+                message += f"⚠️ <b>Потенційно небезпечний для Землі</b>\n\n"
+                if url:
+                    message += f"🔗 <a href='{url}'>Детальніше на NASA JPL</a>"
+
+                # Send to all subscribers
+                for user in subscribers:
+                    try:
+                        await self.bot.send_message(
+                            chat_id=user['chat_id'],
+                            text=message,
+                            parse_mode=ParseMode.HTML,
+                            disable_web_page_preview=False
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to notify {user['user_id']} about hazardous asteroid: {e}")
+
+                # Mark as notified
+                mark_neo_notified(asteroid_id, approach_date)
+                notified_count += 1
+                logger.info(f"Sent hazardous asteroid notification: {name} ({approach_date})")
+
+            logger.info(f"Hazardous asteroid check completed. Notified about {notified_count} asteroids")
+
+            # Cleanup old notifications once per day (at 4 AM)
+            now = datetime.now()
+            if now.hour == 4 and now.minute < 5:
+                cleanup_old_neo_notifications(days=30)
+
+        except Exception as e:
+            logger.error(f"Hazardous asteroid scheduler error: {e}")
+
     def _parse_launches(self, launches_data: dict) -> list:
         """Parse launches from API response"""
         launches = []
@@ -336,7 +416,11 @@ class NotificationScheduler:
                 # Check launches every 5 minutes
                 if now.minute % 5 == 0:
                     await self.check_upcoming_launches()
-                
+
+                # Check hazardous asteroids every hour
+                if now.minute == 0:
+                    await self.check_hazardous_asteroids()
+
                 # Sleep for 1 minute
                 await asyncio.sleep(60)
                 

@@ -71,13 +71,27 @@ def init_db():
                 subscribed_iss BOOLEAN DEFAULT TRUE,
                 subscribed_apod BOOLEAN DEFAULT TRUE,
                 subscribed_launches BOOLEAN DEFAULT TRUE,
+                subscribed_neo BOOLEAN DEFAULT TRUE,
                 last_iss_pass INT,
                 last_apod_date VARCHAR(10),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_subscribed_iss (subscribed_iss),
                 INDEX idx_subscribed_apod (subscribed_apod),
-                INDEX idx_subscribed_launches (subscribed_launches)
+                INDEX idx_subscribed_launches (subscribed_launches),
+                INDEX idx_subscribed_neo (subscribed_neo)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
+        # Hazardous asteroids notifications tracking
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS neo_notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                asteroid_id VARCHAR(255) NOT NULL,
+                approach_date DATE NOT NULL,
+                notified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY idx_asteroid_date (asteroid_id, approach_date),
+                INDEX idx_notified_at (notified_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
         
@@ -197,12 +211,12 @@ def update_user_location(user_id: int, city: str, lat: float, lon: float):
 
 def toggle_subscription(user_id: int, subscription_type: str) -> bool:
     """Toggle subscription status. Returns new status"""
-    if subscription_type not in ('iss', 'apod', 'launches'):
+    if subscription_type not in ('iss', 'apod', 'launches', 'neo'):
         return False
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         column = f'subscribed_{subscription_type}'
         
@@ -236,21 +250,21 @@ def get_subscription_status(user_id: int) -> Dict[str, bool]:
     """Get subscription status for user"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         cursor.execute(
-            'SELECT subscribed_iss, subscribed_apod, subscribed_launches FROM users WHERE user_id = %s',
+            'SELECT subscribed_iss, subscribed_apod, subscribed_launches, subscribed_neo FROM users WHERE user_id = %s',
             (user_id,)
         )
         row = cursor.fetchone()
-        
+
         if row:
-            return {'iss': bool(row[0]), 'apod': bool(row[1]), 'launches': bool(row[2])}
-        return {'iss': False, 'apod': False, 'launches': False}
-        
+            return {'iss': bool(row[0]), 'apod': bool(row[1]), 'launches': bool(row[2]), 'neo': bool(row[3])}
+        return {'iss': False, 'apod': False, 'launches': False, 'neo': False}
+
     except Error as e:
         logger.error(f"Error getting subscription status: {e}")
-        return {'iss': False, 'apod': False, 'launches': False}
+        return {'iss': False, 'apod': False, 'launches': False, 'neo': False}
     finally:
         cursor.close()
         conn.close()
@@ -298,13 +312,30 @@ def get_launch_subscribers() -> List[Dict]:
     """Get all users subscribed to launch notifications"""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
+
     try:
         cursor.execute('SELECT * FROM users WHERE subscribed_launches = TRUE')
         return cursor.fetchall()
-        
+
     except Error as e:
         logger.error(f"Error getting launch subscribers: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_neo_subscribers() -> List[Dict]:
+    """Get all users subscribed to hazardous asteroid notifications"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute('SELECT * FROM users WHERE subscribed_neo = TRUE')
+        return cursor.fetchall()
+
+    except Error as e:
+        logger.error(f"Error getting NEO subscribers: {e}")
         return []
     finally:
         cursor.close()
@@ -495,6 +526,64 @@ def cleanup_old_launch_notifications(days: int = 7):
         logger.info(f"Cleaned up {cursor.rowcount} old launch notifications")
     except Error as e:
         logger.error(f"Error cleaning up launch notifications: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def is_neo_notified(asteroid_id: str, approach_date: str) -> bool:
+    """Check if hazardous asteroid notification was already sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'SELECT 1 FROM neo_notifications WHERE asteroid_id = %s AND approach_date = %s',
+            (asteroid_id, approach_date)
+        )
+        return cursor.fetchone() is not None
+    except Error as e:
+        logger.error(f"Error checking NEO notification: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def mark_neo_notified(asteroid_id: str, approach_date: str):
+    """Mark hazardous asteroid notification as sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'INSERT INTO neo_notifications (asteroid_id, approach_date) VALUES (%s, %s)',
+            (asteroid_id, approach_date)
+        )
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error marking NEO notification: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def cleanup_old_neo_notifications(days: int = 30):
+    """Remove old NEO notifications (older than N days)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'DELETE FROM neo_notifications WHERE notified_at < DATE_SUB(NOW(), INTERVAL %s DAY)',
+            (days,)
+        )
+        conn.commit()
+        logger.info(f"Cleaned up {cursor.rowcount} old NEO notifications")
+    except Error as e:
+        logger.error(f"Error cleaning up NEO notifications: {e}")
         conn.rollback()
     finally:
         cursor.close()

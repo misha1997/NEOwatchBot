@@ -372,15 +372,17 @@ class CallbackHandlers:
         iss_sub = '✅' if user and user.get('subscribed_iss') else '☑️'
         apod_sub = '✅' if user and user.get('subscribed_apod') else '☑️'
         launches_sub = '✅' if user and user.get('subscribed_launches') else '☑️'
+        neo_sub = '✅' if user and user.get('subscribed_neo') else '☑️'
         city = user.get('city', 'Не вказано') if user else 'Не вказано'
-        
+
         message = f"⚙️ <b>Налаштування</b>\n\n"
         message += f"📍 Місто: <b>{city}</b>\n\n"
         message += f"🔔 Сповіщення:\n"
         message += f"{iss_sub} Проходження МКС\n"
         message += f"{apod_sub} Фото дня (9:00)\n"
         message += f"{launches_sub} Запуски ракет\n"
-        
+        message += f"{neo_sub} Небезпечні астероїди\n"
+
         keyboard = [
             [
                 InlineKeyboardButton(f"{iss_sub} МКС проходження", callback_data='sub_iss'),
@@ -388,6 +390,9 @@ class CallbackHandlers:
             ],
             [
                 InlineKeyboardButton(f"{launches_sub} Запуски", callback_data='sub_launches'),
+                InlineKeyboardButton(f"{neo_sub} Астероїди", callback_data='sub_neo'),
+            ],
+            [
                 InlineKeyboardButton("📍 Змінити місто", callback_data='set_location'),
             ],
             [
