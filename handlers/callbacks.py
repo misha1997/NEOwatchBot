@@ -340,23 +340,56 @@ class CallbackHandlers:
     async def mars(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle mars button"""
         mars_data = MoonMarsAPI.get_mars_weather()
-        
+
         message = "🔴 <b>Погода на Марсі</b>\n\n"
         if mars_data:
-            message += f"🌡️ Температура: {mars_data['temp_low']}°C ... {mars_data['temp_high']}°C\n"
-            message += f"💨 Тиск: {mars_data['pressure']} Па (~0.6% від Земного)\n"
-            message += f"🌬️ Вітер: змінний, до 100 км/год\n\n"
-            if mars_data['temp_high'] > -20:
-                message += "☀️ Зараз місцеве літо\n"
-            else:
-                message += "❄️ Зараз місцева зима\n"
-            if mars_data['source'] == 'InSight':
-                message += f"\n📡 Джерело: InSight, Sol {mars_data.get('sol', '?')}"
-            else:
-                message += "\n📊 Середні показники для екватора Марса"
+            message += f"📅 Сол {mars_data['sol']} (марсіанський день)\n"
+            message += f"📊 Дані за: {mars_data.get('first_date', 'N/A')} - {mars_data.get('last_date', 'N/A')}\n\n"
+
+            # Temperature
+            if mars_data.get('temp_avg') is not None:
+                message += "🌡️ <b>Температура повітря:</b>\n"
+                message += f"   Середня: {mars_data['temp_avg']}°C\n"
+                if mars_data.get('temp_min') is not None and mars_data.get('temp_max') is not None:
+                    message += f"   Діапазон: {mars_data['temp_min']}°C ... {mars_data['temp_max']}°C\n"
+                if mars_data.get('temp_samples'):
+                    message += f"   Вимірювань: {mars_data['temp_samples']}\n"
+                message += "\n"
+
+            # Pressure
+            if mars_data.get('pressure_avg') is not None:
+                message += "💨 <b>Атмосферний тиск:</b>\n"
+                message += f"   Середній: {mars_data['pressure_avg']} Па\n"
+                if mars_data.get('pressure_min') is not None and mars_data.get('pressure_max') is not None:
+                    message += f"   Діапазон: {mars_data['pressure_min']} ... {mars_data['pressure_max']} Па\n"
+                message += "\n"
+
+            # Wind
+            if mars_data.get('wind_avg') is not None:
+                message += "💨 <b>Вітер:</b>\n"
+                message += f"   Середня швидкість: {mars_data['wind_avg']} м/с\n"
+                if mars_data.get('wind_min') is not None and mars_data.get('wind_max') is not None:
+                    message += f"   Діапазон: {mars_data['wind_min']} ... {mars_data['wind_max']} м/с\n"
+                if mars_data.get('wind_direction'):
+                    message += f"   Напрямок: {mars_data['wind_direction']} ({mars_data.get('wind_direction_deg', 0)}°)\n"
+                message += "\n"
+
+            # Season
+            if mars_data.get('season'):
+                season_emoji = "🌸" if "spring" in mars_data['season'].lower() else \
+                              "☀️" if "summer" in mars_data['season'].lower() else \
+                              "🍂" if "fall" in mars_data['season'].lower() else "❄️"
+                message += f"{season_emoji} <b>Сезон:</b> {mars_data['season']}\n"
+                if mars_data.get('northern_season'):
+                    message += f"   Північна півкуля: {mars_data['northern_season']}\n"
+                if mars_data.get('southern_season'):
+                    message += f"   Південна півкуля: {mars_data['southern_season']}\n"
+
+            message += "\n<i>📡 Джерело: NASA InSight</i>"
         else:
             message += "❌ Не вдалося отримати дані\n"
-        
+            message += "<i>Можливо, InSight не передає дані</i>"
+
         await update.callback_query.message.edit_text(
             message,
             parse_mode='HTML',
