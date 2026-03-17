@@ -57,3 +57,22 @@ class Translator:
         
         # If translation failed, add note about original
         return f"{explanation}\n\n<i>📝 Опис англійською</i>"
+
+    @staticmethod
+    def translate_news(text: str) -> str:
+        """Translate news text with fallback"""
+        if not text or len(text.strip()) < 5:
+            return text
+
+        # If text is already mostly Ukrainian, skip
+        cyrillic_count = sum(1 for c in text if 'А' <= c <= 'я' or c in 'іїєҐґ')
+        if cyrillic_count > len(text) * 0.3:
+            return text  # Already Ukrainian
+
+        translated = Translator.translate(text, 'en', 'uk')
+
+        # Add note if translation happened
+        if translated != text:
+            return translated
+
+        return text

@@ -1,8 +1,9 @@
-"""SpaceFlightNow.com parser - Rocket launches"""
+"""SpaceFlightNow.com parser - Rocket launches and news"""
 import requests
 import re
 import logging
 from datetime import datetime
+from typing import List, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +108,100 @@ class SpaceflightNowParser:
             message += f"     📍 {launch['site']}\n\n"
         
         return {'text': message, 'image': None}
-    
+
+    @staticmethod
+    def get_news():
+        """Parse latest news from spaceflightnow.com"""
+        try:
+            url = "https://spaceflightnow.com/category/news-archive/"
+            headers = {'User-Agent': 'Mozilla/5.0 (compatible; NEOwatchBot/1.0)'}
+            response = requests.get(url, headers=headers, timeout=15)
+
+            if response.status_code != 200:
+                raise Exception(f"HTTP {response.status_code}")
+
+            articles = SpaceflightNowParser._parse_news_html(response.text)
+
+            if articles:
+                return articles[:5]  # Return top 5 articles
+            else:
+                return []
+
+        except Exception as e:
+            logger.error(f"Spaceflightnow news parsing failed: {e}")
+            return []
+
+    @staticmethod
+    def _parse_news_html(html: str) -> List[Dict]:
+        """Extract news articles from HTML"""
+        articles = []
+
+        # Pattern for article entries in MH Magazine theme
+        # Each article is in <article class="post"> or similar structure
+        article_blocks = re.findall(
+            r'<article[^>]*class="[^"]*post[^"]*"[^>]*>.*?<h3[^>]*class="[^"]*entry-title[^"]*">'
+            r'\s*<a\s+href="([^"]+)"[^>]*>([^<]+)</a>.*?</article>',
+            html, re.DOTALL | re.IGNORECASE
+        )
+
+        if not article_blocks:
+            # Try alternative pattern
+            article_blocks = re.findall(
+                r'<div[^>]*class="[^"]*mh-posts-large-item[^"]*"[^>]*>.*?<h3[^>]*>'
+                r'\s*<a\s+href="([^"]+)"[^>]*>([^<]+)</a>.*?</div>',
+                html, re.DOTALL | re.IGNORECASE
+            )
+
+        for i, (url, title) in enumerate(article_blocks):
+            try:
+                title = SpaceflightNowParser._clean_html_entities(title.strip())
+
+                # Extract date
+                date_match = re.search(
+                    r'<span[^>]*class="[^"]*mh-meta-date[^"]*"[^>]*>.*?<a[^>]*>([^<]+)</a>',
+                    html, re.DOTALL | re.IGNORECASE
+                )
+                date_str = date_match.group(1).strip() if date_match else 'Unknown'
+
+                # Extract excerpt/summary
+                excerpt_match = re.search(
+                    r'<div[^>]*class="[^"]*mh-excerpt[^"]*"[^>]*>(.*?)</div>',
+                    html, re.DOTALL | re.IGNORECASE
+                )
+                if not excerpt_match:
+                    excerpt_match = re.search(
+                        r'<div[^>]*class="entry-summary"[^>]*>(.*?)</div>',
+                        html, re.DOTALL | re.IGNORECASE
+                    )
+
+                excerpt = ''
+                if excerpt_match:
+                    excerpt = re.sub(r'<[^>]+>', '', excerpt_match.group(1))  # Remove HTML tags
+                    excerpt = SpaceflightNowParser._clean_html_entities(excerpt.strip())
+                    excerpt = excerpt[:300] + '...' if len(excerpt) > 300 else excerpt
+
+                # Extract category
+                category_match = re.search(
+                    r'<span[^>]*class="[^"]*mh-meta-category[^"]*"[^>]*>(.*?)</span>',
+                    html, re.DOTALL | re.IGNORECASE
+                )
+                category = ''
+                if category_match:
+                    category = re.sub(r'<[^>]+>', '', category_match.group(1)).strip()
+
+                articles.append({
+                    'title': title,
+                    'url': url,
+                    'date': date_str,
+                    'excerpt': excerpt,
+                    'category': category
+                })
+            except Exception as e:
+                logger.warning(f"Failed to parse article {i}: {e}")
+                continue
+
+        return articles
+
     @staticmethod
     def _format_fallback():
         """Format fallback message when parsing fails"""

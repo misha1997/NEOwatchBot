@@ -8,11 +8,16 @@ from telegram.constants import ParseMode
 
 from config import BOT_TOKEN
 from services import LaunchAPI
+from services.meteor_shower import MeteorShower
+from parsers import SpaceflightNowParser
+from utils.translator import Translator
 from database import (
-    get_apod_subscribers, get_launch_subscribers, get_iss_subscribers, get_neo_subscribers,
+    get_apod_subscribers, get_launch_subscribers, get_iss_subscribers, get_neo_subscribers, get_news_subscribers, get_meteor_subscribers,
     update_last_apod_date, get_user, update_last_iss_pass,
     is_launch_notified, mark_launch_notified, cleanup_old_launch_notifications,
-    is_neo_notified, mark_neo_notified, cleanup_old_neo_notifications
+    is_neo_notified, mark_neo_notified, cleanup_old_neo_notifications,
+    is_news_notified, mark_news_notified, cleanup_old_news_notifications,
+    is_meteor_notified, mark_meteor_notified, cleanup_old_meteor_notifications
 )
 from services import NasaAPI, N2YOAPI
 
@@ -330,6 +335,191 @@ class NotificationScheduler:
         except Exception as e:
             logger.error(f"Hazardous asteroid scheduler error: {e}")
 
+    async def send_daily_news(self):
+        """Send daily news digest from Spaceflightnow"""
+        try:
+            logger.info("Sending daily news...")
+
+            # Get news articles
+            articles = SpaceflightNowParser.get_news()
+
+            if not articles:
+                logger.info("No news articles found")
+                return
+
+            # Get subscribers
+            subscribers = get_news_subscribers()
+            if not subscribers:
+                logger.info("No news subscribers")
+                return
+
+            # Filter out already sent articles
+            new_articles = []
+            for article in articles:
+                if not is_news_notified(article['url']):
+                    new_articles.append(article)
+
+            if not new_articles:
+                logger.info("No new articles to send")
+                return
+
+            # Format news digest (top 3 articles)
+            today = datetime.now().strftime('%d.%m.%Y')
+            message = f"📰 <b>Космічні новини ({today})</b>\n"
+            message += "<i>Джерело: spaceflightnow.com</i>\n\n"
+
+            for i, article in enumerate(new_articles[:3], 1):
+                title = article['title']
+                excerpt = article['excerpt']
+                url = article['url']
+                category = article['category']
+
+                # Translate title and excerpt
+                title_uk = Translator.translate_news(title)
+                excerpt_uk = Translator.translate_news(excerpt) if excerpt else ''
+
+                # Category emoji
+                cat_emoji = "🚀"
+                if 'starlink' in category.lower() or 'falcon' in category.lower():
+                    cat_emoji = "🛰️"
+                elif 'artemis' in category.lower() or 'moon' in category.lower():
+                    cat_emoji = "🌙"
+                elif 'mars' in category.lower():
+                    cat_emoji = "🔴"
+                elif 'iss' in category.lower():
+                    cat_emoji = "🛰️"
+
+                message += f"{i}. {cat_emoji} <b>{title_uk}</b>\n"
+                if excerpt_uk:
+                    # Truncate excerpt if too long
+                    if len(excerpt_uk) > 150:
+                        excerpt_uk = excerpt_uk[:150] + "..."
+                    message += f"   {excerpt_uk}\n"
+                message += f"   🔗 <a href='{url}'>Читати далі</a>\n\n"
+
+                # Mark as notified
+                mark_news_notified(article['url'], article['title'])
+
+            message += "\n<i>📝 Новини автоматично перекладено українською</i>"
+
+            # Send to all subscribers
+            sent_count = 0
+            for user in subscribers:
+                try:
+                    await self.bot.send_message(
+                        chat_id=user['chat_id'],
+                        text=message,
+                        parse_mode=ParseMode.HTML,
+                        disable_web_page_preview=True
+                    )
+                    sent_count += 1
+                except Exception as e:
+                    logger.error(f"Failed to send news to {user['user_id']}: {e}")
+
+            logger.info(f"Sent daily news to {sent_count}/{len(subscribers)} subscribers")
+
+            # Cleanup old notifications once per day (at 5 AM)
+            now = datetime.now()
+            if now.hour == 5 and now.minute < 5:
+                cleanup_old_news_notifications(days=30)
+
+        except Exception as e:
+            logger.error(f"Daily news scheduler error: {e}")
+
+    async def check_meteor_showers(self):
+        """Check for upcoming meteor showers and notify subscribers"""
+        try:
+            logger.info("Checking meteor showers...")
+
+            now = datetime.now()
+
+            # Get upcoming showers
+            showers = MeteorShower.get_upcoming_showers(3)
+
+            if not showers:
+                logger.info("No upcoming meteor showers")
+                return
+
+            # Get subscribers
+            subscribers = get_meteor_subscribers()
+            if not subscribers:
+                logger.info("No meteor shower subscribers")
+                return
+
+            for shower in showers:
+                shower_name = shower['name']
+                peak_date = shower['peak_datetime']
+                days_until = shower['days_until']
+
+                peak_date_str = peak_date.strftime('%Y-%m-%d')
+
+                # Notification 1 day before at 22:00
+                if days_until == 1 and now.hour == 22 and now.minute == 0:
+                    notification_type = "1day"
+
+                    if is_meteor_notified(shower_name, peak_date_str, notification_type):
+                        continue
+
+                    message = f"🌠 <b>ЗАВТРА МЕТЕОРНИЙ ПОТІК!</b>\n\n"
+                    message += f"✨ {shower_name} ({shower['name_en']})\n"
+                    message += f"📅 Пік: {peak_date.strftime('%d.%m.%Y')}\n"
+                    message += f"💫 До {shower['rate']} метеорів/год\n"
+                    message += f"🕐 Найкращий час: {shower['best_time']}\n"
+                    message += f"📍 Дивіться: {shower['direction']}\n\n"
+                    message += f"📝 {shower['description']}\n\n"
+                    message += "<i>Не забудьте встановити будильник на вечір!</i>"
+
+                    for user in subscribers:
+                        try:
+                            await self.bot.send_message(
+                                chat_id=user['chat_id'],
+                                text=message,
+                                parse_mode=ParseMode.HTML
+                            )
+                        except Exception as e:
+                            logger.error(f"Failed to notify {user['user_id']} about meteor shower: {e}")
+
+                    mark_meteor_notified(shower_name, peak_date_str, notification_type)
+                    logger.info(f"Sent 1-day notification for {shower_name}")
+
+                # Notification on the day at 22:00 (10 PM)
+                elif days_until == 0 and now.hour == 22 and now.minute == 0:
+                    notification_type = "today"
+
+                    if is_meteor_notified(shower_name, peak_date_str, notification_type):
+                        continue
+
+                    message = f"🔥 <b>СЬОГОДНІ ПІК МЕТЕОРНОГО ПОТОКУ!</b>\n\n"
+                    message += f"✨ {shower_name} ({shower['name_en']})\n"
+                    message += f"💫 До {shower['rate']} метеорів/год\n"
+                    message += f"🕐 Найкращий час: {shower['best_time']}\n"
+                    message += f"📍 Дивіться: {shower['direction']}\n\n"
+                    message += f"📝 {shower['description']}\n\n"
+                    message += "<b>🌟 Виходьте спостерігати зараз!</b>\n"
+                    message += "💡 Лягайте на спину і дивіться на північний схід"
+
+                    for user in subscribers:
+                        try:
+                            await self.bot.send_message(
+                                chat_id=user['chat_id'],
+                                text=message,
+                                parse_mode=ParseMode.HTML
+                            )
+                        except Exception as e:
+                            logger.error(f"Failed to notify {user['user_id']} about meteor shower peak: {e}")
+
+                    mark_meteor_notified(shower_name, peak_date_str, notification_type)
+                    logger.info(f"Sent today notification for {shower_name}")
+
+            # Cleanup old notifications once per day (at 6 AM)
+            if now.hour == 6 and now.minute < 5:
+                cleanup_old_meteor_notifications(days=60)
+
+            logger.info("Meteor shower check completed")
+
+        except Exception as e:
+            logger.error(f"Meteor shower scheduler error: {e}")
+
     def _parse_launches(self, launches_data: dict) -> list:
         """Parse launches from API response"""
         launches = []
@@ -420,6 +610,14 @@ class NotificationScheduler:
                 # Check hazardous asteroids every hour
                 if now.minute == 0:
                     await self.check_hazardous_asteroids()
+
+                # Daily news at 10:00 Kyiv time
+                if now.hour == 10 and now.minute == 0:
+                    await self.send_daily_news()
+
+                # Check meteor showers at 22:00 (10 PM)
+                if now.hour == 22 and now.minute == 0:
+                    await self.check_meteor_showers()
 
                 # Sleep for 1 minute
                 await asyncio.sleep(60)

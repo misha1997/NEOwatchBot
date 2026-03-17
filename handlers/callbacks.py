@@ -373,6 +373,8 @@ class CallbackHandlers:
         apod_sub = '✅' if user and user.get('subscribed_apod') else '☑️'
         launches_sub = '✅' if user and user.get('subscribed_launches') else '☑️'
         neo_sub = '✅' if user and user.get('subscribed_neo') else '☑️'
+        news_sub = '✅' if user and user.get('subscribed_news') else '☑️'
+        meteors_sub = '✅' if user and user.get('subscribed_meteors') else '☑️'
         city = user.get('city', 'Не вказано') if user else 'Не вказано'
 
         message = f"⚙️ <b>Налаштування</b>\n\n"
@@ -382,15 +384,19 @@ class CallbackHandlers:
         message += f"{apod_sub} Фото дня (9:00)\n"
         message += f"{launches_sub} Запуски ракет\n"
         message += f"{neo_sub} Небезпечні астероїди\n"
+        message += f"{news_sub} Новини (10:00)\n"
+        message += f"{meteors_sub} Метеорні потоки (22:00)\n"
 
         keyboard = [
             [
-                InlineKeyboardButton(f"{iss_sub} МКС проходження", callback_data='sub_iss'),
+                InlineKeyboardButton(f"{iss_sub} МКС", callback_data='sub_iss'),
                 InlineKeyboardButton(f"{apod_sub} Фото дня", callback_data='sub_apod'),
+                InlineKeyboardButton(f"{launches_sub} Запуски", callback_data='sub_launches'),
             ],
             [
-                InlineKeyboardButton(f"{launches_sub} Запуски", callback_data='sub_launches'),
                 InlineKeyboardButton(f"{neo_sub} Астероїди", callback_data='sub_neo'),
+                InlineKeyboardButton(f"{news_sub} Новини", callback_data='sub_news'),
+                InlineKeyboardButton(f"{meteors_sub} Метеори", callback_data='sub_meteors'),
             ],
             [
                 InlineKeyboardButton("📍 Змінити місто", callback_data='set_location'),

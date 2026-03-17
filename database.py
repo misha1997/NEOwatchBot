@@ -72,6 +72,8 @@ def init_db():
                 subscribed_apod BOOLEAN DEFAULT TRUE,
                 subscribed_launches BOOLEAN DEFAULT TRUE,
                 subscribed_neo BOOLEAN DEFAULT TRUE,
+                subscribed_news BOOLEAN DEFAULT TRUE,
+                subscribed_meteors BOOLEAN DEFAULT TRUE,
                 last_iss_pass INT,
                 last_apod_date VARCHAR(10),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -79,7 +81,34 @@ def init_db():
                 INDEX idx_subscribed_iss (subscribed_iss),
                 INDEX idx_subscribed_apod (subscribed_apod),
                 INDEX idx_subscribed_launches (subscribed_launches),
-                INDEX idx_subscribed_neo (subscribed_neo)
+                INDEX idx_subscribed_neo (subscribed_neo),
+                INDEX idx_subscribed_news (subscribed_news),
+                INDEX idx_subscribed_meteors (subscribed_meteors)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
+        # Meteor shower notifications tracking
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS meteor_notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                shower_name VARCHAR(100) NOT NULL,
+                peak_date DATE NOT NULL,
+                notification_type VARCHAR(20) NOT NULL,
+                notified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY idx_shower_notification (shower_name, peak_date, notification_type),
+                INDEX idx_notified_at (notified_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
+        # News notifications tracking
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS news_notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                article_url VARCHAR(500) NOT NULL,
+                article_title VARCHAR(500) NOT NULL,
+                notified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY idx_article_url (article_url),
+                INDEX idx_notified_at (notified_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
 
@@ -211,7 +240,7 @@ def update_user_location(user_id: int, city: str, lat: float, lon: float):
 
 def toggle_subscription(user_id: int, subscription_type: str) -> bool:
     """Toggle subscription status. Returns new status"""
-    if subscription_type not in ('iss', 'apod', 'launches', 'neo'):
+    if subscription_type not in ('iss', 'apod', 'launches', 'neo', 'news', 'meteors'):
         return False
 
     conn = get_db_connection()
@@ -253,18 +282,18 @@ def get_subscription_status(user_id: int) -> Dict[str, bool]:
 
     try:
         cursor.execute(
-            'SELECT subscribed_iss, subscribed_apod, subscribed_launches, subscribed_neo FROM users WHERE user_id = %s',
+            'SELECT subscribed_iss, subscribed_apod, subscribed_launches, subscribed_neo, subscribed_news, subscribed_meteors FROM users WHERE user_id = %s',
             (user_id,)
         )
         row = cursor.fetchone()
 
         if row:
-            return {'iss': bool(row[0]), 'apod': bool(row[1]), 'launches': bool(row[2]), 'neo': bool(row[3])}
-        return {'iss': False, 'apod': False, 'launches': False, 'neo': False}
+            return {'iss': bool(row[0]), 'apod': bool(row[1]), 'launches': bool(row[2]), 'neo': bool(row[3]), 'news': bool(row[4]), 'meteors': bool(row[5])}
+        return {'iss': False, 'apod': False, 'launches': False, 'neo': False, 'news': False, 'meteors': False}
 
     except Error as e:
         logger.error(f"Error getting subscription status: {e}")
-        return {'iss': False, 'apod': False, 'launches': False, 'neo': False}
+        return {'iss': False, 'apod': False, 'launches': False, 'neo': False, 'news': False, 'meteors': False}
     finally:
         cursor.close()
         conn.close()
@@ -336,6 +365,40 @@ def get_neo_subscribers() -> List[Dict]:
 
     except Error as e:
         logger.error(f"Error getting NEO subscribers: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_news_subscribers() -> List[Dict]:
+    """Get all users subscribed to daily news"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute('SELECT * FROM users WHERE subscribed_news = TRUE')
+        return cursor.fetchall()
+
+    except Error as e:
+        logger.error(f"Error getting news subscribers: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_meteor_subscribers() -> List[Dict]:
+    """Get all users subscribed to meteor shower notifications"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute('SELECT * FROM users WHERE subscribed_meteors = TRUE')
+        return cursor.fetchall()
+
+    except Error as e:
+        logger.error(f"Error getting meteor subscribers: {e}")
         return []
     finally:
         cursor.close()
@@ -584,6 +647,122 @@ def cleanup_old_neo_notifications(days: int = 30):
         logger.info(f"Cleaned up {cursor.rowcount} old NEO notifications")
     except Error as e:
         logger.error(f"Error cleaning up NEO notifications: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def is_news_notified(article_url: str) -> bool:
+    """Check if news article was already sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'SELECT 1 FROM news_notifications WHERE article_url = %s',
+            (article_url,)
+        )
+        return cursor.fetchone() is not None
+    except Error as e:
+        logger.error(f"Error checking news notification: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def mark_news_notified(article_url: str, article_title: str):
+    """Mark news article as sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'INSERT INTO news_notifications (article_url, article_title) VALUES (%s, %s)',
+            (article_url, article_title)
+        )
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error marking news notification: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def cleanup_old_news_notifications(days: int = 30):
+    """Remove old news notifications (older than N days)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'DELETE FROM news_notifications WHERE notified_at < DATE_SUB(NOW(), INTERVAL %s DAY)',
+            (days,)
+        )
+        conn.commit()
+        logger.info(f"Cleaned up {cursor.rowcount} old news notifications")
+    except Error as e:
+        logger.error(f"Error cleaning up news notifications: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def is_meteor_notified(shower_name: str, peak_date: str, notification_type: str) -> bool:
+    """Check if meteor shower notification was already sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'SELECT 1 FROM meteor_notifications WHERE shower_name = %s AND peak_date = %s AND notification_type = %s',
+            (shower_name, peak_date, notification_type)
+        )
+        return cursor.fetchone() is not None
+    except Error as e:
+        logger.error(f"Error checking meteor notification: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def mark_meteor_notified(shower_name: str, peak_date: str, notification_type: str):
+    """Mark meteor shower notification as sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'INSERT INTO meteor_notifications (shower_name, peak_date, notification_type) VALUES (%s, %s, %s)',
+            (shower_name, peak_date, notification_type)
+        )
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error marking meteor notification: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def cleanup_old_meteor_notifications(days: int = 60):
+    """Remove old meteor notifications (older than N days)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'DELETE FROM meteor_notifications WHERE notified_at < DATE_SUB(NOW(), INTERVAL %s DAY)',
+            (days,)
+        )
+        conn.commit()
+        logger.info(f"Cleaned up {cursor.rowcount} old meteor notifications")
+    except Error as e:
+        logger.error(f"Error cleaning up meteor notifications: {e}")
         conn.rollback()
     finally:
         cursor.close()
