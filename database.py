@@ -94,7 +94,19 @@ def init_db():
                 INDEX idx_user_pass (user_id, pass_time)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
-        
+
+        # Launch notifications tracking
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS launch_notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                launch_id VARCHAR(255) NOT NULL,
+                notification_type VARCHAR(50) NOT NULL,
+                notified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY idx_launch_notification (launch_id, notification_type),
+                INDEX idx_notified_at (notified_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
         conn.commit()
         logger.info("Database initialized (MySQL)")
         
@@ -429,3 +441,61 @@ def get_city_suggestions(city_name: str) -> List[Dict]:
     except Exception as e:
         logger.error(f"Error getting city suggestions for '{city_name}': {e}")
         return []
+
+
+def is_launch_notified(launch_id: str, notification_type: str) -> bool:
+    """Check if launch notification was already sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'SELECT 1 FROM launch_notifications WHERE launch_id = %s AND notification_type = %s',
+            (launch_id, notification_type)
+        )
+        return cursor.fetchone() is not None
+    except Error as e:
+        logger.error(f"Error checking launch notification: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def mark_launch_notified(launch_id: str, notification_type: str):
+    """Mark launch notification as sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'INSERT INTO launch_notifications (launch_id, notification_type) VALUES (%s, %s)',
+            (launch_id, notification_type)
+        )
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error marking launch notification: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def cleanup_old_launch_notifications(days: int = 7):
+    """Remove old launch notifications (older than N days)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'DELETE FROM launch_notifications WHERE notified_at < DATE_SUB(NOW(), INTERVAL %s DAY)',
+            (days,)
+        )
+        conn.commit()
+        logger.info(f"Cleaned up {cursor.rowcount} old launch notifications")
+    except Error as e:
+        logger.error(f"Error cleaning up launch notifications: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()

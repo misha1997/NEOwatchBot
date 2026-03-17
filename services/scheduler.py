@@ -10,7 +10,8 @@ from config import BOT_TOKEN
 from services import LaunchAPI
 from database import (
     get_apod_subscribers, get_launch_subscribers, get_iss_subscribers,
-    update_last_apod_date, get_user, update_last_iss_pass
+    update_last_apod_date, get_user, update_last_iss_pass,
+    is_launch_notified, mark_launch_notified, cleanup_old_launch_notifications
 )
 from services import NasaAPI, N2YOAPI
 
@@ -137,26 +138,34 @@ class NotificationScheduler:
                     for iss_pass in passes['passes']:
                         pass_time = datetime.fromtimestamp(iss_pass['startUTC'])
                         time_until = (pass_time - now).total_seconds()
-                        
+
                         # Notify if pass is in 1-6 hours
                         if 3600 <= time_until <= 21600:  # 1-6 hours
+                            # Check if already notified about this specific pass
+                            last_notified_pass = user.get('last_iss_pass')
+                            current_pass_timestamp = int(pass_time.timestamp())
+
+                            if last_notified_pass == current_pass_timestamp:
+                                logger.info(f"Already notified user {user_id} about ISS pass at {pass_time}")
+                                continue
+
                             duration = iss_pass.get('duration', 0)
                             max_elevation = iss_pass.get('maxEl', 0)
-                            
+
                             msg = f"🛰 <b>Проліт МКС!</b>\n\n"
                             msg += f"⏰ Час: {pass_time.strftime('%d.%m %H:%M')}\n"
                             msg += f"⏱ Тривалість: {duration} сек\n"
                             msg += f"📐 Максимальна висота: {max_elevation}°\n"
                             msg += f"📍 Місце: {user.get('city', 'Ваше місто')}\n\n"
                             msg += "<i>Дивіться на південно-західне небо!</i>"
-                            
+
                             await self.bot.send_message(
                                 chat_id=chat_id,
                                 text=msg,
                                 parse_mode=ParseMode.HTML
                             )
-                            
-                            update_last_iss_pass(user_id, int(pass_time.timestamp()))
+
+                            update_last_iss_pass(user_id, current_pass_timestamp)
                             self._last_iss_check[user_id] = now
                             break  # Only notify about next pass
                     
@@ -198,31 +207,43 @@ class NotificationScheduler:
                 if not launch_time or not launch_id:
                     continue
                 
-                # Skip if already notified
-                notification_key = f"{launch_id}_{launch_time.strftime('%Y%m%d')}"
+                time_until = (launch_time - now).total_seconds()
+
+                # Determine notification type based on time window
+                notification_type = None
+                hours = None
+                minutes = None
+
+                if 82800 < time_until <= 86400:  # 23-24 hours
+                    notification_type = "24h"
+                    hours = 24
+                elif 3600 < time_until <= 7200:  # 1-2 hours
+                    notification_type = "2h"
+                    hours = 2
+                elif 1500 < time_until <= 1800:  # 25-30 minutes
+                    notification_type = "30m"
+                    minutes = 30
+
+                if not notification_type:
+                    continue
+
+                # Check if already notified (in-memory + database)
+                notification_key = f"{launch_id}_{notification_type}"
                 if notification_key in self._notified_launches:
                     continue
-                
-                time_until = (launch_time - now).total_seconds()
-                
-                # Notify 24 hours before
-                if 82800 < time_until <= 86400:  # 23-24 hours
-                    await self._send_launch_notification(launch, subscribers, hours=24)
-                    self._notified_launches.add(notification_key)
-                
-                # Notify 2 hours before
-                elif 3600 < time_until <= 7200:  # 1-2 hours
-                    await self._send_launch_notification(launch, subscribers, hours=2)
-                    self._notified_launches.add(notification_key)
-                
-                # Notify 30 minutes before
-                elif 1500 < time_until <= 1800:  # 25-30 minutes
-                    await self._send_launch_notification(launch, subscribers, minutes=30)
-                    self._notified_launches.add(notification_key)
-            
-            # Cleanup old notifications (keep last 100)
-            if len(self._notified_launches) > 100:
-                self._notified_launches = set(list(self._notified_launches)[-100:])
+
+                if is_launch_notified(launch_id, notification_type):
+                    self._notified_launches.add(notification_key)  # Cache for this session
+                    continue
+
+                # Send notification
+                await self._send_launch_notification(launch, subscribers, hours=hours, minutes=minutes)
+                self._notified_launches.add(notification_key)
+                mark_launch_notified(launch_id, notification_type)
+
+            # Cleanup old notifications from database (once per day)
+            if now.hour == 3 and now.minute < 5:
+                cleanup_old_launch_notifications(days=7)
             
             logger.info("Launch check completed")
             
