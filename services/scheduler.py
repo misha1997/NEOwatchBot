@@ -145,8 +145,8 @@ class NotificationScheduler:
                         pass_time = datetime.fromtimestamp(iss_pass['startUTC'])
                         time_until = (pass_time - now).total_seconds()
 
-                        # Notify if pass is in 1-6 hours
-                        if 3600 <= time_until <= 21600:  # 1-6 hours
+                        # Notify if pass is in 10-15 minutes (right before it happens)
+                        if 600 <= time_until <= 900:  # 10-15 minutes
                             # Check if already notified about this specific pass
                             last_notified_pass = user.get('last_iss_pass')
                             current_pass_timestamp = int(pass_time.timestamp())
