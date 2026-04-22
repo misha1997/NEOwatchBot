@@ -243,17 +243,14 @@ class CallbackHandlers:
             ])
             
             if map_image:
-                # Edit original message to have keyboard, then send photo with caption
-                await update.callback_query.message.edit_text(
-                    "🛰️ МКС — позиція на карті",
-                    parse_mode='HTML',
-                    reply_markup=keyboard,
-                )
+                # Delete original message, then send photo + caption + keyboard in one message
+                await update.callback_query.message.delete()
                 await context.bot.send_photo(
                     chat_id=update.effective_chat.id,
                     photo=InputFile(map_image, filename='iss_map.png'),
                     caption=caption,
                     parse_mode='HTML',
+                    reply_markup=keyboard,
                 )
             else:
                 # Fallback: text with map link (Telegram shows preview)
@@ -364,16 +361,13 @@ class CallbackHandlers:
             "🔴 Червоний — активне сяйво\n\n"
             "<i>Оновлюється кожні 5 хвилин (NOAA)</i>"
         )
-        await update.callback_query.message.edit_text(
-            "🌌 Полярне сяйво — карта активності",
-            parse_mode='HTML',
-            reply_markup=get_main_menu(),
-        )
+        await update.callback_query.message.delete()
         await context.bot.send_photo(
             chat_id=update.effective_chat.id,
             photo=map_url,
             caption=caption,
             parse_mode='HTML',
+            reply_markup=get_main_menu(),
         )
 
     @staticmethod
