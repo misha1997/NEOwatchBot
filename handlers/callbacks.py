@@ -243,19 +243,17 @@ class CallbackHandlers:
             ])
             
             if map_image:
-                # Delete original message first, then send photo + keyboard separately
-                await update.callback_query.message.delete()
+                # Edit original message to have keyboard, then send photo with caption
+                await update.callback_query.message.edit_text(
+                    "🛰️ МКС — позиція на карті",
+                    parse_mode='HTML',
+                    reply_markup=keyboard,
+                )
                 await context.bot.send_photo(
                     chat_id=update.effective_chat.id,
                     photo=InputFile(map_image, filename='iss_map.png'),
                     caption=caption,
                     parse_mode='HTML',
-                )
-                await context.bot.send_message(
-                    chat_id=update.effective_chat.id,
-                    text="🛰️ МКС на карті",
-                    parse_mode='HTML',
-                    reply_markup=keyboard,
                 )
             else:
                 # Fallback: text with map link (Telegram shows preview)
@@ -366,18 +364,16 @@ class CallbackHandlers:
             "🔴 Червоний — активне сяйво\n\n"
             "<i>Оновлюється кожні 5 хвилин (NOAA)</i>"
         )
-        await update.callback_query.message.delete()
+        await update.callback_query.message.edit_text(
+            "🌌 Полярне сяйво — карта активності",
+            parse_mode='HTML',
+            reply_markup=get_main_menu(),
+        )
         await context.bot.send_photo(
             chat_id=update.effective_chat.id,
             photo=map_url,
             caption=caption,
             parse_mode='HTML',
-        )
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="🔙 Повернутися до меню",
-            parse_mode='HTML',
-            reply_markup=get_main_menu(),
         )
 
     @staticmethod
