@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes
 from services import NasaAPI, N2YOAPI, LaunchAPI, SpaceWeatherAPI, ISSCrewAPI
 from services.moon_mars import MoonMarsAPI
 from services.meteor_shower import MeteorShower
-from database import get_user, update_user_location, get_subscription_status, toggle_subscription, geocode_city
+from database import get_user, update_user_location, toggle_subscription, geocode_city
 import logging
 
 logger = logging.getLogger(__name__)
@@ -99,7 +99,6 @@ class CallbackHandlers:
                 name = neo['name']
                 distance_km = neo['miss_distance_km']
                 approach_date = neo['approach_date']
-                is_hazardous = neo.get('is_hazardous', True)
 
                 # Format distance
                 if distance_km >= 1_000_000:
@@ -321,14 +320,33 @@ class CallbackHandlers:
     
     @staticmethod
     async def iss_crew(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle ISS crew button"""
-        crew = ISSCrewAPI.get_iss_crew()
-        result = ISSCrewAPI.format_crew_for_telegram(crew)
-        await update.callback_query.message.edit_text(
-            result,
-            parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
-        )
+        """Handle ISS crew button - show expedition patch and crew list"""
+        data = ISSCrewAPI.get_iss_crew()
+        result = ISSCrewAPI.format_crew_for_telegram(data)
+        patch_url = result.get('patch_url')
+
+        try:
+            if patch_url:
+                await update.callback_query.message.reply_photo(
+                    photo=patch_url,
+                    caption=result['text'],
+                    parse_mode='HTML',
+                    reply_markup=CallbackHandlers.get_main_menu()
+                )
+                await update.callback_query.message.delete()
+            else:
+                await update.callback_query.message.edit_text(
+                    result['text'],
+                    parse_mode='HTML',
+                    reply_markup=CallbackHandlers.get_main_menu()
+                )
+        except Exception as e:
+            logger.error(f"ISS crew handler error: {e}")
+            await update.callback_query.message.edit_text(
+                result['text'],
+                parse_mode='HTML',
+                reply_markup=CallbackHandlers.get_main_menu()
+            )
     
     @staticmethod
     async def starlink(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -55,7 +55,7 @@ class MoonMarsAPI:
             phase_name = "🌑 Місяць"
             illumination = 0
             
-            for start, end, name, phase_type in phase_names:
+            for start, end, name, _ in phase_names:
                 if start <= phase < end or (start == 0.97 and phase >= 0.97):
                     phase_name = name
                     # Calculate illumination percentage
@@ -180,75 +180,3 @@ class MoonMarsAPI:
             logger.error(f"Mars weather error: {e}")
             return None
     
-    @staticmethod
-    def format_moon_mars_message():
-        """Format combined moon and mars message"""
-        moon = MoonMarsAPI.get_moon_phase()
-        mars = MoonMarsAPI.get_mars_weather()
-
-        message = "🌙 <b>Місяць та Марс</b>\n\n"
-
-        # Moon section
-        if moon:
-            message += f"{moon['phase_name']}\n"
-            message += f"💡 Освітленість: {moon['illumination']}%\n"
-
-            if moon['days_to_full'] < 15:
-                message += f"🌕 Повний Місяць через: {moon['days_to_full']} дн.\n"
-            else:
-                message += f"🌑 Новий Місяць через: {moon['days_to_new']} дн.\n"
-
-            message += "\n"
-
-        # Mars section
-        if mars:
-            message += "🔴 <b>Погода на Марсі</b>\n"
-            message += f"📅 Сол {mars['sol']} (марсіанський день)\n"
-            message += f"📊 Дані за: {mars.get('first_date', 'N/A')} - {mars.get('last_date', 'N/A')}\n\n"
-
-            # Temperature
-            if mars.get('temp_avg') is not None:
-                message += "🌡️ <b>Температура повітря:</b>\n"
-                message += f"   Середня: {mars['temp_avg']}°C\n"
-                if mars.get('temp_min') is not None and mars.get('temp_max') is not None:
-                    message += f"   Діапазон: {mars['temp_min']}°C ... {mars['temp_max']}°C\n"
-                if mars.get('temp_samples'):
-                    message += f"   Вимірювань: {mars['temp_samples']}\n"
-                message += "\n"
-
-            # Pressure
-            if mars.get('pressure_avg') is not None:
-                message += "💨 <b>Атмосферний тиск:</b>\n"
-                message += f"   Середній: {mars['pressure_avg']} Па\n"
-                if mars.get('pressure_min') is not None and mars.get('pressure_max') is not None:
-                    message += f"   Діапазон: {mars['pressure_min']} ... {mars['pressure_max']} Па\n"
-                message += "\n"
-
-            # Wind
-            if mars.get('wind_avg') is not None:
-                message += "💨 <b>Вітер:</b>\n"
-                message += f"   Середня швидкість: {mars['wind_avg']} м/с\n"
-                if mars.get('wind_min') is not None and mars.get('wind_max') is not None:
-                    message += f"   Діапазон: {mars['wind_min']} ... {mars['wind_max']} м/с\n"
-                if mars.get('wind_direction'):
-                    message += f"   Напрямок: {mars['wind_direction']} ({mars.get('wind_direction_deg', 0)}°)\n"
-                message += "\n"
-
-            # Season
-            if mars.get('season'):
-                season_emoji = "🌸" if "spring" in mars['season'].lower() else \
-                              "☀️" if "summer" in mars['season'].lower() else \
-                              "🍂" if "fall" in mars['season'].lower() else "❄️"
-                message += f"{season_emoji} <b>Сезон:</b> {mars['season']}\n"
-                if mars.get('northern_season'):
-                    message += f"   Північна півкуля: {mars['northern_season']}\n"
-                if mars.get('southern_season'):
-                    message += f"   Південна півкуля: {mars['southern_season']}\n"
-
-            message += "\n<i>📡 Джерело: NASA InSight</i>"
-        else:
-            message += "🔴 <b>Погода на Марсі</b>\n"
-            message += "❌ Немає актуальних даних\n"
-            message += "<i>Можливо, InSight не передає дані</i>"
-
-        return message

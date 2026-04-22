@@ -1,12 +1,10 @@
 """MySQL database for NEOwatch Bot"""
 import logging
 import requests
-from datetime import datetime
 from typing import Optional, Dict, List
 import mysql.connector
 from mysql.connector import Error, pooling
 from config import (
-    N2YO_API_KEY, DEFAULT_LAT, DEFAULT_LON,
     DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 )
 
@@ -270,30 +268,6 @@ def toggle_subscription(user_id: int, subscription_type: str) -> bool:
         logger.error(f"Error toggling subscription: {e}")
         conn.rollback()
         return False
-    finally:
-        cursor.close()
-        conn.close()
-
-
-def get_subscription_status(user_id: int) -> Dict[str, bool]:
-    """Get subscription status for user"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute(
-            'SELECT subscribed_iss, subscribed_apod, subscribed_launches, subscribed_neo, subscribed_news, subscribed_meteors FROM users WHERE user_id = %s',
-            (user_id,)
-        )
-        row = cursor.fetchone()
-
-        if row:
-            return {'iss': bool(row[0]), 'apod': bool(row[1]), 'launches': bool(row[2]), 'neo': bool(row[3]), 'news': bool(row[4]), 'meteors': bool(row[5])}
-        return {'iss': False, 'apod': False, 'launches': False, 'neo': False, 'news': False, 'meteors': False}
-
-    except Error as e:
-        logger.error(f"Error getting subscription status: {e}")
-        return {'iss': False, 'apod': False, 'launches': False, 'neo': False, 'news': False, 'meteors': False}
     finally:
         cursor.close()
         conn.close()

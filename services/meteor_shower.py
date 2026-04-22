@@ -1,6 +1,6 @@
 """Meteor showers data and utilities"""
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -226,48 +226,3 @@ class MeteorShower:
         
         return message
     
-    @staticmethod
-    def should_notify():
-        """Check if we should send notification today"""
-        now = datetime.now()
-        next_shower = MeteorShower.get_next_shower()
-        
-        if not next_shower:
-            return None
-        
-        days = next_shower['days_until']
-        
-        # Notify at 7, 3, 1 days before
-        if days in [7, 3, 1]:
-            return next_shower
-        
-        # Notify on peak day
-        if days == 0:
-            return next_shower
-        
-        return None
-    
-    @staticmethod
-    def get_notification_message(shower):
-        """Get notification message for a shower"""
-        days = shower['days_until']
-        
-        if days == 0:
-            message = f"🔥 <b>СЬОГОДНІ ПІК {shower['name'].upper()}!</b>\n\n"
-            message += f"💫 До {shower['rate']} метеорів за годину\n"
-            message += f"🕐 Найкращий час: {shower['best_time']}\n"
-            message += f"📍 Дивіться: {shower['direction']}\n\n"
-            message += "✨ Не пропустіть!"
-        elif days == 1:
-            message = f"⏳ <b>ЗАВТРА {shower['name'].upper()}!</b>\n\n"
-            message += f"💫 Пік активності з {shower['rate']} метеорів/год\n"
-            message += f"🕐 {shower['best_time']}\n\n"
-            message += "🎒 Приготуйтеся ввечері!"
-        else:
-            message = f"📅 <b>Через {days} днів: {shower['name']}</b>\n\n"
-            message += f"🔥 {shower['description']}\n"
-            message += f"💫 До {shower['rate']} метеорів/год\n"
-            message += f"📅 Пік: {shower['peak_datetime'].strftime('%d.%m')}\n\n"
-            message += "📝 Заплануйте вечір!"
-        
-        return message

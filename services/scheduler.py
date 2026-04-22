@@ -2,7 +2,7 @@
 import logging
 import asyncio
 from datetime import datetime, timedelta
-from typing import Optional, Dict, List, Set
+from typing import List, Set
 from telegram import Bot
 from telegram.constants import ParseMode
 
@@ -13,7 +13,7 @@ from parsers import SpaceflightNowParser
 from utils.translator import Translator
 from database import (
     get_apod_subscribers, get_launch_subscribers, get_iss_subscribers, get_neo_subscribers, get_news_subscribers, get_meteor_subscribers,
-    update_last_apod_date, get_user, update_last_iss_pass,
+    update_last_apod_date, update_last_iss_pass,
     is_launch_notified, mark_launch_notified, cleanup_old_launch_notifications,
     is_neo_notified, mark_neo_notified, cleanup_old_neo_notifications,
     is_news_notified, mark_news_notified, cleanup_old_news_notifications,
@@ -187,33 +187,40 @@ class NotificationScheduler:
         """Check for upcoming launches and notify subscribers"""
         try:
             logger.info("Checking upcoming launches...")
-            
-            # Get launches
-            launches_data = LaunchAPI.get_upcoming_launches()
-            if not launches_data:
+
+            # Get raw launches data (not formatted text)
+            raw_data = LaunchAPI.get_raw_launches()
+            if not raw_data:
+                logger.warning("No launch data available from API")
                 return
-            
-            launches = self._parse_launches(launches_data)
-            
+
+            launches = self._parse_launches(raw_data)
+
             if not launches:
+                logger.info("No upcoming launches to notify about")
                 return
-            
+
             # Get subscribers
             subscribers = get_launch_subscribers()
             if not subscribers:
                 logger.info("No launch subscribers")
                 return
-            
+
             now = datetime.now()
-            
+            notified_count = 0
+
             for launch in launches:
                 launch_id = launch.get('id')
                 launch_time = launch.get('time')
-                
+
                 if not launch_time or not launch_id:
                     continue
-                
+
                 time_until = (launch_time - now).total_seconds()
+
+                # Skip launches already in the past or too far in the future
+                if time_until <= 0 or time_until > 90000:  # > 25 hours
+                    continue
 
                 # Determine notification type based on time window
                 notification_type = None
@@ -239,19 +246,22 @@ class NotificationScheduler:
                     continue
 
                 if is_launch_notified(launch_id, notification_type):
-                    self._notified_launches.add(notification_key)  # Cache for this session
+                    self._notified_launches.add(notification_key)
                     continue
 
                 # Send notification
-                await self._send_launch_notification(launch, subscribers, hours=hours, minutes=minutes)
+                await self._send_launch_notification(
+                    launch, subscribers, hours=hours, minutes=minutes
+                )
                 self._notified_launches.add(notification_key)
                 mark_launch_notified(launch_id, notification_type)
+                notified_count += 1
 
-            # Cleanup old notifications from database (once per day)
+            # Cleanup old notifications from database (once per day at 03:00)
             if now.hour == 3 and now.minute < 5:
                 cleanup_old_launch_notifications(days=7)
-            
-            logger.info("Launch check completed")
+
+            logger.info(f"Launch check completed. Sent {notified_count} notifications.")
 
         except Exception as e:
             logger.error(f"Launch scheduler error: {e}")
@@ -368,15 +378,27 @@ class NotificationScheduler:
             message = f"📰 <b>Космічні новини ({today})</b>\n"
             message += "<i>Джерело: spaceflightnow.com</i>\n\n"
 
+            # Batch translate all titles and excerpts in one API call
+            texts_to_translate = []
+            for article in new_articles[:3]:
+                texts_to_translate.append(article['title'])
+                if article.get('excerpt'):
+                    texts_to_translate.append(article['excerpt'])
+
+            translated = Translator.translate_batch(texts_to_translate)
+            trans_idx = 0
+
             for i, article in enumerate(new_articles[:3], 1):
                 title = article['title']
                 excerpt = article['excerpt']
                 url = article['url']
                 category = article['category']
 
-                # Translate title and excerpt
-                title_uk = Translator.translate_news(title)
-                excerpt_uk = Translator.translate_news(excerpt) if excerpt else ''
+                title_uk = translated[trans_idx]
+                trans_idx += 1
+                excerpt_uk = translated[trans_idx] if excerpt else ''
+                if excerpt:
+                    trans_idx += 1
 
                 # Category emoji
                 cat_emoji = "🚀"

@@ -106,16 +106,6 @@ class SpaceWeatherAPI:
             return None, None
     
     @staticmethod
-    def _get_kp_emoji(kp):
-        """Get emoji for Kp value"""
-        if kp < 4:
-            return "🟢"
-        elif kp < 6:
-            return "🟡"
-        else:
-            return "🔴"
-    
-    @staticmethod
     def _get_solar_wind():
         """Get solar wind data"""
         try:
@@ -199,20 +189,6 @@ class SpaceWeatherAPI:
             'X': "⚠️"
         }
         return emojis.get(xray_class, "⚪")
-    
-    @staticmethod
-    def _can_see_aurora(kp, latitude):
-        """Check if aurora is visible"""
-        abs_lat = abs(latitude)
-        
-        if kp >= 9:
-            return "✅ Видиме майже всюди!"
-        elif kp >= 7:
-            return "✅ Видиме середніми широтами" if abs_lat > 40 else "🟡 Можливо на півночі"
-        elif kp >= 5:
-            return "🟡 Видиме на високих широтах" if abs_lat > 55 else "❌ Малоймовірно"
-        else:
-            return "❌ Тільки полярні регіони" if abs_lat > 65 else "❌ Не видиме"
     
     @staticmethod
     def _get_g_scale(kp):
@@ -334,34 +310,3 @@ class SpaceWeatherAPI:
             logger.error(f"Forecast error: {e}")
             return None
     
-    @staticmethod
-    def _get_kp_forecast():
-        """Get 3-day Kp forecast"""
-        try:
-            response = requests.get(NOAA_KP_FORECAST, timeout=10)
-            data = response.json()
-            
-            if data and len(data) > 1:
-                forecast = []
-                for row in data[1:]:  # Skip header
-                    if len(row) >= 4:
-                        date = row[0].split('T')[0]  # Extract date part
-                        kp = float(row[1])
-                        level = SpaceWeatherAPI._get_kp_level(kp)
-                        forecast.append({'date': date, 'kp': kp, 'level': level})
-                return forecast
-            return None
-        except:
-            return None
-    
-    @staticmethod
-    def _get_kp_level(kp):
-        """Get descriptive level for Kp"""
-        if kp < 4:
-            return "спокійно"
-        elif kp < 6:
-            return "буря"
-        elif kp < 8:
-            return "сильна буря"
-        else:
-            return "екстремальна"

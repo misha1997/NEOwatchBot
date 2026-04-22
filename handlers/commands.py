@@ -1,7 +1,7 @@
 """Command handlers for bot"""
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-from database import init_db, create_or_update_user, get_user
+from database import create_or_update_user
 import logging
 
 logger = logging.getLogger(__name__)

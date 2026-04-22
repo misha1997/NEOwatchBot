@@ -1,7 +1,7 @@
 """N2YO API Service - ISS and satellite tracking"""
 import requests
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from config import N2YO_API_KEY, N2YO_BASE_URL, ISS_NORAD_ID
 from utils.constants import COUNTRY_BBOXES
 
@@ -123,7 +123,7 @@ class N2YOAPI:
             from config import STARLINK_NORAD_IDS
             
             all_passes = []
-            for sat_id in STARLINK_NORAD_IDS[:5]:  # Limit to first 5
+            for sat_id in STARLINK_NORAD_IDS[:10]:  # Check first 10 satellites
                 url = f"{N2YO_BASE_URL}/visualpasses/{sat_id}/{lat}/{lon}/{alt}/{days}/60"
                 params = {'apiKey': N2YO_API_KEY}
                 
