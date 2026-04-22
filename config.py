@@ -4,34 +4,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# API Keys
+# API Keys (set in .env or environment variables)
 NASA_API_KEY = os.getenv('NASA_API_KEY')
 N2YO_API_KEY = os.getenv('N2YO_API_KEY')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 GEOAPIFY_KEY = os.getenv('GEOAPIFY_KEY', '')
-DEEPL_API_KEY = os.getenv('DEEPL_API_KEY', 'd304ed66-2c3f-48dc-a611-ff045dd69609:fx')
+DEEPL_API_KEY = os.getenv('DEEPL_API_KEY')
 
 # NASA API
 NASA_NEO_URL = "https://api.nasa.gov/neo/rest/v1/feed"
 NASA_APOD_URL = "https://api.nasa.gov/planetary/apod"
-NASA_IMAGE_URL = "https://images-api.nasa.gov/search"
 
 # N2YO API
 N2YO_BASE_URL = "https://api.n2yo.com/rest/v1/satellite"
 
-# Launch API
-LAUNCHLIBRARY_URL = "https://ll.thespacedevs.com/2.2.0/launch/upcoming"
-
-# Space Weather
-NOAA_SPACEWEATHER_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index"
-
-# ISS Crew
-OPEN_NOTIFY_CREW = "http://api.open-notify.org/astros.json"
-
 # Default location (Kyiv, Ukraine)
 DEFAULT_LAT = float(os.getenv('DEFAULT_LAT', ''))
 DEFAULT_LON = float(os.getenv('DEFAULT_LON', ''))
-DEFAULT_ALT = int(os.getenv('DEFAULT_ALT', 0))
+DEFAULT_ALT = int(os.getenv('DEFAULT_ALT', ''))
 
 # Database Configuration
 DB_HOST = os.getenv('DB_HOST', 'localhost')
