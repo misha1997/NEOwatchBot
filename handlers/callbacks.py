@@ -269,7 +269,8 @@ class CallbackHandlers:
             
             if map_image:
                 # Send photo with map
-                await update.callback_query.message.reply_photo(
+                await context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
                     photo=InputFile(map_image, filename='iss_map.png'),
                     caption=caption,
                     parse_mode='HTML',
@@ -327,13 +328,19 @@ class CallbackHandlers:
 
         try:
             if patch_url:
-                await update.callback_query.message.reply_photo(
-                    photo=patch_url,
+                # Try to replace current message with photo (keeps same message_id)
+                from telegram import InputMediaPhoto
+                media = InputMediaPhoto(
+                    media=patch_url,
                     caption=result['text'],
-                    parse_mode='HTML',
+                    parse_mode='HTML'
+                )
+                await context.bot.edit_message_media(
+                    media=media,
+                    chat_id=update.effective_chat.id,
+                    message_id=update.callback_query.message.message_id,
                     reply_markup=CallbackHandlers.get_main_menu()
                 )
-                await update.callback_query.message.delete()
             else:
                 await update.callback_query.message.edit_text(
                     result['text'],
