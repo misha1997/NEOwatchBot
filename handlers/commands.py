@@ -1,7 +1,8 @@
 """Command handlers for bot"""
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import ContextTypes
 from database import create_or_update_user
+from utils.keyboards import get_main_menu
 import logging
 
 logger = logging.getLogger(__name__)
@@ -40,38 +41,9 @@ class CommandHandlers:
         message += "👽 <b>Марс</b> — погода на Червоній планеті\n\n"
         message += "📍 <b>Важливо:</b> вкажи своє місто в налаштуваннях, щоб отримувати персональні сповіщення про проходження МКС та метеорів!"
         
-        keyboard = [
-            [
-                InlineKeyboardButton("🌑 Астероїди", callback_data='neo'),
-                InlineKeyboardButton("🌠 Метеоритні потоки", callback_data='meteor_showers'),
-            ],
-            [
-                InlineKeyboardButton("🌌 Фото дня", callback_data='apod'),
-                InlineKeyboardButton("🚀 Запуски", callback_data='launches'),
-                InlineKeyboardButton("🛰️ Starlink", callback_data='starlink'),
-            ],
-            [
-                InlineKeyboardButton("🛰️ МКС зараз", callback_data='iss_now'),
-                InlineKeyboardButton("📡 МКС Проходження", callback_data='iss_passes'),
-                InlineKeyboardButton("👨‍🚀 Екіпаж", callback_data='iss_crew'),
-            ],
-            [
-                InlineKeyboardButton("☀️ Космопогода", callback_data='space_weather'),
-                InlineKeyboardButton("👽 Погода на Марсі", callback_data='mars'),
-            ],
-            [
-                InlineKeyboardButton("🌙 Фаза місяця", callback_data='moon'),
-            ],
-            [
-                InlineKeyboardButton("⚙️ Налаштування", callback_data='settings'),
-            ]
-        ]
-        
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
         await update.message.reply_text(
-            message, 
-            reply_markup=reply_markup,
+            message,
+            reply_markup=get_main_menu(),
             parse_mode='HTML'
         )
     

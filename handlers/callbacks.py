@@ -6,6 +6,7 @@ from services.moon_mars import MoonMarsAPI
 from services.meteor_shower import MeteorShower
 from services.astronomy import format_events
 from database import get_user, update_user_location, toggle_subscription, geocode_city
+from utils.keyboards import get_main_menu
 import logging
 
 logger = logging.getLogger(__name__)
@@ -53,37 +54,6 @@ class CallbackHandlers:
         elif data.startswith('sub_'):
             await CallbackHandlers.handle_subscription_toggle(update, context, data)
     
-    @staticmethod
-    def get_main_menu():
-        """Return main menu keyboard"""
-        return InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("🌑 Астероїди", callback_data='neo'),
-                InlineKeyboardButton("🌠 Метеоритні потоки", callback_data='meteor_showers'),
-            ],
-            [
-                InlineKeyboardButton("🌌 Фото дня", callback_data='apod'),
-                InlineKeyboardButton("🚀 Запуски", callback_data='launches'),
-                InlineKeyboardButton("🛰️ Starlink", callback_data='starlink'),
-            ],
-            [
-                InlineKeyboardButton("🛰️ МКС зараз", callback_data='iss_now'),
-                InlineKeyboardButton("📡 МКС Проходження", callback_data='iss_passes'),
-                InlineKeyboardButton("👨‍🚀 Екіпаж", callback_data='iss_crew'),
-            ],
-            [
-                InlineKeyboardButton("☀️ Космопогода", callback_data='space_weather'),
-                InlineKeyboardButton("🌌 Полярне сяйво", callback_data='aurora'),
-                InlineKeyboardButton("👽 Погода на Марсі", callback_data='mars'),
-            ],
-            [
-                InlineKeyboardButton("🔭 Астроподії", callback_data='astronomy'),
-                InlineKeyboardButton("🌙 Фаза місяця", callback_data='moon'),
-            ],
-            [
-                InlineKeyboardButton("⚙️ Налаштування", callback_data='settings'),
-            ]
-        ])
     
     @staticmethod
     async def neo(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -119,7 +89,7 @@ class CallbackHandlers:
         await update.callback_query.message.edit_text(
             message,
             parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
+            reply_markup=get_main_menu()
         )
     
     @staticmethod
@@ -131,7 +101,7 @@ class CallbackHandlers:
                 logger.error("APOD: get_apod() returned None")
                 await update.callback_query.message.reply_text(
                     "❌ Не вдалося отримати фото дня від NASA (API error)",
-                    reply_markup=CallbackHandlers.get_main_menu()
+                    reply_markup=get_main_menu()
                 )
                 return
             formatted = NasaAPI.format_apod(data)
@@ -235,7 +205,7 @@ class CallbackHandlers:
             await update.callback_query.message.reply_text(
                 formatted['text'],
                 parse_mode='HTML',
-                reply_markup=CallbackHandlers.get_main_menu()
+                reply_markup=get_main_menu()
             )
         except Exception as e:
             logger.error(f"APOD handler error: {e}")
@@ -243,7 +213,7 @@ class CallbackHandlers:
             logger.error(traceback.format_exc())
             await update.callback_query.message.reply_text(
                 f"❌ Помилка при отриманні фото дня: {str(e)[:200]}",
-                reply_markup=CallbackHandlers.get_main_menu()
+                reply_markup=get_main_menu()
             )
     
     @staticmethod
@@ -253,7 +223,7 @@ class CallbackHandlers:
         await update.callback_query.message.edit_text(
             result['text'],
             parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
+            reply_markup=get_main_menu()
         )
     
     @staticmethod
@@ -299,7 +269,7 @@ class CallbackHandlers:
             await update.callback_query.message.edit_text(
                 result,
                 parse_mode='HTML',
-                reply_markup=CallbackHandlers.get_main_menu()
+                reply_markup=get_main_menu()
             )
     
     @staticmethod
@@ -321,7 +291,7 @@ class CallbackHandlers:
         await update.callback_query.message.edit_text(
             result,
             parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
+            reply_markup=get_main_menu()
         )
     
     @staticmethod
@@ -333,7 +303,7 @@ class CallbackHandlers:
         await update.callback_query.message.edit_text(
             result['text'],
             parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
+            reply_markup=get_main_menu()
         )
     
     @staticmethod
@@ -355,7 +325,7 @@ class CallbackHandlers:
         await update.callback_query.message.edit_text(
             result,
             parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
+            reply_markup=get_main_menu()
         )
     
     @staticmethod
@@ -368,7 +338,7 @@ class CallbackHandlers:
         await update.callback_query.message.edit_text(
             result,
             parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
+            reply_markup=get_main_menu()
         )
     
     @staticmethod
@@ -378,7 +348,7 @@ class CallbackHandlers:
         await update.callback_query.message.edit_text(
             result,
             parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
+            reply_markup=get_main_menu()
         )
 
     @staticmethod
@@ -397,7 +367,7 @@ class CallbackHandlers:
             photo=map_url,
             caption=caption,
             parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
+            reply_markup=get_main_menu()
         )
         await update.callback_query.message.delete()
 
@@ -408,7 +378,7 @@ class CallbackHandlers:
         await update.callback_query.message.edit_text(
             result,
             parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
+            reply_markup=get_main_menu()
         )
 
     @staticmethod
@@ -432,7 +402,7 @@ class CallbackHandlers:
         await update.callback_query.message.edit_text(
             message,
             parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
+            reply_markup=get_main_menu()
         )
     
     @staticmethod
@@ -492,7 +462,7 @@ class CallbackHandlers:
         await update.callback_query.message.edit_text(
             message,
             parse_mode='HTML',
-            reply_markup=CallbackHandlers.get_main_menu()
+            reply_markup=get_main_menu()
         )
     
     @staticmethod
@@ -572,7 +542,7 @@ class CallbackHandlers:
                 f"✅ Місто встановлено: <b>{city_name}</b>\n"
                 f"📍 Координати: {lat:.4f}, {lon:.4f}",
                 parse_mode='HTML',
-                reply_markup=CallbackHandlers.get_main_menu()
+                reply_markup=get_main_menu()
             )
             
             if user_id in user_states:
@@ -582,7 +552,7 @@ class CallbackHandlers:
             logger.error(f"City selection error: {e}")
             await update.callback_query.message.edit_text(
                 "❌ Помилка при збереженні міста",
-                reply_markup=CallbackHandlers.get_main_menu()
+                reply_markup=get_main_menu()
             )
     
     @staticmethod
@@ -624,7 +594,7 @@ class CallbackHandlers:
             await update.callback_query.message.edit_text(
                 message,
                 parse_mode='HTML',
-                reply_markup=CallbackHandlers.get_main_menu()
+                reply_markup=get_main_menu()
             )
         except Exception as e:
             # If editing fails (e.g., message was deleted), send new message
@@ -633,5 +603,5 @@ class CallbackHandlers:
                 chat_id=update.effective_chat.id,
                 text=message,
                 parse_mode='HTML',
-                reply_markup=CallbackHandlers.get_main_menu()
+                reply_markup=get_main_menu()
             )
