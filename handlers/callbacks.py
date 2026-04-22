@@ -321,39 +321,15 @@ class CallbackHandlers:
     
     @staticmethod
     async def iss_crew(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle ISS crew button - show expedition patch and crew list"""
+        """Handle ISS crew button - show crew list as text"""
         data = ISSCrewAPI.get_iss_crew()
         result = ISSCrewAPI.format_crew_for_telegram(data)
-        patch_url = result.get('patch_url')
 
-        try:
-            if patch_url:
-                # Try to replace current message with photo (keeps same message_id)
-                from telegram import InputMediaPhoto
-                media = InputMediaPhoto(
-                    media=patch_url,
-                    caption=result['text'],
-                    parse_mode='HTML'
-                )
-                await context.bot.edit_message_media(
-                    media=media,
-                    chat_id=update.effective_chat.id,
-                    message_id=update.callback_query.message.message_id,
-                    reply_markup=CallbackHandlers.get_main_menu()
-                )
-            else:
-                await update.callback_query.message.edit_text(
-                    result['text'],
-                    parse_mode='HTML',
-                    reply_markup=CallbackHandlers.get_main_menu()
-                )
-        except Exception as e:
-            logger.error(f"ISS crew handler error: {e}")
-            await update.callback_query.message.edit_text(
-                result['text'],
-                parse_mode='HTML',
-                reply_markup=CallbackHandlers.get_main_menu()
-            )
+        await update.callback_query.message.edit_text(
+            result['text'],
+            parse_mode='HTML',
+            reply_markup=CallbackHandlers.get_main_menu()
+        )
     
     @staticmethod
     async def starlink(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -560,11 +560,16 @@ class NotificationScheduler:
                         # Parse ISO datetime
                         launch_time = datetime.fromisoformat(net.replace('Z', '+00:00'))
                         launch_time = launch_time.replace(tzinfo=None)  # Make naive
-                        
+
+                        # Get info URL for livestream (SpaceX page or fallback)
+                        info_urls = result.get('info_urls', [])
+                        live_url = info_urls[0]['url'] if info_urls else 'https://spaceflightnow.com/launch-schedule/'
+
                         launches.append({
                             'id': str(launch_id),
                             'name': name,
-                            'time': launch_time
+                            'time': launch_time,
+                            'url': live_url
                         })
                 except Exception as e:
                     logger.warning(f"Failed to parse launch: {e}")
@@ -589,10 +594,12 @@ class NotificationScheduler:
                 when_text = f"через {minutes} хвилин"
                 emoji = "🚨"
             
+            live_url = launch.get('url', 'https://spaceflightnow.com/launch-schedule/')
+
             message = f"{emoji} <b>Запуск ракети {when_text}!</b>\n\n"
             message += f"🚀 {launch_name}\n"
             message += f"📅 {launch_time.strftime('%d.%m.%Y %H:%M UTC')}\n"
-            message += f"\n<i>Дивіться трансляцію на spaceflightnow.com або youtube.com/nasaspaceflight</i>"
+            message += f"\n<i>📺 <a href='{live_url}'>Дивіться трансляцію</a></i>"
             
             for user in subscribers:
                 try:
