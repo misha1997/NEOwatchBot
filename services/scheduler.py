@@ -430,6 +430,8 @@ class NotificationScheduler:
                     f"<b>{eclipse['name']}</b>\n"
                     f"📅 {eclipse['date']}\n"
                     f"🌍 Видимість: {eclipse['visibility']}\n\n"
+                    "🔗 <a href='https://www.timeanddate.com/eclipse/'>Переглянути карту та час</a>\n"
+                    "📺 <a href='https://www.youtube.com/@NASA'>Трансляція NASA</a>\n\n"
                     "<i>Не пропустіть!</i>"
                 )
 

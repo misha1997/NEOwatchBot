@@ -108,6 +108,10 @@ def format_events():
                 f"   📐 Відстань: {ev['separation']}°\n\n"
             )
 
+    message += "🔗 <b>Де дивитися:</b>\n"
+    message += "• <a href='https://www.timeanddate.com/eclipse/'>timeanddate.com</a> — карти та час\n"
+    message += "• <a href='https://science.nasa.gov/eclipses/'>NASA Eclipse</a> — наукові дані\n"
+    message += "• <a href='https://www.youtube.com/@NASA'>NASA Live</a> — трансляції\n\n"
     message += "<i>Дані оновлюються раз на рік</i>"
     return message
 
