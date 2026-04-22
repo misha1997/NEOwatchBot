@@ -32,9 +32,16 @@ class NotificationScheduler:
         self._last_apod_date = None  # Track last APOD sent
         self._notified_launches: Set[str] = set()  # Track notified launches
         self._last_iss_check = {}  # user_id -> last_check_time
+
+    @staticmethod
+    def _is_quiet_hours() -> bool:
+        """Return True between 00:00 and 06:00 local time."""
+        return datetime.now().hour < 6
     
     async def send_apod_to_subscribers(self):
         """Send APOD to all subscribers - once per day"""
+        if self._is_quiet_hours():
+            return
         try:
             today = datetime.now().strftime('%Y-%m-%d')
             
@@ -109,6 +116,8 @@ class NotificationScheduler:
     
     async def check_iss_passes(self):
         """Check for upcoming ISS passes and notify subscribers"""
+        if self._is_quiet_hours():
+            return
         try:
             logger.info("Checking ISS passes...")
             subscribers = get_iss_subscribers()
@@ -185,6 +194,8 @@ class NotificationScheduler:
     
     async def check_upcoming_launches(self):
         """Check for upcoming launches and notify subscribers"""
+        if self._is_quiet_hours():
+            return
         try:
             logger.info("Checking upcoming launches...")
 
@@ -233,9 +244,9 @@ class NotificationScheduler:
                 elif 3600 < time_until <= 7200:  # 1-2 hours
                     notification_type = "2h"
                     hours = 2
-                elif 1500 < time_until <= 1800:  # 25-30 minutes
-                    notification_type = "30m"
-                    minutes = 30
+                elif 780 < time_until <= 900:  # 13-15 minutes before launch
+                    notification_type = "15m"
+                    minutes = 15
 
                 if not notification_type:
                     continue
@@ -268,6 +279,8 @@ class NotificationScheduler:
 
     async def check_hazardous_asteroids(self):
         """Check for hazardous asteroids and notify subscribers"""
+        if self._is_quiet_hours():
+            return
         try:
             logger.info("Checking hazardous asteroids...")
 
@@ -347,6 +360,8 @@ class NotificationScheduler:
 
     async def send_daily_news(self):
         """Send daily news digest from Spaceflightnow"""
+        if self._is_quiet_hours():
+            return
         try:
             logger.info("Sending daily news...")
 
@@ -450,6 +465,8 @@ class NotificationScheduler:
 
     async def check_meteor_showers(self):
         """Check for upcoming meteor showers and notify subscribers"""
+        if self._is_quiet_hours():
+            return
         try:
             logger.info("Checking meteor showers...")
 
