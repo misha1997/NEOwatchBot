@@ -56,6 +56,22 @@ class CallbackHandlers:
     
     
     @staticmethod
+    async def _replace_message(update, context, text, **kwargs):
+        """Replace current message. Works for both text and media messages."""
+        try:
+            await update.callback_query.message.edit_text(text, **kwargs)
+        except Exception:
+            try:
+                await update.callback_query.message.delete()
+            except Exception:
+                pass
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=text,
+                **kwargs
+            )
+
+    @staticmethod
     async def neo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle asteroids button - show today + upcoming hazardous"""
         # Get today's asteroids
@@ -86,7 +102,7 @@ class CallbackHandlers:
                 message += f"   📍 {distance_str}\n"
                 message += f"   ⚠️ Потенційно небезпечний\n\n"
 
-        await update.callback_query.message.edit_text(
+        await CallbackHandlers._replace_message(update, context, 
             message,
             parse_mode='HTML',
             reply_markup=get_main_menu()
@@ -220,7 +236,7 @@ class CallbackHandlers:
     async def launches(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle launches button"""
         result = LaunchAPI.get_upcoming_launches()
-        await update.callback_query.message.edit_text(
+        await CallbackHandlers._replace_message(update, context, 
             result['text'],
             parse_mode='HTML',
             reply_markup=get_main_menu()
@@ -255,7 +271,7 @@ class CallbackHandlers:
             else:
                 # Fallback: text with map link (Telegram shows preview)
                 message = caption + f"\n🗺️ Мапа: {maps_link}"
-                await update.callback_query.message.edit_text(
+                await CallbackHandlers._replace_message(update, context, 
                     message,
                     parse_mode='HTML',
                     disable_web_page_preview=False,
@@ -265,7 +281,7 @@ class CallbackHandlers:
             logger.error(f"ISS now handler error: {e}")
             # Fallback to original method
             result = N2YOAPI.get_iss_position()
-            await update.callback_query.message.edit_text(
+            await CallbackHandlers._replace_message(update, context, 
                 result,
                 parse_mode='HTML',
                 reply_markup=get_main_menu()
@@ -276,7 +292,7 @@ class CallbackHandlers:
         """Handle ISS passes button"""
         user = get_user(update.effective_user.id)
         if not user or not user.get('lat'):
-            await update.callback_query.message.edit_text(
+            await CallbackHandlers._replace_message(update, context, 
                 "📍 Спочатку встанови своє місто!",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("📍 Вказати місто", callback_data='set_location'),
@@ -287,7 +303,7 @@ class CallbackHandlers:
         
         lat, lon = user['lat'], user['lon']
         result = N2YOAPI.get_iss_passes(lat, lon)
-        await update.callback_query.message.edit_text(
+        await CallbackHandlers._replace_message(update, context, 
             result,
             parse_mode='HTML',
             reply_markup=get_main_menu()
@@ -299,7 +315,7 @@ class CallbackHandlers:
         data = ISSCrewAPI.get_iss_crew()
         result = ISSCrewAPI.format_crew_for_telegram(data)
 
-        await update.callback_query.message.edit_text(
+        await CallbackHandlers._replace_message(update, context, 
             result['text'],
             parse_mode='HTML',
             reply_markup=get_main_menu()
@@ -310,7 +326,7 @@ class CallbackHandlers:
         """Handle Starlink button"""
         user = get_user(update.effective_user.id)
         if not user or not user.get('lat'):
-            await update.callback_query.message.edit_text(
+            await CallbackHandlers._replace_message(update, context, 
                 "📍 Спочатку встанови своє місто!",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("📍 Вказати місто", callback_data='set_location'),
@@ -321,7 +337,7 @@ class CallbackHandlers:
         
         lat, lon = user['lat'], user['lon']
         result = N2YOAPI.get_starlink_passes(lat, lon)
-        await update.callback_query.message.edit_text(
+        await CallbackHandlers._replace_message(update, context, 
             result,
             parse_mode='HTML',
             reply_markup=get_main_menu()
@@ -334,7 +350,7 @@ class CallbackHandlers:
         lat = user.get('lat') if user else None
         
         result = SpaceWeatherAPI.get_space_weather(user_lat=lat)
-        await update.callback_query.message.edit_text(
+        await CallbackHandlers._replace_message(update, context, 
             result,
             parse_mode='HTML',
             reply_markup=get_main_menu()
@@ -344,7 +360,7 @@ class CallbackHandlers:
     async def meteor_showers(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle meteor showers button"""
         result = MeteorShower.format_upcoming_showers()
-        await update.callback_query.message.edit_text(
+        await CallbackHandlers._replace_message(update, context, 
             result,
             parse_mode='HTML',
             reply_markup=get_main_menu()
@@ -374,7 +390,7 @@ class CallbackHandlers:
     async def astronomy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle astronomy events button"""
         result = format_events()
-        await update.callback_query.message.edit_text(
+        await CallbackHandlers._replace_message(update, context, 
             result,
             parse_mode='HTML',
             reply_markup=get_main_menu()
@@ -398,7 +414,7 @@ class CallbackHandlers:
         
         message += "\n📖 Синодичний період: 29.5 днів"
         
-        await update.callback_query.message.edit_text(
+        await CallbackHandlers._replace_message(update, context, 
             message,
             parse_mode='HTML',
             reply_markup=get_main_menu()
@@ -458,7 +474,7 @@ class CallbackHandlers:
             message += "❌ Не вдалося отримати дані\n"
             message += "<i>Можливо, InSight не передає дані</i>"
 
-        await update.callback_query.message.edit_text(
+        await CallbackHandlers._replace_message(update, context, 
             message,
             parse_mode='HTML',
             reply_markup=get_main_menu()
@@ -507,7 +523,7 @@ class CallbackHandlers:
             ]
         ]
         
-        await update.callback_query.message.edit_text(
+        await CallbackHandlers._replace_message(update, context, 
             message,
             parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup(keyboard)
@@ -519,7 +535,7 @@ class CallbackHandlers:
         user_id = update.effective_user.id
         user_states[user_id] = 'waiting_for_city'
         
-        await update.callback_query.message.edit_text(
+        await CallbackHandlers._replace_message(update, context, 
             "🌍 Напиши назву свого міста українською або англійською:\n\n"
             "Наприклад: Київ, Kyiv, Львів, Lviv",
             reply_markup=InlineKeyboardMarkup([[
@@ -537,7 +553,7 @@ class CallbackHandlers:
             lat, lon, display_name = geocode_city(city_name)
             update_user_location(user_id, city_name, lat, lon)
             
-            await update.callback_query.message.edit_text(
+            await CallbackHandlers._replace_message(update, context, 
                 f"✅ Місто встановлено: <b>{city_name}</b>\n"
                 f"📍 Координати: {lat:.4f}, {lon:.4f}",
                 parse_mode='HTML',
@@ -549,7 +565,7 @@ class CallbackHandlers:
                 
         except Exception as e:
             logger.error(f"City selection error: {e}")
-            await update.callback_query.message.edit_text(
+            await CallbackHandlers._replace_message(update, context, 
                 "❌ Помилка при збереженні міста",
                 reply_markup=get_main_menu()
             )
@@ -588,19 +604,8 @@ class CallbackHandlers:
         message += "👨‍🚀 <b>Екіпаж</b> — хто зараз у космосі\n\n"
         message += "☀️ Налаштуй сповіщення, щоб нічого не пропустити!"
 
-        try:
-            # Try to edit existing message
-            await update.callback_query.message.edit_text(
-                message,
-                parse_mode='HTML',
-                reply_markup=get_main_menu()
-            )
-        except Exception as e:
-            # If editing fails (e.g., message was deleted), send new message
-            logger.debug(f"Could not edit message, sending new one: {e}")
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=message,
-                parse_mode='HTML',
-                reply_markup=get_main_menu()
-            )
+        await CallbackHandlers._replace_message(
+            update, context, message,
+            parse_mode='HTML',
+            reply_markup=get_main_menu()
+        )
