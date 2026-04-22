@@ -10,6 +10,7 @@ NOAA_SOLAR_WIND_URL = "https://services.swpc.noaa.gov/products/solar-wind/plasma
 NOAA_MAG_URL = "https://services.swpc.noaa.gov/products/solar-wind/mag-1-minute.json"
 NOAA_XRAY_URL = "https://services.swpc.noaa.gov/products/current-goes-xray-flux.json"
 NOAA_KP_FORECAST = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json"
+NOAA_AURORA_MAP = "https://services.swpc.noaa.gov/images/animations/ovation/north/latest.jpg"
 
 
 class SpaceWeatherAPI:
@@ -89,6 +90,11 @@ class SpaceWeatherAPI:
             logger.error(f"Space weather error: {e}")
             return "🌌 <b>Космічна погода</b>\n\n⚠️ Часткові дані\n\n📝 NOAA SWPC"
     
+    @staticmethod
+    def get_aurora_map_url():
+        """Get NOAA OVATION aurora forecast map URL."""
+        return NOAA_AURORA_MAP
+
     @staticmethod
     def _get_kp_index():
         """Get current Kp index"""
@@ -183,13 +189,48 @@ class SpaceWeatherAPI:
         """Get emoji for X-ray class"""
         emojis = {
             'A': "🟢",
-            'B': "🟢", 
+            'B': "🟢",
             'C': "🟡",
             'M': "🔴",
             'X': "⚠️"
         }
         return emojis.get(xray_class, "⚪")
-    
+
+    @staticmethod
+    def check_xclass_flare():
+        """Check for X-class solar flare and return alert data if detected."""
+        try:
+            response = requests.get(NOAA_XRAY_URL, timeout=10)
+            data = response.json()
+
+            if not data or len(data) < 2:
+                return None
+
+            # Get latest and previous readings
+            latest = data[-1]
+            previous = data[-2] if len(data) > 1 else latest
+
+            latest_flux = float(latest[1])
+            previous_flux = float(previous[1])
+            time_str = latest[0] if len(latest) > 0 else "—"
+
+            latest_class, _ = SpaceWeatherAPI._classify_xray(latest_flux)
+            previous_class, _ = SpaceWeatherAPI._classify_xray(previous_flux)
+
+            # Alert only if current is X-class and previous was not X-class
+            # (prevents spamming the same flare)
+            if latest_class == "X" and previous_class != "X":
+                return {
+                    "flux": latest_flux,
+                    "time": time_str,
+                    "class": "X",
+                }
+
+            return None
+        except Exception as e:
+            logger.error(f"Solar flare check error: {e}")
+            return None
+
     @staticmethod
     def _get_g_scale(kp):
         """Get G-scale for Kp"""

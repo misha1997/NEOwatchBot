@@ -4,6 +4,7 @@ from telegram.ext import ContextTypes
 from services import NasaAPI, N2YOAPI, LaunchAPI, SpaceWeatherAPI, ISSCrewAPI
 from services.moon_mars import MoonMarsAPI
 from services.meteor_shower import MeteorShower
+from services.astronomy import format_events
 from database import get_user, update_user_location, toggle_subscription, geocode_city
 import logging
 
@@ -36,6 +37,8 @@ class CallbackHandlers:
             'starlink': CallbackHandlers.starlink,
             'space_weather': CallbackHandlers.space_weather,
             'meteor_showers': CallbackHandlers.meteor_showers,
+            'aurora': CallbackHandlers.aurora,
+            'astronomy': CallbackHandlers.astronomy,
             'moon': CallbackHandlers.moon,
             'mars': CallbackHandlers.mars,
             'settings': CallbackHandlers.settings,
@@ -70,9 +73,11 @@ class CallbackHandlers:
             ],
             [
                 InlineKeyboardButton("☀️ Космопогода", callback_data='space_weather'),
+                InlineKeyboardButton("🌌 Полярне сяйво", callback_data='aurora'),
                 InlineKeyboardButton("👽 Погода на Марсі", callback_data='mars'),
             ],
             [
+                InlineKeyboardButton("🔭 Астроподії", callback_data='astronomy'),
                 InlineKeyboardButton("🌙 Фаза місяця", callback_data='moon'),
             ],
             [
@@ -375,7 +380,37 @@ class CallbackHandlers:
             parse_mode='HTML',
             reply_markup=CallbackHandlers.get_main_menu()
         )
-    
+
+    @staticmethod
+    async def aurora(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle aurora map button"""
+        map_url = SpaceWeatherAPI.get_aurora_map_url()
+        caption = (
+            "🌌 <b>Прогноз полярного сяйва</b>\n\n"
+            "🗺️ Карта активності на північній півкулі\n"
+            "🟢 Зелений — ймовірне сяйво\n"
+            "🔴 Червоний — активне сяйво\n\n"
+            "<i>Оновлюється кожні 5 хвилин (NOAA)</i>"
+        )
+        await context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=map_url,
+            caption=caption,
+            parse_mode='HTML',
+            reply_markup=CallbackHandlers.get_main_menu()
+        )
+        await update.callback_query.message.delete()
+
+    @staticmethod
+    async def astronomy(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle astronomy events button"""
+        result = format_events()
+        await update.callback_query.message.edit_text(
+            result,
+            parse_mode='HTML',
+            reply_markup=CallbackHandlers.get_main_menu()
+        )
+
     @staticmethod
     async def moon(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle moon button"""
