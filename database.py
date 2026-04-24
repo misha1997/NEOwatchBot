@@ -72,6 +72,7 @@ def init_db():
                 subscribed_neo BOOLEAN DEFAULT TRUE,
                 subscribed_news BOOLEAN DEFAULT TRUE,
                 subscribed_meteors BOOLEAN DEFAULT TRUE,
+                subscribed_flares BOOLEAN DEFAULT TRUE,
                 last_iss_pass INT,
                 last_apod_date VARCHAR(10),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -81,7 +82,8 @@ def init_db():
                 INDEX idx_subscribed_launches (subscribed_launches),
                 INDEX idx_subscribed_neo (subscribed_neo),
                 INDEX idx_subscribed_news (subscribed_news),
-                INDEX idx_subscribed_meteors (subscribed_meteors)
+                INDEX idx_subscribed_meteors (subscribed_meteors),
+                INDEX idx_subscribed_flares (subscribed_flares)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
 
@@ -136,6 +138,19 @@ def init_db():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
 
+        # Solar flare notifications tracking
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS flare_notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                flare_class VARCHAR(10) NOT NULL,
+                flare_time VARCHAR(50) NOT NULL,
+                flux_value DECIMAL(12, 10) NOT NULL,
+                notified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY idx_flare_time (flare_class, flare_time),
+                INDEX idx_notified_at (notified_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
         # Launch notifications tracking
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS launch_notifications (
@@ -148,9 +163,27 @@ def init_db():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
 
+        # Add subscribed_flares column to existing users (migration)
+        try:
+            cursor.execute('''
+                SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'users'
+                AND COLUMN_NAME = 'subscribed_flares'
+            ''')
+            if cursor.fetchone()[0] == 0:
+                cursor.execute('''
+                    ALTER TABLE users
+                    ADD COLUMN subscribed_flares BOOLEAN DEFAULT TRUE
+                ''')
+                conn.commit()
+                logger.info("Added subscribed_flares column to users table")
+        except Error:
+            pass
+
         conn.commit()
         logger.info("Database initialized (MySQL)")
-        
+
     except Error as e:
         logger.error(f"Database initialization error: {e}")
         raise
@@ -238,7 +271,7 @@ def update_user_location(user_id: int, city: str, lat: float, lon: float):
 
 def toggle_subscription(user_id: int, subscription_type: str) -> bool:
     """Toggle subscription status. Returns new status"""
-    if subscription_type not in ('iss', 'apod', 'launches', 'neo', 'news', 'meteors'):
+    if subscription_type not in ('iss', 'apod', 'launches', 'neo', 'news', 'meteors', 'flares'):
         return False
 
     conn = get_db_connection()
@@ -373,6 +406,23 @@ def get_meteor_subscribers() -> List[Dict]:
 
     except Error as e:
         logger.error(f"Error getting meteor subscribers: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_flare_subscribers() -> List[Dict]:
+    """Get all users subscribed to solar flare notifications"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute('SELECT * FROM users WHERE subscribed_flares = TRUE')
+        return cursor.fetchall()
+
+    except Error as e:
+        logger.error(f"Error getting flare subscribers: {e}")
         return []
     finally:
         cursor.close()
@@ -737,6 +787,64 @@ def cleanup_old_meteor_notifications(days: int = 60):
         logger.info(f"Cleaned up {cursor.rowcount} old meteor notifications")
     except Error as e:
         logger.error(f"Error cleaning up meteor notifications: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def is_flare_notified(flare_class: str, flare_time: str) -> bool:
+    """Check if solar flare notification was already sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'SELECT 1 FROM flare_notifications WHERE flare_class = %s AND flare_time = %s',
+            (flare_class, flare_time)
+        )
+        return cursor.fetchone() is not None
+    except Error as e:
+        logger.error(f"Error checking flare notification: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def mark_flare_notified(flare_class: str, flare_time: str, flux_value: float):
+    """Mark solar flare notification as sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'INSERT INTO flare_notifications (flare_class, flare_time, flux_value) VALUES (%s, %s, %s)',
+            (flare_class, flare_time, flux_value)
+        )
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error marking flare notification: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def cleanup_old_flare_notifications(days: int = 7):
+    """Remove old flare notifications (older than N days)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'DELETE FROM flare_notifications WHERE notified_at < DATE_SUB(NOW(), INTERVAL %s DAY)',
+            (days,)
+        )
+        conn.commit()
+        logger.info(f"Cleaned up {cursor.rowcount} old flare notifications")
+    except Error as e:
+        logger.error(f"Error cleaning up flare notifications: {e}")
         conn.rollback()
     finally:
         cursor.close()

@@ -13,12 +13,13 @@ from services.space_weather import SpaceWeatherAPI
 from parsers import SpaceflightNowParser
 from utils.translator import Translator
 from database import (
-    get_apod_subscribers, get_launch_subscribers, get_iss_subscribers, get_neo_subscribers, get_news_subscribers, get_meteor_subscribers,
+    get_apod_subscribers, get_launch_subscribers, get_iss_subscribers, get_neo_subscribers, get_news_subscribers, get_meteor_subscribers, get_flare_subscribers,
     update_last_apod_date, update_last_iss_pass,
     is_launch_notified, mark_launch_notified, cleanup_old_launch_notifications,
     is_neo_notified, mark_neo_notified, cleanup_old_neo_notifications,
     is_news_notified, mark_news_notified, cleanup_old_news_notifications,
-    is_meteor_notified, mark_meteor_notified, cleanup_old_meteor_notifications
+    is_meteor_notified, mark_meteor_notified, cleanup_old_meteor_notifications,
+    is_flare_notified, mark_flare_notified, cleanup_old_flare_notifications
 )
 from services import NasaAPI, N2YOAPI
 
@@ -361,31 +362,66 @@ class NotificationScheduler:
             logger.error(f"Hazardous asteroid scheduler error: {e}")
 
     async def check_solar_flares(self):
-        """Check for X-class solar flares and alert subscribers"""
+        """Check for M-class and X-class solar flares and alert subscribers"""
         if self._is_quiet_hours():
             return
         try:
             logger.info("Checking solar flares...")
 
-            flare = SpaceWeatherAPI.check_xclass_flare()
+            # Check for X-class first (most severe)
+            x_flare = SpaceWeatherAPI.check_significant_flare(min_class='X')
+            m_flare = None
+            if not x_flare:
+                # If no X-class, check for M-class
+                m_flare = SpaceWeatherAPI.check_significant_flare(min_class='M')
+
+            flare = x_flare or m_flare
             if not flare:
-                logger.info("No X-class flare detected")
+                logger.info("No significant solar flare detected")
                 return
 
-            # Get subscribers (same as space weather)
-            subscribers = get_iss_subscribers()  # reuse ISS subscribers or add dedicated
+            flare_class = flare['class']
+            flare_time = flare['time']
+
+            # Check if already notified about this specific flare
+            if is_flare_notified(flare_class, flare_time):
+                logger.info(f"Already notified about {flare_class}-class flare at {flare_time}")
+                return
+
+            # Get dedicated flare subscribers
+            subscribers = get_flare_subscribers()
             if not subscribers:
                 logger.info("No subscribers for solar flare alerts")
                 return
 
+            # Build message based on class
+            if flare_class == 'X':
+                header = "🌞 <b>X-КЛАС СОНЯЧНИЙ СПАЛАХ!</b>\n\n"
+                consequences = (
+                    "📡 Можливі наслідки:\n"
+                    "• Радіозатемнення на коротких хвилях\n"
+                    "• Полярне сяйво через 1-3 дні\n"
+                    "• Підвищений Kp-індекс\n"
+                    "• Загроза для супутників\n"
+                )
+            else:
+                header = "🌞 <b>M-КЛАС СОНЯЧНИЙ СПАЛАХ!</b>\n\n"
+                consequences = (
+                    "📡 Можливі наслідки:\n"
+                    "• Слабке радіозатемнення\n"
+                    "• Можливе полярне сяйво\n"
+                    "• Слідкуйте за Kp-індексом\n"
+                )
+
+            description = SpaceWeatherAPI.get_flare_description(flare_class)
+            emoji = SpaceWeatherAPI.get_flare_emoji(flare_class)
+
             message = (
-                "🌞 <b>X-КЛАС СОНЯЧНИЙ СПАЛАХ!</b>\n\n"
-                f"⚠️ Клас: X (флюс {flare['flux']:.2e} Вт/м²)\n"
-                f"🕐 Час: {flare['time']}\n\n"
-                "📡 Можливі наслідки:\n"
-                "• Радіозатемнення на коротких хвилях\n"
-                "• Полярне сяйво через 1-3 дні\n"
-                "• Підвищений Kp-індекс\n\n"
+                f"{header}"
+                f"{emoji} Клас: {flare_class} ({description})\n"
+                f"⚡ Флюс: {flare['flux']:.2e} Вт/м²\n"
+                f"🕐 Час: {flare_time}\n\n"
+                f"{consequences}\n"
                 "<i>Дані: NOAA GOES</i>"
             )
 
@@ -399,7 +435,14 @@ class NotificationScheduler:
                 except Exception as e:
                     logger.error(f"Failed to notify {user['user_id']} about solar flare: {e}")
 
-            logger.info(f"Sent X-class solar flare alert to {len(subscribers)} users")
+            # Mark as notified
+            mark_flare_notified(flare_class, flare_time, flare['flux'])
+            logger.info(f"Sent {flare_class}-class solar flare alert to {len(subscribers)} users")
+
+            # Cleanup old notifications once per day (at 5 AM)
+            now = datetime.now()
+            if now.hour == 5 and now.minute < 5:
+                cleanup_old_flare_notifications(days=7)
 
         except Exception as e:
             logger.error(f"Solar flare check error: {e}")

@@ -199,6 +199,18 @@ class SpaceWeatherAPI:
     @staticmethod
     def check_xclass_flare():
         """Check for X-class solar flare and return alert data if detected."""
+        return SpaceWeatherAPI.check_significant_flare(min_class='X')
+
+    @staticmethod
+    def check_significant_flare(min_class='M'):
+        """Check for solar flares of specified class or higher.
+
+        Args:
+            min_class: Minimum flare class to alert on ('M' or 'X')
+
+        Returns:
+            dict with flare data if detected and it's a new event, None otherwise
+        """
         try:
             response = requests.get(NOAA_XRAY_URL, timeout=10)
             data = response.json()
@@ -217,19 +229,49 @@ class SpaceWeatherAPI:
             latest_class, _ = SpaceWeatherAPI._classify_xray(latest_flux)
             previous_class, _ = SpaceWeatherAPI._classify_xray(previous_flux)
 
-            # Alert only if current is X-class and previous was not X-class
+            # Class priority: A < B < C < M < X
+            class_priority = {'A': 0, 'B': 1, 'C': 2, 'M': 3, 'X': 4}
+            min_priority = class_priority.get(min_class, 3)
+            latest_priority = class_priority.get(latest_class, 0)
+            previous_priority = class_priority.get(previous_class, 0)
+
+            # Alert only if current meets threshold and previous was below threshold
             # (prevents spamming the same flare)
-            if latest_class == "X" and previous_class != "X":
+            if latest_priority >= min_priority and previous_priority < min_priority:
                 return {
                     "flux": latest_flux,
                     "time": time_str,
-                    "class": "X",
+                    "class": latest_class,
                 }
 
             return None
         except Exception as e:
             logger.error(f"Solar flare check error: {e}")
             return None
+
+    @staticmethod
+    def get_flare_description(flare_class):
+        """Get Ukrainian description for flare class"""
+        descriptions = {
+            'A': "Дуже слабкий спалах",
+            'B': "Слабкий спалах",
+            'C': "Помірний спалах",
+            'M': "Великий спалах",
+            'X': "Екстремальний спалах"
+        }
+        return descriptions.get(flare_class, "Невідомий спалах")
+
+    @staticmethod
+    def get_flare_emoji(flare_class):
+        """Get emoji for flare class alert"""
+        emojis = {
+            'A': "🟢",
+            'B': "🟢",
+            'C': "🟡",
+            'M': "🔴",
+            'X': "🚨"
+        }
+        return emojis.get(flare_class, "⚠️")
 
     @staticmethod
     def _get_g_scale(kp):
