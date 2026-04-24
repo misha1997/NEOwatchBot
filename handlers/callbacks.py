@@ -493,6 +493,7 @@ class CallbackHandlers:
         news_sub = '✅' if user and user.get('subscribed_news') else '☑️'
         meteors_sub = '✅' if user and user.get('subscribed_meteors') else '☑️'
         flares_sub = '✅' if user and user.get('subscribed_flares') else '☑️'
+        grb_sub = '✅' if user and user.get('subscribed_grb') else '☑️'
         city = user.get('city', 'Не вказано') if user else 'Не вказано'
 
         message = f"⚙️ <b>Налаштування</b>\n\n"
@@ -505,6 +506,7 @@ class CallbackHandlers:
         message += f"{news_sub} Новини (10:00)\n"
         message += f"{meteors_sub} Метеорні потоки (22:00)\n"
         message += f"{flares_sub} Сонячні спалахи (M/X)\n"
+        message += f"{grb_sub} Гама-спалахи (GRB)\n"
 
         keyboard = [
             [
@@ -519,6 +521,7 @@ class CallbackHandlers:
             ],
             [
                 InlineKeyboardButton(f"{flares_sub} Сонячні спалахи", callback_data='sub_flares'),
+                InlineKeyboardButton(f"{grb_sub} GRB", callback_data='sub_grb'),
             ],
             [
                 InlineKeyboardButton("📍 Змінити місто", callback_data='set_location'),

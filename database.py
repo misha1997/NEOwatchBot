@@ -73,6 +73,7 @@ def init_db():
                 subscribed_news BOOLEAN DEFAULT TRUE,
                 subscribed_meteors BOOLEAN DEFAULT TRUE,
                 subscribed_flares BOOLEAN DEFAULT TRUE,
+                subscribed_grb BOOLEAN DEFAULT TRUE,
                 last_iss_pass INT,
                 last_apod_date VARCHAR(10),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -83,7 +84,8 @@ def init_db():
                 INDEX idx_subscribed_neo (subscribed_neo),
                 INDEX idx_subscribed_news (subscribed_news),
                 INDEX idx_subscribed_meteors (subscribed_meteors),
-                INDEX idx_subscribed_flares (subscribed_flares)
+                INDEX idx_subscribed_flares (subscribed_flares),
+                INDEX idx_subscribed_grb (subscribed_grb)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
 
@@ -151,6 +153,18 @@ def init_db():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
 
+        # GRB notifications tracking
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS grb_notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                grb_name VARCHAR(50) NOT NULL,
+                circular_id VARCHAR(20) NOT NULL,
+                notified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY idx_grb_notification (grb_name),
+                INDEX idx_notified_at (notified_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
         # Launch notifications tracking
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS launch_notifications (
@@ -178,6 +192,24 @@ def init_db():
                 ''')
                 conn.commit()
                 logger.info("Added subscribed_flares column to users table")
+        except Error:
+            pass
+
+        # Add subscribed_grb column to existing users (migration)
+        try:
+            cursor.execute('''
+                SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'users'
+                AND COLUMN_NAME = 'subscribed_grb'
+            ''')
+            if cursor.fetchone()[0] == 0:
+                cursor.execute('''
+                    ALTER TABLE users
+                    ADD COLUMN subscribed_grb BOOLEAN DEFAULT TRUE
+                ''')
+                conn.commit()
+                logger.info("Added subscribed_grb column to users table")
         except Error:
             pass
 
@@ -271,7 +303,7 @@ def update_user_location(user_id: int, city: str, lat: float, lon: float):
 
 def toggle_subscription(user_id: int, subscription_type: str) -> bool:
     """Toggle subscription status. Returns new status"""
-    if subscription_type not in ('iss', 'apod', 'launches', 'neo', 'news', 'meteors', 'flares'):
+    if subscription_type not in ('iss', 'apod', 'launches', 'neo', 'news', 'meteors', 'flares', 'grb'):
         return False
 
     conn = get_db_connection()
@@ -423,6 +455,23 @@ def get_flare_subscribers() -> List[Dict]:
 
     except Error as e:
         logger.error(f"Error getting flare subscribers: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_grb_subscribers() -> List[Dict]:
+    """Get all users subscribed to GRB notifications"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute('SELECT * FROM users WHERE subscribed_grb = TRUE')
+        return cursor.fetchall()
+
+    except Error as e:
+        logger.error(f"Error getting GRB subscribers: {e}")
         return []
     finally:
         cursor.close()
@@ -845,6 +894,64 @@ def cleanup_old_flare_notifications(days: int = 7):
         logger.info(f"Cleaned up {cursor.rowcount} old flare notifications")
     except Error as e:
         logger.error(f"Error cleaning up flare notifications: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def is_grb_notified(grb_name: str) -> bool:
+    """Check if GRB notification was already sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'SELECT 1 FROM grb_notifications WHERE grb_name = %s',
+            (grb_name,)
+        )
+        return cursor.fetchone() is not None
+    except Error as e:
+        logger.error(f"Error checking GRB notification: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def mark_grb_notified(grb_name: str, circular_id: str):
+    """Mark GRB notification as sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'INSERT INTO grb_notifications (grb_name, circular_id) VALUES (%s, %s)',
+            (grb_name, circular_id)
+        )
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error marking GRB notification: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def cleanup_old_grb_notifications(days: int = 30):
+    """Remove old GRB notifications (older than N days)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'DELETE FROM grb_notifications WHERE notified_at < DATE_SUB(NOW(), INTERVAL %s DAY)',
+            (days,)
+        )
+        conn.commit()
+        logger.info(f"Cleaned up {cursor.rowcount} old GRB notifications")
+    except Error as e:
+        logger.error(f"Error cleaning up GRB notifications: {e}")
         conn.rollback()
     finally:
         cursor.close()

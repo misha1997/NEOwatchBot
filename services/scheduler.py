@@ -10,16 +10,18 @@ from config import BOT_TOKEN
 from services import LaunchAPI
 from services.meteor_shower import MeteorShower
 from services.space_weather import SpaceWeatherAPI
+from services.grb_alerts import GRBAlertAPI
 from parsers import SpaceflightNowParser
 from utils.translator import Translator
 from database import (
-    get_apod_subscribers, get_launch_subscribers, get_iss_subscribers, get_neo_subscribers, get_news_subscribers, get_meteor_subscribers, get_flare_subscribers,
+    get_apod_subscribers, get_launch_subscribers, get_iss_subscribers, get_neo_subscribers, get_news_subscribers, get_meteor_subscribers, get_flare_subscribers, get_grb_subscribers,
     update_last_apod_date, update_last_iss_pass,
     is_launch_notified, mark_launch_notified, cleanup_old_launch_notifications,
     is_neo_notified, mark_neo_notified, cleanup_old_neo_notifications,
     is_news_notified, mark_news_notified, cleanup_old_news_notifications,
     is_meteor_notified, mark_meteor_notified, cleanup_old_meteor_notifications,
-    is_flare_notified, mark_flare_notified, cleanup_old_flare_notifications
+    is_flare_notified, mark_flare_notified, cleanup_old_flare_notifications,
+    is_grb_notified, mark_grb_notified, cleanup_old_grb_notifications
 )
 from services import NasaAPI, N2YOAPI
 
@@ -447,6 +449,67 @@ class NotificationScheduler:
         except Exception as e:
             logger.error(f"Solar flare check error: {e}")
 
+    async def check_grb_alerts(self):
+        """Check for new GRB events and notify subscribers"""
+        if self._is_quiet_hours():
+            return
+        try:
+            logger.info("Checking GRB alerts...")
+
+            # Get recent GRBs
+            recent_grbs = GRBAlertAPI.get_recent_grbs(limit=5)
+            if not recent_grbs:
+                logger.info("No recent GRBs found")
+                return
+
+            # Get subscribers
+            subscribers = get_grb_subscribers()
+            if not subscribers:
+                logger.info("No GRB subscribers")
+                return
+
+            notified_count = 0
+
+            for grb in recent_grbs:
+                grb_name = grb['grb_name']
+
+                # Skip if already notified about this GRB
+                if is_grb_notified(grb_name):
+                    continue
+
+                # Fetch details for richer message
+                details = GRBAlertAPI.get_grb_details(grb['circular_id'])
+
+                # Format message
+                message = GRBAlertAPI.format_grb_alert(grb, details)
+
+                # Send to all subscribers
+                for user in subscribers:
+                    try:
+                        await self.bot.send_message(
+                            chat_id=user['chat_id'],
+                            text=message,
+                            parse_mode=ParseMode.HTML,
+                            disable_web_page_preview=False
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to notify {user['user_id']} about GRB: {e}")
+
+                # Mark as notified
+                mark_grb_notified(grb_name, grb['circular_id'])
+                notified_count += 1
+                logger.info(f"Sent GRB notification: {grb_name}")
+
+            logger.info(f"GRB check completed. Notified about {notified_count} GRBs")
+
+            # Cleanup old notifications once per day (at 6 AM)
+            now = datetime.now()
+            if now.hour == 6 and now.minute < 5:
+                cleanup_old_grb_notifications(days=30)
+
+        except Exception as e:
+            logger.error(f"GRB check error: {e}")
+
     async def check_astronomy_events(self):
         """Check for upcoming eclipses and notify subscribers"""
         if self._is_quiet_hours():
@@ -796,6 +859,10 @@ class NotificationScheduler:
                 # Check solar flares every hour
                 if now.minute == 0:
                     await self.check_solar_flares()
+
+                # Check GRB alerts every 30 minutes
+                if now.minute % 30 == 0:
+                    await self.check_grb_alerts()
 
                 # Daily news at 10:00 Kyiv time
                 if now.hour == 10 and now.minute == 0:
