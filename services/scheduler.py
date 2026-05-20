@@ -1,10 +1,13 @@
 """Scheduled jobs - APOD daily, ISS passes, Launch notifications"""
 import logging
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Set
+from zoneinfo import ZoneInfo
 from telegram import Bot
 from telegram.constants import ParseMode
+
+KYIV_TZ = ZoneInfo('Europe/Kyiv')
 
 from config import BOT_TOKEN
 from services import LaunchAPI
@@ -21,6 +24,7 @@ from database import (
     is_news_notified, mark_news_notified, cleanup_old_news_notifications,
     is_meteor_notified, mark_meteor_notified, cleanup_old_meteor_notifications,
     is_flare_notified, mark_flare_notified, cleanup_old_flare_notifications,
+    is_storm_notified, mark_storm_notified, cleanup_old_storm_notifications,
     is_grb_notified, mark_grb_notified, cleanup_old_grb_notifications
 )
 from services import NasaAPI, N2YOAPI
@@ -35,13 +39,12 @@ class NotificationScheduler:
         self.bot = Bot(token=BOT_TOKEN)
         self._last_apod_date = None  # Track last APOD sent
         self._notified_launches: Set[str] = set()  # Track notified launches
-        self._last_iss_check = {}  # user_id -> last_check_time
         self._notified_eclipses = set()  # Track notified astronomy events
 
     @staticmethod
     def _is_quiet_hours() -> bool:
-        """Return True between 00:00 and 06:00 local time."""
-        return datetime.now().hour < 6
+        """Return True between 00:00 and 06:00 Kyiv time."""
+        return datetime.now(KYIV_TZ).hour < 6
 
     async def send_apod_to_subscribers(self):
         """Send APOD to all subscribers - once per day"""
@@ -119,6 +122,19 @@ class NotificationScheduler:
         except Exception as e:
             logger.error(f"APOD scheduler error: {e}")
 
+    @staticmethod
+    def _compass_to_uk(compass: str) -> str:
+        """Convert English compass direction to Ukrainian"""
+        compass_map = {
+            'N': 'північ', 'NNE': 'північний схід', 'NE': 'північний схід',
+            'ENE': 'північний схід', 'E': 'схід', 'ESE': 'південний схід',
+            'SE': 'південний схід', 'SSE': 'південний схід', 'S': 'південь',
+            'SSW': 'південний захід', 'SW': 'південний захід',
+            'WSW': 'південний захід', 'W': 'захід', 'WNW': 'північний захід',
+            'NW': 'північний захід', 'NNW': 'північний захід',
+        }
+        return compass_map.get(compass, compass)
+
     async def check_iss_passes(self):
         """Check for upcoming ISS passes and notify subscribers"""
         if self._is_quiet_hours():
@@ -131,7 +147,7 @@ class NotificationScheduler:
                 logger.info("No ISS subscribers")
                 return
 
-            now = datetime.now()
+            now_kyiv = datetime.now(KYIV_TZ)
 
             for user in subscribers:
                 try:
@@ -143,41 +159,51 @@ class NotificationScheduler:
                     if lat is None or lon is None:
                         continue
 
-                    # Check if we already notified about ISS pass recently (within 30 min)
-                    last_check = self._last_iss_check.get(user_id)
-                    if last_check and (now - last_check).seconds < 1800:
-                        continue
-
                     # Get upcoming passes
                     passes = N2YOAPI.get_iss_passes_raw(lat, lon, days=2)
 
                     if not passes or 'passes' not in passes:
                         continue
 
-                    # Check for passes within next 6 hours
                     for iss_pass in passes['passes']:
-                        pass_time = datetime.fromtimestamp(iss_pass['startUTC'])
-                        time_until = (pass_time - now).total_seconds()
+                        # Convert UTC timestamp to Kyiv time
+                        pass_time_utc = datetime.fromtimestamp(
+                            iss_pass['startUTC'], tz=timezone.utc
+                        )
+                        pass_time_kyiv = pass_time_utc.astimezone(KYIV_TZ)
+                        time_until = (pass_time_utc - now_kyiv).total_seconds()
 
-                        # Notify if pass is in 10-15 minutes (right before it happens)
-                        if 600 <= time_until <= 900:  # 10-15 minutes
+                        # Notify if pass is in 10-15 minutes
+                        if 600 <= time_until <= 900:
                             # Check if already notified about this specific pass
+                            current_pass_timestamp = int(iss_pass['startUTC'])
                             last_notified_pass = user.get('last_iss_pass')
-                            current_pass_timestamp = int(pass_time.timestamp())
 
                             if last_notified_pass == current_pass_timestamp:
-                                logger.info(f"Already notified user {user_id} about ISS pass at {pass_time}")
+                                logger.info(f"Already notified user {user_id} about ISS pass at {pass_time_kyiv}")
                                 continue
 
                             duration = iss_pass.get('duration', 0)
                             max_elevation = iss_pass.get('maxEl', 0)
+                            start_dir = self._compass_to_uk(iss_pass.get('startAzCompass', 'SW'))
+                            max_dir = self._compass_to_uk(iss_pass.get('maxAzCompass', ''))
+                            end_dir = self._compass_to_uk(iss_pass.get('endAzCompass', ''))
+                            magnitude = iss_pass.get('mag')
 
                             msg = f"🛰 <b>Проліт МКС!</b>\n\n"
-                            msg += f"⏰ Час: {pass_time.strftime('%d.%m %H:%M')}\n"
+                            msg += f"⏰ Час: {pass_time_kyiv.strftime('%d.%m %H:%M')} (київський)\n"
                             msg += f"⏱ Тривалість: {duration} сек\n"
                             msg += f"📐 Максимальна висота: {max_elevation}°\n"
-                            msg += f"📍 Місце: {user.get('city', 'Ваше місто')}\n\n"
-                            msg += "<i>Дивіться на південно-західне небо!</i>"
+                            if magnitude is not None:
+                                msg += f"🔆 Яскравість: {magnitude:.1f} магнітуди\n"
+                            msg += f"📍 Місто: {user.get('city', 'Ваше місто')}\n"
+                            msg += f"🧭 Напрямок: {start_dir}"
+                            if max_dir and max_dir != start_dir:
+                                msg += f" → {max_dir}"
+                            if end_dir and end_dir != start_dir:
+                                msg += f" → {end_dir}"
+                            msg += "\n"
+                            msg += f"<i>Дивіться на {start_dir} небо!</i>"
 
                             await self.bot.send_message(
                                 chat_id=chat_id,
@@ -186,7 +212,6 @@ class NotificationScheduler:
                             )
 
                             update_last_iss_pass(user_id, current_pass_timestamp)
-                            self._last_iss_check[user_id] = now
                             break  # Only notify about next pass
 
                 except Exception as e:
@@ -198,13 +223,12 @@ class NotificationScheduler:
             logger.error(f"ISS scheduler error: {e}")
 
     async def check_upcoming_launches(self):
-        """Check for upcoming launches and notify subscribers"""
+        """Check for launches happening now and notify subscribers"""
         if self._is_quiet_hours():
             return
         try:
             logger.info("Checking upcoming launches...")
 
-            # Get raw launches data (not formatted text)
             raw_data = LaunchAPI.get_raw_launches()
             if not raw_data:
                 logger.warning("No launch data available from API")
@@ -216,7 +240,6 @@ class NotificationScheduler:
                 logger.info("No upcoming launches to notify about")
                 return
 
-            # Get subscribers
             subscribers = get_launch_subscribers()
             if not subscribers:
                 logger.info("No launch subscribers")
@@ -234,29 +257,12 @@ class NotificationScheduler:
 
                 time_until = (launch_time - now).total_seconds()
 
-                # Skip launches already in the past or too far in the future
-                if time_until <= 0 or time_until > 90000:  # > 25 hours
+                # Notify only at the moment of launch (within -10 to +5 min window,
+                # accounting for 5-minute check interval)
+                if not (-600 <= time_until <= 300):
                     continue
 
-                # Determine notification type based on time window
-                notification_type = None
-                hours = None
-                minutes = None
-
-                if 82800 < time_until <= 86400:  # 23-24 hours
-                    notification_type = "24h"
-                    hours = 24
-                elif 3600 < time_until <= 7200:  # 1-2 hours
-                    notification_type = "2h"
-                    hours = 2
-                elif 780 < time_until <= 900:  # 13-15 minutes before launch
-                    notification_type = "15m"
-                    minutes = 15
-
-                if not notification_type:
-                    continue
-
-                # Check if already notified (in-memory + database)
+                notification_type = "now"
                 notification_key = f"{launch_id}_{notification_type}"
                 if notification_key in self._notified_launches:
                     continue
@@ -265,10 +271,7 @@ class NotificationScheduler:
                     self._notified_launches.add(notification_key)
                     continue
 
-                # Send notification
-                await self._send_launch_notification(
-                    launch, subscribers, hours=hours, minutes=minutes
-                )
+                await self._send_launch_notification(launch, subscribers)
                 self._notified_launches.add(notification_key)
                 mark_launch_notified(launch_id, notification_type)
                 notified_count += 1
@@ -448,6 +451,117 @@ class NotificationScheduler:
 
         except Exception as e:
             logger.error(f"Solar flare check error: {e}")
+
+    async def check_geomagnetic_storms(self):
+        """Check for geomagnetic storms (Kp >= 5) and notify subscribers"""
+        if self._is_quiet_hours():
+            return
+        try:
+            logger.info("Checking geomagnetic storms...")
+
+            storm = SpaceWeatherAPI.check_geomagnetic_storm()
+            if not storm:
+                logger.info("No geomagnetic storm detected")
+                return
+
+            kp = storm['kp']
+            kp_time = storm['kp_time']
+            g_scale = storm['g_scale']
+            g_scale_full = storm['g_scale_full']
+            solar_wind = storm.get('solar_wind')
+            bz = storm.get('bz')
+            forecast = storm.get('forecast')
+
+            # Check if already notified about this Kp observation
+            kp_str = f"{kp:.1f}"
+            if is_storm_notified(kp_str, kp_time):
+                logger.info(f"Already notified about Kp {kp_str} at {kp_time}")
+                return
+
+            # Get subscribers (reuse flare subscription for all space weather)
+            subscribers = get_flare_subscribers()
+            if not subscribers:
+                logger.info("No solar activity subscribers")
+                return
+
+            # Build message
+            kp_emoji = "🟠" if kp < 7 else "🔴"
+            message = f"{kp_emoji} <b>ГЕОМАГНІТНА БУРЯ!</b>\n\n"
+            message += f"📊 Індекс Kp: {kp:.1f}/9\n"
+            message += f"⚠️ Шкала: {g_scale_full}\n"
+            message += f"🕐 Час: {kp_time}\n"
+
+            # Solar wind details
+            if solar_wind:
+                speed = solar_wind['speed']
+                speed_status = SpaceWeatherAPI._get_solar_wind_status(speed)
+                message += f"\n💨 <b>Сонячний вітер</b>\n"
+                message += f"Швидкість: {speed:.0f} км/с — {speed_status}\n"
+                message += f"Щільність: {solar_wind['density']:.1f} ч/см³\n"
+
+            # Magnetic field
+            if bz is not None:
+                bz_status = SpaceWeatherAPI._get_bz_status(bz)
+                bz_emoji = SpaceWeatherAPI._get_bz_emoji(bz)
+                message += f"\n🧲 <b>Магнітне поле Bz</b>\n"
+                message += f"{bz_emoji} Bz: {bz:.1f} нТл — {bz_status}\n"
+
+            # Possible effects
+            if g_scale == "G1":
+                effects = "Слабке полярне сяйво на високих широтах"
+            elif g_scale == "G2":
+                effects = "Полярне сяйво, можливі перешкоди зв'язку на півночі"
+            elif g_scale == "G3":
+                effects = "Сяйво на середніх широтах, перешкоди навігації та зв'язку"
+            elif g_scale == "G4":
+                effects = "Сяйво на півдні, проблеми з електроенергією та супутниками"
+            else:
+                effects = "Сяйво видно всюди, серйозні проблеми з енергомережею та супутниками!"
+
+            message += f"\n🌌 <b>Можливі наслідки:</b>\n{effects}\n"
+
+            # Aurora hint for Ukraine (lat ~48-50)
+            if kp >= 5:
+                message += "\n🌃 <b>Полярне сяйво:</b> "
+                if kp >= 8:
+                    message += "Може бути видно навіть в Україні! 🔴"
+                elif kp >= 6:
+                    message += "Можливо на півночі України 🟠"
+                else:
+                    message += "Малоймовірно в Україні, але спостерігайте 🟡"
+
+            # Forecast
+            if forecast:
+                message += "\n\n📅 <b>Прогноз Kp:</b>\n"
+                for day in ['Сьогодні', 'Завтра', 'Післязавтра']:
+                    if day in forecast:
+                        kp_val = forecast[day]
+                        emoji = SpaceWeatherAPI._get_kp_emoji_simple(kp_val)
+                        message += f"{emoji} {day}: Kp {kp_val:.0f}\n"
+
+            message += "\n<i>Дані: NOAA SWPC</i>"
+
+            for user in subscribers:
+                try:
+                    await self.bot.send_message(
+                        chat_id=user['chat_id'],
+                        text=message,
+                        parse_mode=ParseMode.HTML,
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to notify {user['user_id']} about geomagnetic storm: {e}")
+
+            # Mark as notified
+            mark_storm_notified(kp_str, kp_time, g_scale)
+            logger.info(f"Sent geomagnetic storm alert (Kp={kp_str}, {g_scale}) to {len(subscribers)} users")
+
+            # Cleanup old notifications once per day (at 5 AM)
+            now = datetime.now()
+            if now.hour == 5 and now.minute < 5:
+                cleanup_old_storm_notifications(days=7)
+
+        except Exception as e:
+            logger.error(f"Geomagnetic storm check error: {e}")
 
     async def check_grb_alerts(self):
         """Check for new GRB events and notify subscribers"""
@@ -796,23 +910,14 @@ class NotificationScheduler:
 
         return launches
 
-    async def _send_launch_notification(self, launch: dict, subscribers: list,
-                                        hours: int = None, minutes: int = None):
+    async def _send_launch_notification(self, launch: dict, subscribers: list):
         """Send launch notification to subscribers"""
         try:
             launch_name = launch.get('name', 'Rocket Launch')
             launch_time = launch.get('time', datetime.now())
-
-            if hours:
-                when_text = f"через {hours} години"
-                emoji = "⏰"
-            else:
-                when_text = f"через {minutes} хвилин"
-                emoji = "🚨"
-
             live_url = launch.get('url', 'https://spaceflightnow.com/launch-schedule/')
 
-            message = f"{emoji} <b>Запуск ракети {when_text}!</b>\n\n"
+            message = f"🚀 <b>Запуск ракети відбувається зараз!</b>\n\n"
             message += f"🚀 {launch_name}\n"
             message += f"📅 {launch_time.strftime('%d.%m.%Y %H:%M UTC')}\n"
             message += f"\n<i>📺 <a href='{live_url}'>Дивіться трансляцію</a></i>"
@@ -838,7 +943,7 @@ class NotificationScheduler:
 
         while True:
             try:
-                now = datetime.now()
+                now = datetime.now(KYIV_TZ)
 
                 # APOD at 09:00 Kyiv time (with 1-minute window)
                 if now.hour == 9 and 0 <= now.minute <= 1:
@@ -859,6 +964,10 @@ class NotificationScheduler:
                 # Check solar flares every hour
                 if now.minute == 0:
                     await self.check_solar_flares()
+
+                # Check geomagnetic storms every hour
+                if now.minute == 0:
+                    await self.check_geomagnetic_storms()
 
                 # Check GRB alerts every 30 minutes
                 if now.minute % 30 == 0:

@@ -288,6 +288,54 @@ class SpaceWeatherAPI:
             return "G4: Сильна геомагнітна буря"
         else:
             return "G5: Екстремальна буря"
+
+    @staticmethod
+    def _get_g_scale_short(kp):
+        """Get short G-scale label (G1-G5) for notifications"""
+        if kp < 5:
+            return None
+        elif kp < 6:
+            return "G1"
+        elif kp < 7:
+            return "G2"
+        elif kp < 8:
+            return "G3"
+        elif kp < 9:
+            return "G4"
+        else:
+            return "G5"
+
+    @staticmethod
+    def check_geomagnetic_storm():
+        """Check for geomagnetic storm (Kp >= 5).
+
+        Returns dict with storm data if storm detected, None otherwise.
+        Includes Kp value, G-scale, solar wind, Bz, and forecast info.
+        """
+        try:
+            kp_index, kp_time = SpaceWeatherAPI._get_kp_index()
+            if kp_index is None or kp_index < 5:
+                return None
+
+            g_scale = SpaceWeatherAPI._get_g_scale_short(kp_index)
+            g_scale_full = SpaceWeatherAPI._get_g_scale(kp_index)
+
+            solar_wind = SpaceWeatherAPI._get_solar_wind()
+            bz = SpaceWeatherAPI._get_bz_component()
+            forecast = SpaceWeatherAPI._get_kp_forecast_simple()
+
+            return {
+                "kp": kp_index,
+                "kp_time": kp_time,
+                "g_scale": g_scale,
+                "g_scale_full": g_scale_full,
+                "solar_wind": solar_wind,
+                "bz": bz,
+                "forecast": forecast,
+            }
+        except Exception as e:
+            logger.error(f"Geomagnetic storm check error: {e}")
+            return None
     
     @staticmethod
     def _get_kp_emoji_simple(kp):

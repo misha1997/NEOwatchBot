@@ -1,9 +1,12 @@
 """N2YO API Service - ISS and satellite tracking"""
 import requests
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from config import N2YO_API_KEY, N2YO_BASE_URL, ISS_NORAD_ID
 from utils.constants import COUNTRY_BBOXES
+
+KYIV_TZ = ZoneInfo('Europe/Kyiv')
 
 logger = logging.getLogger(__name__)
 
@@ -103,17 +106,19 @@ class N2YOAPI:
     def _format_passes(passes):
         """Format ISS passes for Telegram"""
         message = "🛰️ <b>Найближчі проходження МКС</b>\n\n"
-        
+
         for i, p in enumerate(passes, 1):
-            start_time = datetime.fromtimestamp(p['startUTC'])
-            end_time = datetime.fromtimestamp(p['endUTC'])
+            start_utc = datetime.fromtimestamp(p['startUTC'], tz=timezone.utc)
+            end_utc = datetime.fromtimestamp(p['endUTC'], tz=timezone.utc)
+            start_kyiv = start_utc.astimezone(KYIV_TZ)
+            end_kyiv = end_utc.astimezone(KYIV_TZ)
             duration = p['duration']
-            
-            message += f"{i}. 📅 {start_time.strftime('%d.%m.%Y')}\n"
-            message += f"   🕐 {start_time.strftime('%H:%M')} - {end_time.strftime('%H:%M')}\n"
+
+            message += f"{i}. 📅 {start_kyiv.strftime('%d.%m.%Y')}\n"
+            message += f"   🕐 {start_kyiv.strftime('%H:%M')} - {end_kyiv.strftime('%H:%M')} (київський)\n"
             message += f"   ⏱️ Тривалість: {duration} сек\n"
             message += f"   🔆 Яскравість: магнітуда {p['mag']:.1f}\n\n"
-        
+
         return message
     
     @staticmethod
@@ -154,12 +159,13 @@ class N2YOAPI:
         """Format Starlink passes for Telegram"""
         message = "🛰️ <b>Проходження Starlink</b>\n"
         message += "<i>(ланцюжок супутників)</i>\n\n"
-        
+
         for i, p in enumerate(passes, 1):
-            start_time = datetime.fromtimestamp(p['startUTC'])
-            
-            message += f"{i}. 📅 {start_time.strftime('%d.%m.%Y %H:%M')}\n"
+            start_utc = datetime.fromtimestamp(p['startUTC'], tz=timezone.utc)
+            start_kyiv = start_utc.astimezone(KYIV_TZ)
+
+            message += f"{i}. 📅 {start_kyiv.strftime('%d.%m.%Y %H:%M')} (київський)\n"
             message += f"   🔆 Яскравість: магнітуда {p['mag']:.1f}\n"
             message += f"   📍 Макс. висота: {p['maxEl']}°\n\n"
-        
+
         return message

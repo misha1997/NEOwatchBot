@@ -153,6 +153,19 @@ def init_db():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
 
+        # Geomagnetic storm notifications tracking
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS storm_notifications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                kp_value DECIMAL(3,1) NOT NULL,
+                observation_time VARCHAR(50) NOT NULL,
+                g_scale VARCHAR(5) NOT NULL,
+                notified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY idx_storm_obs (kp_value, observation_time),
+                INDEX idx_notified_at (notified_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
         # GRB notifications tracking
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS grb_notifications (
@@ -894,6 +907,64 @@ def cleanup_old_flare_notifications(days: int = 7):
         logger.info(f"Cleaned up {cursor.rowcount} old flare notifications")
     except Error as e:
         logger.error(f"Error cleaning up flare notifications: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def is_storm_notified(kp_value: float, observation_time: str) -> bool:
+    """Check if geomagnetic storm notification was already sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'SELECT 1 FROM storm_notifications WHERE kp_value = %s AND observation_time = %s',
+            (kp_value, observation_time)
+        )
+        return cursor.fetchone() is not None
+    except Error as e:
+        logger.error(f"Error checking storm notification: {e}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def mark_storm_notified(kp_value: float, observation_time: str, g_scale: str):
+    """Mark geomagnetic storm notification as sent"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'INSERT INTO storm_notifications (kp_value, observation_time, g_scale) VALUES (%s, %s, %s)',
+            (kp_value, observation_time, g_scale)
+        )
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error marking storm notification: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def cleanup_old_storm_notifications(days: int = 7):
+    """Remove old storm notifications (older than N days)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'DELETE FROM storm_notifications WHERE notified_at < DATE_SUB(NOW(), INTERVAL %s DAY)',
+            (days,)
+        )
+        conn.commit()
+        logger.info(f"Cleaned up {cursor.rowcount} old storm notifications")
+    except Error as e:
+        logger.error(f"Error cleaning up storm notifications: {e}")
         conn.rollback()
     finally:
         cursor.close()

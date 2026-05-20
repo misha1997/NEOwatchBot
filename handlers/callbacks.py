@@ -6,7 +6,7 @@ from services.moon_mars import MoonMarsAPI
 from services.meteor_shower import MeteorShower
 from services.astronomy import format_events
 from database import get_user, update_user_location, toggle_subscription, geocode_city
-from utils.keyboards import get_main_menu
+from utils.keyboards import get_main_menu, get_iss_menu, get_weather_menu, get_sky_menu
 import logging
 
 logger = logging.getLogger(__name__)
@@ -32,16 +32,19 @@ class CallbackHandlers:
             'neo': CallbackHandlers.neo,
             'apod': CallbackHandlers.apod,
             'launches': CallbackHandlers.launches,
+            'iss_menu': CallbackHandlers.iss_menu,
             'iss_now': CallbackHandlers.iss_now,
             'iss_passes': CallbackHandlers.iss_passes,
             'iss_crew': CallbackHandlers.iss_crew,
             'starlink': CallbackHandlers.starlink,
+            'weather_menu': CallbackHandlers.weather_menu,
             'space_weather': CallbackHandlers.space_weather,
-            'meteor_showers': CallbackHandlers.meteor_showers,
             'aurora': CallbackHandlers.aurora,
+            'mars': CallbackHandlers.mars,
+            'sky_menu': CallbackHandlers.sky_menu,
+            'meteor_showers': CallbackHandlers.meteor_showers,
             'astronomy': CallbackHandlers.astronomy,
             'moon': CallbackHandlers.moon,
-            'mars': CallbackHandlers.mars,
             'settings': CallbackHandlers.settings,
             'set_location': CallbackHandlers.set_location,
             'back_menu': CallbackHandlers.back_to_menu,
@@ -70,6 +73,39 @@ class CallbackHandlers:
                 text=text,
                 **kwargs
             )
+
+    @staticmethod
+    async def iss_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show ISS & satellites sub-menu"""
+        message = "🛰️ <b>МКС та супутники</b>\n\n"
+        message += "Що цікавить?"
+        await CallbackHandlers._replace_message(update, context,
+            message,
+            parse_mode='HTML',
+            reply_markup=get_iss_menu()
+        )
+
+    @staticmethod
+    async def weather_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show space weather sub-menu"""
+        message = "☀️ <b>Космічна погода</b>\n\n"
+        message += "Сонячна активність, полярне сяйво та погода на Марсі"
+        await CallbackHandlers._replace_message(update, context,
+            message,
+            parse_mode='HTML',
+            reply_markup=get_weather_menu()
+        )
+
+    @staticmethod
+    async def sky_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show sky events sub-menu"""
+        message = "🔭 <b>Небо та зорі</b>\n\n"
+        message += "Метеорні потоки, астрономічні події та фази Місяця"
+        await CallbackHandlers._replace_message(update, context,
+            message,
+            parse_mode='HTML',
+            reply_markup=get_sky_menu()
+        )
 
     @staticmethod
     async def neo(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -255,7 +291,7 @@ class CallbackHandlers:
             # Build keyboard with map button
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🗺️ Відкрити на Google Maps", url=maps_link)],
-                [InlineKeyboardButton("🔙 Назад", callback_data='back_menu')]
+                [InlineKeyboardButton("🔙 МКС", callback_data='iss_menu')]
             ])
             
             if map_image:
@@ -281,10 +317,10 @@ class CallbackHandlers:
             logger.error(f"ISS now handler error: {e}")
             # Fallback to original method
             result = N2YOAPI.get_iss_position()
-            await CallbackHandlers._replace_message(update, context, 
+            await CallbackHandlers._replace_message(update, context,
                 result,
                 parse_mode='HTML',
-                reply_markup=get_main_menu()
+                reply_markup=get_iss_menu()
             )
     
     @staticmethod
@@ -292,21 +328,21 @@ class CallbackHandlers:
         """Handle ISS passes button"""
         user = get_user(update.effective_user.id)
         if not user or not user.get('lat'):
-            await CallbackHandlers._replace_message(update, context, 
+            await CallbackHandlers._replace_message(update, context,
                 "📍 Спочатку встанови своє місто!",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("📍 Вказати місто", callback_data='set_location'),
-                    InlineKeyboardButton("🔙 Назад", callback_data='back_menu')
+                    InlineKeyboardButton("🔙 МКС", callback_data='iss_menu')
                 ]])
             )
             return
-        
+
         lat, lon = user['lat'], user['lon']
         result = N2YOAPI.get_iss_passes(lat, lon)
-        await CallbackHandlers._replace_message(update, context, 
+        await CallbackHandlers._replace_message(update, context,
             result,
             parse_mode='HTML',
-            reply_markup=get_main_menu()
+            reply_markup=get_iss_menu()
         )
     
     @staticmethod
@@ -315,10 +351,10 @@ class CallbackHandlers:
         data = ISSCrewAPI.get_iss_crew()
         result = ISSCrewAPI.format_crew_for_telegram(data)
 
-        await CallbackHandlers._replace_message(update, context, 
+        await CallbackHandlers._replace_message(update, context,
             result['text'],
             parse_mode='HTML',
-            reply_markup=get_main_menu()
+            reply_markup=get_iss_menu()
         )
     
     @staticmethod
@@ -326,21 +362,21 @@ class CallbackHandlers:
         """Handle Starlink button"""
         user = get_user(update.effective_user.id)
         if not user or not user.get('lat'):
-            await CallbackHandlers._replace_message(update, context, 
+            await CallbackHandlers._replace_message(update, context,
                 "📍 Спочатку встанови своє місто!",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("📍 Вказати місто", callback_data='set_location'),
-                    InlineKeyboardButton("🔙 Назад", callback_data='back_menu')
+                    InlineKeyboardButton("🔙 МКС", callback_data='iss_menu')
                 ]])
             )
             return
-        
+
         lat, lon = user['lat'], user['lon']
         result = N2YOAPI.get_starlink_passes(lat, lon)
-        await CallbackHandlers._replace_message(update, context, 
+        await CallbackHandlers._replace_message(update, context,
             result,
             parse_mode='HTML',
-            reply_markup=get_main_menu()
+            reply_markup=get_iss_menu()
         )
     
     @staticmethod
@@ -350,20 +386,20 @@ class CallbackHandlers:
         lat = user.get('lat') if user else None
         
         result = SpaceWeatherAPI.get_space_weather(user_lat=lat)
-        await CallbackHandlers._replace_message(update, context, 
+        await CallbackHandlers._replace_message(update, context,
             result,
             parse_mode='HTML',
-            reply_markup=get_main_menu()
+            reply_markup=get_weather_menu()
         )
     
     @staticmethod
     async def meteor_showers(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle meteor showers button"""
         result = MeteorShower.format_upcoming_showers()
-        await CallbackHandlers._replace_message(update, context, 
+        await CallbackHandlers._replace_message(update, context,
             result,
             parse_mode='HTML',
-            reply_markup=get_main_menu()
+            reply_markup=get_sky_menu()
         )
 
     @staticmethod
@@ -383,17 +419,17 @@ class CallbackHandlers:
             photo=map_url,
             caption=caption,
             parse_mode='HTML',
-            reply_markup=get_main_menu(),
+            reply_markup=get_weather_menu(),
         )
 
     @staticmethod
     async def astronomy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle astronomy events button"""
         result = format_events()
-        await CallbackHandlers._replace_message(update, context, 
+        await CallbackHandlers._replace_message(update, context,
             result,
             parse_mode='HTML',
-            reply_markup=get_main_menu()
+            reply_markup=get_sky_menu()
         )
 
     @staticmethod
@@ -414,12 +450,12 @@ class CallbackHandlers:
         
         message += "\n📖 Синодичний період: 29.5 днів"
         
-        await CallbackHandlers._replace_message(update, context, 
+        await CallbackHandlers._replace_message(update, context,
             message,
             parse_mode='HTML',
-            reply_markup=get_main_menu()
+            reply_markup=get_sky_menu()
         )
-    
+
     @staticmethod
     async def mars(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle mars button"""
@@ -474,10 +510,10 @@ class CallbackHandlers:
             message += "❌ Не вдалося отримати дані\n"
             message += "<i>Можливо, InSight не передає дані</i>"
 
-        await CallbackHandlers._replace_message(update, context, 
+        await CallbackHandlers._replace_message(update, context,
             message,
             parse_mode='HTML',
-            reply_markup=get_main_menu()
+            reply_markup=get_weather_menu()
         )
     
     @staticmethod
@@ -505,7 +541,7 @@ class CallbackHandlers:
         message += f"{neo_sub} Небезпечні астероїди\n"
         message += f"{news_sub} Новини (10:00)\n"
         message += f"{meteors_sub} Метеорні потоки (22:00)\n"
-        message += f"{flares_sub} Сонячні спалахи (M/X)\n"
+        message += f"{flares_sub} Сонячна активність\n"
         message += f"{grb_sub} Гама-спалахи (GRB)\n"
 
         keyboard = [
@@ -520,7 +556,7 @@ class CallbackHandlers:
                 InlineKeyboardButton(f"{meteors_sub} Метеори", callback_data='sub_meteors'),
             ],
             [
-                InlineKeyboardButton(f"{flares_sub} Сонячні спалахи", callback_data='sub_flares'),
+                InlineKeyboardButton(f"{flares_sub} Сонячна активність", callback_data='sub_flares'),
                 InlineKeyboardButton(f"{grb_sub} GRB", callback_data='sub_grb'),
             ],
             [
@@ -603,14 +639,14 @@ class CallbackHandlers:
             del user_states[user_id]
 
         message = "🛰️ <b>NEOwatch — Твій провідник у космосі</b>\n\n"
-        message += "Відстежуй все, що відбувається над головою:\n\n"
-        message += "🌑 <b>Астероїди</b> — небезпечні об'єкти поблизу Землі\n"
-        message += "🛰️ <b>МКС</b> — позиція та проходження над твоїм містом\n"
+        message += "Обери категорію:\n\n"
+        message += "🛰️ <b>МКС</b> — де зараз, проходження, екіпаж, Starlink\n"
         message += "🚀 <b>Запуски</b> — ракети SpaceX, NASA та інших\n"
-        message += "🌠 <b>Метеори</b> — потоки зірок у нічному небі\n"
+        message += "🌑 <b>Астероїди</b> — небезпечні об'єкти поблизу Землі\n"
         message += "🌌 <b>Фото дня</b> — вражаючі кадри від NASA\n"
-        message += "👨‍🚀 <b>Екіпаж</b> — хто зараз у космосі\n\n"
-        message += "☀️ Налаштуй сповіщення, щоб нічого не пропустити!"
+        message += "☀️ <b>Космопогода</b> — сяйво, сонячна активність, Марс\n"
+        message += "🔭 <b>Небо</b> — метеори, астроподії, фаза Місяця\n\n"
+        message += "⚙️ Налаштуй сповіщення в розділі налаштувань!"
 
         await CallbackHandlers._replace_message(
             update, context, message,
