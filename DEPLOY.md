@@ -72,6 +72,10 @@ nano .env
 NASA_API_KEY=your_nasa_key
 N2YO_API_KEY=your_n2yo_key
 BOT_TOKEN=your_telegram_token
+# Mars rover photos (Perseverance/Curiosity). Free key — signup at
+# https://marsvista.dev/signin. Optional: without it the 🚀 Марсоходи button
+# shows a "key not configured" hint instead of photos.
+MARS_VISTA_API_KEY=your_marsvista_key
 
 # Database (MySQL)
 DB_HOST=localhost
@@ -100,6 +104,31 @@ python3 bot.py
 ```
 
 Перевір що нема помилок, тоді Ctrl+C і налаштовуй systemd.
+
+### 7a. Кеш ефемерид skyfield (одноразово)
+
+Функції «🪐 Планети» та «🌌 Календар тижня» раховують ефемериду через
+`skyfield`. Першим запуском бот тягне JPL-ефемериду `de440s.bsp` (~32 МБ)
+у `data/` (плюс `finals.all` для високосних секунд). Це відбувається
+автоматично при першому зверненні до планет/календаря, але потрібен інтернет
+і права на запис у `/opt/neowatch/data`.
+
+Щоб перший користувач не чекав на завантаження — передзавантаж вручну:
+
+```bash
+cd /opt/neowatch
+source venv/bin/activate
+python3 -c "from skyfield.api import Loader; load=Loader('data'); load('de440s.bsp'); load.timescale()"
+```
+
+Під systemd з `User=neowatch` переконайся, що папка належить цьому юзеру:
+
+```bash
+mkdir -p /opt/neowatch/data
+chown -R neowatch:neowatch /opt/neowatch/data
+```
+
+`data/` вже в `.gitignore`.
 
 ## 8. Автозапуск через systemd
 

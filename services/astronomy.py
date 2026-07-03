@@ -1,6 +1,6 @@
 """Astronomical events — eclipses and planet conjunctions"""
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 from utils.i18n import t, pick, days, DEFAULT_LANG
 
@@ -135,3 +135,131 @@ def get_next_eclipse(lang=DEFAULT_LANG):
                 "visibility_en": e.get("visibility_en", e["visibility"]),
             }
     return None
+
+
+# ---------------------------------------------------------------------------
+# "This week in the sky" — aggregates conjunctions, meteor maxima, Moon phases
+# (incl. supermoon) and planet retrograde stations within the next 7 days.
+# ---------------------------------------------------------------------------
+
+def _is_supermoon(dt):
+    """True if the Moon is near perigee at the given full-moon instant.
+
+    Threshold 362,000 km — the conventional "supermoon" cutoff (full Moon near
+    perigee). Uses skyfield's geocentric Moon distance; a failure degrades to
+    False (the full Moon is still reported, just not flagged as super).
+    """
+    try:
+        from services.planets import _get_skyfield
+        eph, ts, _wgs84, _cm, _latin = _get_skyfield()
+        earth, moon = eph[399], eph[301]
+        t = ts.from_datetime(dt.replace(tzinfo=timezone.utc))
+        return earth.at(t).observe(moon).apparent().distance().km < 362_000.0
+    except Exception as e:
+        logger.error(f"supermoon check: {e}")
+        return False
+
+
+def _detect_retrogrades(now, lang):
+    """Detect planet retrograde stations (begin/end) within the next 7 days.
+
+    Samples each planet's geocentric apparent ecliptic longitude at 12-hour
+    steps and flags a sign change in the day-to-day increment as a station.
+    Returns events as (datetime, order, i18n_key, params) tuples.
+    """
+    try:
+        from services.planets import _get_skyfield, TARGETS
+        eph, ts, _wgs84, _cm, _latin = _get_skyfield()
+    except Exception as e:
+        logger.error(f"retrograde skyfield load: {e}")
+        return []
+    earth = eph[399]
+    steps = 17  # 8 days inclusive, 12-hour cadence
+    times = [ts.from_datetime((now + timedelta(hours=12 * i)).replace(tzinfo=timezone.utc))
+             for i in range(steps)]
+    out = []
+    for key, tid in TARGETS:
+        try:
+            body = eph[tid]
+            lons = []
+            for tt in times:
+                lon = earth.at(tt).observe(body).apparent().ecliptic_latlon()[1].degrees
+                lons.append(lon)
+            diffs = []
+            for i in range(len(lons) - 1):
+                d = lons[i + 1] - lons[i]
+                if d > 180:
+                    d -= 360
+                elif d < -180:
+                    d += 360
+                diffs.append(d)
+            for i in range(len(diffs) - 1):
+                a, b = diffs[i], diffs[i + 1]
+                if a == 0 or b == 0:
+                    continue
+                if (a > 0 and b < 0) or (a < 0 and b > 0):
+                    dt = now + timedelta(hours=12 * (i + 1))
+                    if 0 <= (dt - now).days <= 7:
+                        ev_key = 'weekly.retro_begin' if a > 0 else 'weekly.retro_end'
+                        name = t(f'planets.name.{key}', lang)
+                        out.append((dt, 5, ev_key, {'planet': name, 'date': dt.strftime('%d.%m')}))
+        except Exception as e:
+            logger.error(f"retrograde {key}: {e}")
+    return out
+
+
+def get_weekly_calendar(lang=DEFAULT_LANG):
+    """Build the 'this week in the sky' digest (next 7 days)."""
+    now = datetime.now()
+    events = []  # (datetime, order, i18n_key, params)
+
+    # 1) Conjunctions from the curated table.
+    for c in _CONJUNCTIONS:
+        dt = datetime(*c["date"])
+        d = (dt - now).days
+        if 0 <= d <= 7:
+            events.append((dt, 1, 'weekly.conj',
+                           {'bodies': pick(c, 'bodies', lang), 'sep': c['separation'],
+                            'date': dt.strftime('%d.%m')}))
+
+    # 2) Meteor-shower maxima.
+    try:
+        from services.meteor_shower import MeteorShower
+        for s in MeteorShower.get_upcoming_showers(limit=15):
+            du = s.get('days_until')
+            if du is None or not (0 <= du <= 7):
+                continue
+            pdt = s.get('peak_datetime') or (now + timedelta(days=du))
+            events.append((pdt, 2, 'weekly.meteor',
+                           {'name': pick(s, 'name', lang), 'date': pdt.strftime('%d.%m'),
+                            'rate': s.get('rate', '?')}))
+    except Exception as e:
+        logger.error(f"weekly meteor: {e}")
+
+    # 3) Moon phases + supermoon.
+    try:
+        from services.moon_mars import MoonMarsAPI
+        mp = MoonMarsAPI.get_moon_phase(lang)
+        if mp:
+            dtf = now + timedelta(days=mp['days_to_full'])
+            if 0 <= mp['days_to_full'] <= 7:
+                key = 'weekly.supermoon' if _is_supermoon(dtf) else 'weekly.full_moon'
+                events.append((dtf, 3, key, {'date': dtf.strftime('%d.%m')}))
+            dtn = now + timedelta(days=mp['days_to_new'])
+            if 0 <= mp['days_to_new'] <= 7:
+                events.append((dtn, 4, 'weekly.new_moon', {'date': dtn.strftime('%d.%m')}))
+    except Exception as e:
+        logger.error(f"weekly moon: {e}")
+
+    # 4) Planet retrograde stations (skyfield).
+    events.extend(_detect_retrogrades(now, lang))
+
+    events.sort(key=lambda e: (e[0], e[1]))
+    if not events:
+        return t('weekly.empty', lang)
+
+    msg = t('weekly.title', lang)
+    for _dt, _order, key, params in events:
+        msg += t(key, lang, **params)
+    msg += t('weekly.footer', lang)
+    return msg

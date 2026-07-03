@@ -85,6 +85,7 @@ Environment variables in `.env`:
 NASA_API_KEY=      # From api.nasa.gov
 N2YO_API_KEY=      # From n2yo.com
 BOT_TOKEN=         # From @BotFather
+MARS_VISTA_API_KEY= # Optional. Free key from marsvista.dev/signin (Mars rover photos)
 DB_HOST/PORT/NAME/USER/PASSWORD  # MySQL credentials
 ```
 
@@ -97,6 +98,8 @@ DB_HOST/PORT/NAME/USER/PASSWORD  # MySQL credentials
 - **Starlink tracking**: Checks multiple NORAD IDs from `STARLINK_NORAD_IDS` in config
 - **News translation**: Automatic translation of Spaceflightnow articles to Ukrainian
 - **Meteor showers**: Notifications at 22:00 (10 PM) - 1 day before peak and on peak day
+- **Skyfield ephemeris**: `services/planets.py` and `services/astronomy.py` use the `skyfield` library for offline ephemeris (visible planets, retrogrades, supermoon). JPL `de440s.bsp` (~32 MB) downloads on first use into `data/` (gitignored); pre-fetch on deploy via `python3 -c "from skyfield.api import Loader; load=Loader('data'); load('de440s.bsp'); load.timescale()"`. See DEPLOY.md §7a.
+- **Mars rover photos**: `services/mars_rover.py` uses the community **Mars Vista API** (`api.marsvista.dev`, `X-API-Key` header). The former NASA Mars Rover Photos API at `api.nasa.gov/mars-photos` was retired (404 "No such app"). Requires `MARS_VISTA_API_KEY`; without it the 🚀 Марсоходи button shows a "key not configured" hint.
 
 ## Database Schema
 

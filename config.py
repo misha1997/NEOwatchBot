@@ -7,6 +7,10 @@ load_dotenv()
 # API Keys (set in .env or environment variables)
 NASA_API_KEY = os.getenv('NASA_API_KEY')
 N2YO_API_KEY = os.getenv('N2YO_API_KEY')
+# Mars rover photos via the community Mars Vista API (free key, signup at
+# https://marsvista.dev/signin). The former NASA Mars Rover Photos API at
+# api.nasa.gov/mars-photos was retired (Heroku app decommissioned → 404).
+MARS_VISTA_API_KEY = os.getenv('MARS_VISTA_API_KEY', '')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 GEOAPIFY_KEY = os.getenv('GEOAPIFY_KEY', '')
 DEEPL_API_KEY = os.getenv('DEEPL_API_KEY')

@@ -4,11 +4,17 @@ from telegram.ext import ContextTypes
 from services import NasaAPI, N2YOAPI, LaunchAPI, SpaceWeatherAPI, ISSCrewAPI
 from services.moon_mars import MoonMarsAPI
 from services.meteor_shower import MeteorShower
-from services.astronomy import format_events
+from services.astronomy import format_events, get_weekly_calendar
+from services.planets import PlanetsAPI
+from services.mars_rover import MarsRoverAPI
+from services.voyager import VoyagerAPI
+from services.debris import SpaceDebrisAPI
+from services.facts import RandomFact
+from services.grb_alerts import GRBAlertAPI
 from database import (get_user, update_user_location, toggle_subscription, geocode_city,
                       reverse_geocode, create_or_update_user, update_user_lang)
 from utils.keyboards import (get_main_menu, get_iss_menu, get_weather_menu, get_sky_menu,
-                             get_language_picker)
+                             get_deep_menu, get_language_picker)
 from utils.i18n import t, normalize_lang, DEFAULT_LANG
 import logging
 
@@ -84,6 +90,14 @@ class CallbackHandlers:
             'meteor_showers': CallbackHandlers.meteor_showers,
             'astronomy': CallbackHandlers.astronomy,
             'moon': CallbackHandlers.moon,
+            'planets': CallbackHandlers.planets,
+            'rovers': CallbackHandlers.rovers,
+            'weekly': CallbackHandlers.weekly,
+            'fact': CallbackHandlers.fact,
+            'deep_menu': CallbackHandlers.deep_menu,
+            'voyager': CallbackHandlers.voyager,
+            'debris': CallbackHandlers.debris,
+            'grb_recent': CallbackHandlers.grb_recent,
             'settings': CallbackHandlers.settings,
             'set_location': CallbackHandlers.set_location,
             'language': CallbackHandlers.choose_language,
@@ -96,6 +110,8 @@ class CallbackHandlers:
             await CallbackHandlers.handle_cityloc_selection(update, context, data)
         elif data.startswith('city_'):
             await CallbackHandlers.handle_city_selection(update, context, data)
+        elif data.startswith('voyager:'):
+            await CallbackHandlers.handle_voyager_pick(update, context, data)
         elif data.startswith('sub_'):
             await CallbackHandlers.handle_subscription_toggle(update, context, data)
 
@@ -602,6 +618,163 @@ class CallbackHandlers:
             message,
             parse_mode='HTML',
             reply_markup=get_weather_menu(lang)
+        )
+
+    @staticmethod
+    async def planets(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show planets visible above the user's horizon."""
+        user = get_user(update.effective_user.id)
+        lang = normalize_lang(user.get('lang')) if user else _lang_from(context)
+        if not user or not user.get('lat'):
+            await CallbackHandlers._replace_message(update, context,
+                t('city.need_set', lang),
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton(t('city.set_btn', lang), callback_data='set_location'),
+                    InlineKeyboardButton(t('sky.back', lang), callback_data='sky_menu')
+                ]])
+            )
+            return
+        result = PlanetsAPI.get_visible(user['lat'], user['lon'], lang)
+        await CallbackHandlers._replace_message(update, context,
+            result,
+            parse_mode='HTML',
+            reply_markup=get_sky_menu(lang)
+        )
+
+    @staticmethod
+    async def rovers(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Send the latest Mars rover photos (Perseverance + Curiosity)."""
+        lang = _lang_from(context)
+        if not MarsRoverAPI.is_configured():
+            await CallbackHandlers._replace_message(update, context,
+                t('rovers.no_key', lang),
+                parse_mode='HTML',
+                reply_markup=get_sky_menu(lang)
+            )
+            return
+        photos = (MarsRoverAPI.get_latest_photos('perseverance', limit=2, lang=lang)
+                  + MarsRoverAPI.get_latest_photos('curiosity', limit=2, lang=lang))
+        if not photos:
+            await CallbackHandlers._replace_message(update, context,
+                t('rovers.error', lang),
+                parse_mode='HTML',
+                reply_markup=get_sky_menu(lang)
+            )
+            return
+        # Header in the current message, then each photo sent after it.
+        await CallbackHandlers._replace_message(update, context,
+            t('rovers.combined', lang),
+            parse_mode='HTML',
+            reply_markup=get_sky_menu(lang)
+        )
+        for p in photos:
+            try:
+                await context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
+                    photo=p['img_src'],
+                    caption=MarsRoverAPI.caption_for(p, lang),
+                    parse_mode='HTML'
+                )
+            except Exception as e:
+                logger.error(f"Failed to send rover photo: {e}")
+
+    @staticmethod
+    async def weekly(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show 'this week in the sky' digest."""
+        lang = _lang_from(context)
+        result = get_weekly_calendar(lang)
+        await CallbackHandlers._replace_message(update, context,
+            result,
+            parse_mode='HTML',
+            reply_markup=get_sky_menu(lang)
+        )
+
+    @staticmethod
+    async def fact(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show a random space fact (also reachable via /fact)."""
+        lang = _lang_from(context)
+        result = t('fact.label', lang) + RandomFact.get(lang)
+        await CallbackHandlers._replace_message(update, context,
+            result,
+            parse_mode='HTML',
+            reply_markup=get_sky_menu(lang)
+        )
+
+    @staticmethod
+    async def deep_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show the deep-space sub-menu."""
+        lang = _lang_from(context)
+        await CallbackHandlers._replace_message(update, context,
+            t('deep.menu.header', lang),
+            parse_mode='HTML',
+            reply_markup=get_deep_menu(lang)
+        )
+
+    @staticmethod
+    async def voyager(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show the Voyager probe picker."""
+        lang = _lang_from(context)
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton('Voyager 1', callback_data='voyager:1'),
+                InlineKeyboardButton('Voyager 2', callback_data='voyager:2'),
+            ],
+            [InlineKeyboardButton(t('deep.back', lang), callback_data='deep_menu')]
+        ])
+        await CallbackHandlers._replace_message(update, context,
+            t('deep.voyager.pick', lang),
+            parse_mode='HTML',
+            reply_markup=keyboard
+        )
+
+    @staticmethod
+    async def handle_voyager_pick(update: Update, context: ContextTypes.DEFAULT_TYPE, data: str):
+        """Handle Voyager 1/2 selection: data is 'voyager:1' or 'voyager:2'."""
+        lang = _lang_from(context)
+        try:
+            which = int(data.split(':', 1)[1])
+        except (IndexError, ValueError):
+            which = 1
+        result = VoyagerAPI.get_status(which, lang)
+        await CallbackHandlers._replace_message(update, context,
+            result,
+            parse_mode='HTML',
+            reply_markup=get_deep_menu(lang)
+        )
+
+    @staticmethod
+    async def debris(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show space-debris statistics."""
+        lang = _lang_from(context)
+        result = SpaceDebrisAPI.get_stats(lang)
+        await CallbackHandlers._replace_message(update, context,
+            result,
+            parse_mode='HTML',
+            reply_markup=get_deep_menu(lang)
+        )
+
+    @staticmethod
+    async def grb_recent(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show the most recent GRB alerts on demand."""
+        lang = _lang_from(context)
+        try:
+            grbs = GRBAlertAPI.get_recent_grbs(limit=5)
+        except Exception as e:
+            logger.error(f"Recent GRB fetch error: {e}")
+            grbs = []
+        if not grbs:
+            msg = t('grb.recent_empty', lang)
+        else:
+            msg = t('grb.recent_title', lang)
+            for g in grbs:
+                msg += t('grb.recent_entry', lang,
+                         name=g['grb_name'], title=g['title'],
+                         url=g['url'], id=g['circular_id'])
+            msg += t('grb.recent_footer', lang)
+        await CallbackHandlers._replace_message(update, context,
+            msg,
+            parse_mode='HTML',
+            reply_markup=get_deep_menu(lang)
         )
 
     @staticmethod

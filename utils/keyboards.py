@@ -66,9 +66,34 @@ def get_sky_menu(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(t('sky.moon', lang), callback_data='moon'),
+            InlineKeyboardButton(t('sky.planets', lang), callback_data='planets'),
+        ],
+        [
+            InlineKeyboardButton(t('sky.rovers', lang), callback_data='rovers'),
+            InlineKeyboardButton(t('sky.weekly', lang), callback_data='weekly'),
+        ],
+        [
+            InlineKeyboardButton(t('sky.fact', lang), callback_data='fact'),
+            InlineKeyboardButton(t('sky.deep', lang), callback_data='deep_menu'),
         ],
         [
             InlineKeyboardButton(t('menu.back', lang), callback_data='back_menu'),
+        ]
+    ])
+
+
+def get_deep_menu(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
+    """Return the deep-space sub-menu keyboard (reached from the sky menu)."""
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(t('deep.voyager', lang), callback_data='voyager'),
+            InlineKeyboardButton(t('deep.debris', lang), callback_data='debris'),
+        ],
+        [
+            InlineKeyboardButton(t('deep.grb', lang), callback_data='grb_recent'),
+        ],
+        [
+            InlineKeyboardButton(t('deep.back', lang), callback_data='sky_menu'),
         ]
     ])
 

@@ -4,6 +4,7 @@ from telegram.ext import ContextTypes
 from database import get_user
 from utils.keyboards import get_main_menu, get_language_picker
 from utils.i18n import t, normalize_lang, DEFAULT_LANG
+from services.facts import RandomFact
 import logging
 
 logger = logging.getLogger(__name__)
@@ -56,3 +57,16 @@ class CommandHandlers:
     async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command"""
         await CommandHandlers.start(update, context)
+
+    @staticmethod
+    async def fact(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /fact — a random space fact in the user's language."""
+        user = get_user(update.effective_user.id)
+        lang = normalize_lang(user.get('lang')) if user else DEFAULT_LANG
+        context.user_data['lang'] = lang
+        message = t('fact.label', lang) + RandomFact.get(lang)
+        await update.message.reply_text(
+            message,
+            parse_mode='HTML',
+            reply_markup=get_main_menu(lang)
+        )

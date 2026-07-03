@@ -21,3 +21,7 @@ ENV/
 .DS_Store
 Thumbs.db
 neowatch.db
+
+# Skyfield ephemeris cache (downloaded on first run: de440s.bsp ~32 MB,
+# constellation table, leap-second finals.all)
+/data/

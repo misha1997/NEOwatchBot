@@ -62,6 +62,19 @@ TRANSLATIONS = {
         'iss.menu.header': '🛰️ <b>МКС та супутники</b>\n\nЩо цікавить?',
         'weather.menu.header': '☀️ <b>Космічна погода</b>\n\nСонячна активність, полярне сяйво та погода на Марсі',
         'sky.menu.header': '🔭 <b>Небо та зорі</b>\n\nМетеорні потоки, астрономічні події та фази Місяця',
+        'sky.planets': '🪐 Планети',
+        'sky.rovers': '📷 Марсоходи',
+        'sky.weekly': '📅 Тиждень на небі',
+        'sky.fact': '🎲 Факт',
+        'sky.deep': '🌌 Далекий космос',
+
+        # --- Deep space sub-menu ---
+        'deep.menu.header': '🌌 <b>Далекий космос</b>\n\nVoyager, космічний сміття та гамма-спалахи',
+        'deep.voyager': '🛰️ Voyager',
+        'deep.debris': '🗑️ Космічний сміття',
+        'deep.grb': '💥 Останні GRB',
+        'deep.back': '🔙 Небо',
+        'deep.voyager.pick': '🛰️ Оберіть зонд:\n\nVoyager 1 — найдальший\nVoyager 2 — другий за віддаллю',
 
         # --- Welcome / start ---
         'start.title': '🛰️ <b>NEOwatch — Твій провідник у космосі</b>',
@@ -521,6 +534,75 @@ TRANSLATIONS = {
         'sch.meteor.reminder': "<i>Не забудьте встановити будильник на вечір!</i>",
         'sch.meteor.go_out': '<b>🌟 Виходьте спостерігати зараз!</b>\n',
         'sch.meteor.tip': '💡 Лягайте на спину і дивіться на північний схід',
+
+        # --- Visible planets ---
+        'planets.title': '🪐 <b>Видимі планети зараз</b>\n\n',
+        'planets.intro': '<i>Над горизонтом з твоєї локації:</i>\n\n',
+        'planets.entry': '{emoji} <b>{name}</b> — {const}\n   ↑ {alt}° · {az_dir} ({az}°) · ⭐ mag {mag}\n',
+        'planets.below': "\n<i>За горизонтом:</i> {list}\n",
+        'planets.none_visible': 'Зараз жодна планета не над горизонтом. 🌍\n\n',
+        'planets.source': "\n<i>≈ Ефемерида: JPL DE440s · сузір'я IAU · яскравість наближена</i>",
+        'planets.error': '🪐 Не вдалося розрахувати позиції планет. Спробуй пізніше.',
+        'planets.name.mercury': 'Меркурій',
+        'planets.name.venus': 'Венера',
+        'planets.name.mars': 'Марс',
+        'planets.name.jupiter': 'Юпітер',
+        'planets.name.saturn': 'Сатурн',
+        'planets.name.uranus': 'Уран',
+        'planets.name.neptune': 'Нептун',
+
+        # --- Mars rover photos ---
+        'rovers.title': '📷 <b>Фото з Марса — {rover}</b>\n\n',
+        'rovers.meta': 'Сол: <b>{sol}</b> · 📅 {date}\n📷 Фото: {n}\n\n',
+        'rovers.caption': '📷 {rover} · {camera}\nСол {sol} · {date}',
+        'rovers.source': "\n<i>Дані: Mars Vista API · NASA/JPL-Caltech</i>",
+        'rovers.empty': '📷 Фото з {rover} зараз недоступні. Спробуй пізніше.',
+        'rovers.error': '📷 Не вдалося отримати фото з Марса. Спробуй пізніше.',
+        'rovers.no_key': '📷 Фото з марсоходів тимчасово недоступні.\n\nЦя функція використовує сторонній API <a href="https://marsvista.dev/signin">Mars Vista</a> (спадкоємець закритого NASA Mars Rover Photos). Потрібен безкоштовний ключ — додай його у змінну <code>MARS_VISTA_API_KEY</code> у файлі <code>.env</code>. Після цього фото Perseverance і Curiosity з’являться тут.',
+        'rovers.combined': '📷 <b>Свіжі фото з Марса</b>\n\nPerseverance і Curiosity, найновіший сол. Деталі — у підписах під фото.\n\n',
+
+        # --- Voyager ---
+        'voyager.title': '🛰️ <b>Voyager {n}</b>\n\n',
+        'voyager.distance': '📍 Відстань від Сонця (≈): <b>{km} км</b> ({au} а.о.)\n',
+        'voyager.light_time': '⏱️ Час польоту світла: ≈{h} год\n',
+        'voyager.speed': '🚀 Швидкість віддалення: ≈{v} км/с\n',
+        'voyager.interstellar': '🌌 У міжзоряному просторі з {date}\n',
+        'voyager.status': '📡 Статус: зв\'язок підтримується (NASA DSN)\n',
+        'voyager.note': '\n<i>Відстань від Землі змінюється в межах ±1 а.о. через орбіту Землі.</i>',
+        'voyager.source': '\n<i>≈ Дані: NASA/JPL (наближення від епохи 2025)</i>',
+        'voyager.error': '🛰️ Статус Voyager недоступний. Спробуй пізніше.',
+
+        # --- Space debris ---
+        'debris.title': '🗑️ <b>Космічний сміття навколо Землі</b>\n\n',
+        'debris.tracked': '📡 Відстежуваних об\'єктів (&gt;10 см): <b>{v}</b>\n',
+        'debris.cm1': '🔧 Оцінених об\'єктів (&gt;1 см): <b>{v}</b>\n',
+        'debris.cm01': '⚛️ Оцінених об\'єктів (&gt;1 мм): <b>{v}</b>\n',
+        'debris.mass': '⚖️ Загальна маса на орбіті: <b>{v} т</b>\n',
+        'debris.breakups': '💥 Зафіксованих розривів/вибухів: <b>{v}</b>\n',
+        'debris.note': "\n<i>Цифри — оцінки ESA станом на {year}.</i>",
+        'debris.source': "\n<a href='{url}'>ESA · Space debris by the numbers</a>",
+        'debris.error': '🗑️ Статистика космічного сміття недоступна. Спробуй пізніше.',
+
+        # --- Weekly sky calendar ---
+        'weekly.title': '📅 <b>Цього тижня на небі</b>\n\n',
+        'weekly.conj': "✨ <b>Кон'юнкція</b> {bodies} — {date} (відстань {sep}°)\n",
+        'weekly.meteor': '🌠 <b>Метеори {name}</b> — максимум {date} (≈{rate}/год)\n',
+        'weekly.full_moon': '🌕 <b>Повний Місяць</b> — {date}\n',
+        'weekly.new_moon': '🌑 <b>Новий Місяць</b> — {date}\n',
+        'weekly.supermoon': '🌕 <b>Супермісяць</b> (повний Місяць біля перигею) — {date}\n',
+        'weekly.retro_begin': '🪐 <b>{planet}</b> починає зворотний рух — {date}\n',
+        'weekly.retro_end': '🪐 <b>{planet}</b> повертається до прямого руху — {date}\n',
+        'weekly.empty': '📅 <b>Цього тижня на небі</b>\n\nСпецифічних подій на найближчі 7 днів не передбачається. Небо спокійне. 🌌',
+        'weekly.footer': "\n<i>Ефемерида: JPL DE440s · кон'юнкції — курована таблиця.</i>",
+
+        # --- Random fact ---
+        'fact.label': '🎲 <b>Космічний факт</b>\n\n',
+
+        # --- Recent GRBs (on demand) ---
+        'grb.recent_title': '💥 <b>Останні гамма-спалахи (GRB)</b>\n\n',
+        'grb.recent_empty': '💥 Свіжих GRB-сповіщень не знайдено.',
+        'grb.recent_entry': "• <b>{name}</b> — {title}\n  🔗 <a href='{url}'>#{id}</a>\n",
+        'grb.recent_footer': '\n<i>📡 NASA GCN Circulars</i>',
     },
 
     'en': {
@@ -566,6 +648,19 @@ TRANSLATIONS = {
         'iss.menu.header': '🛰️ <b>ISS & satellites</b>\n\nWhat interests you?',
         'weather.menu.header': '☀️ <b>Space weather</b>\n\nSolar activity, aurora and Mars weather',
         'sky.menu.header': '🔭 <b>Sky & stars</b>\n\nMeteor showers, astronomical events and Moon phases',
+        'sky.planets': '🪐 Planets',
+        'sky.rovers': '📷 Mars rovers',
+        'sky.weekly': '📅 This week',
+        'sky.fact': '🎲 Fact',
+        'sky.deep': '🌌 Deep space',
+
+        # --- Deep space sub-menu ---
+        'deep.menu.header': '🌌 <b>Deep space</b>\n\nVoyager, space debris and gamma-ray bursts',
+        'deep.voyager': '🛰️ Voyager',
+        'deep.debris': '🗑️ Space debris',
+        'deep.grb': '💥 Recent GRBs',
+        'deep.back': '🔙 Sky',
+        'deep.voyager.pick': '🛰️ Pick a probe:\n\nVoyager 1 — the farthest\nVoyager 2 — second farthest',
 
         # --- Welcome / start ---
         'start.title': '🛰️ <b>NEOwatch — Your guide to space</b>',
@@ -1024,6 +1119,75 @@ TRANSLATIONS = {
         'sch.meteor.reminder': "<i>Don't forget to set an alarm for the evening!</i>",
         'sch.meteor.go_out': '<b>🌟 Go out and observe now!</b>\n',
         'sch.meteor.tip': '💡 Lie on your back and look to the northeast',
+
+        # --- Visible planets ---
+        'planets.title': '🪐 <b>Visible planets right now</b>\n\n',
+        'planets.intro': "<i>Above the horizon from your location:</i>\n\n",
+        'planets.entry': '{emoji} <b>{name}</b> — {const}\n   ↑ {alt}° · {az_dir} ({az}°) · ⭐ mag {mag}\n',
+        'planets.below': '\n<i>Below horizon:</i> {list}\n',
+        'planets.none_visible': 'No planet is above the horizon right now. 🌍\n\n',
+        'planets.source': "\n<i>≈ Ephemeris: JPL DE440s · IAU constellations · magnitudes approximate</i>",
+        'planets.error': '🪐 Could not compute planet positions. Try again later.',
+        'planets.name.mercury': 'Mercury',
+        'planets.name.venus': 'Venus',
+        'planets.name.mars': 'Mars',
+        'planets.name.jupiter': 'Jupiter',
+        'planets.name.saturn': 'Saturn',
+        'planets.name.uranus': 'Uranus',
+        'planets.name.neptune': 'Neptune',
+
+        # --- Mars rover photos ---
+        'rovers.title': '📷 <b>Photos from Mars — {rover}</b>\n\n',
+        'rovers.meta': 'Sol: <b>{sol}</b> · 📅 {date}\n📷 Photos: {n}\n\n',
+        'rovers.caption': '📷 {rover} · {camera}\nSol {sol} · {date}',
+        'rovers.source': '\n<i>Data: Mars Vista API · NASA/JPL-Caltech</i>',
+        'rovers.empty': '📷 Photos from {rover} are unavailable right now. Try again later.',
+        'rovers.error': '📷 Could not fetch photos from Mars. Try again later.',
+        'rovers.no_key': '📷 Mars rover photos are temporarily unavailable.\n\nThis feature uses the third-party <a href="https://marsvista.dev/signin">Mars Vista</a> API (the successor to the retired NASA Mars Rover Photos API). A free key is required — add it as <code>MARS_VISTA_API_KEY</code> in your <code>.env</code> file. Once set, Perseverance and Curiosity photos will appear here.',
+        'rovers.combined': '📷 <b>Fresh photos from Mars</b>\n\nPerseverance and Curiosity, latest sol. Details under each photo.\n\n',
+
+        # --- Voyager ---
+        'voyager.title': '🛰️ <b>Voyager {n}</b>\n\n',
+        'voyager.distance': '📍 Distance from the Sun (≈): <b>{km} km</b> ({au} AU)\n',
+        'voyager.light_time': '⏱️ Light-travel time: ≈{h} h\n',
+        'voyager.speed': '🚀 Recession velocity: ≈{v} km/s\n',
+        'voyager.interstellar': '🌌 In interstellar space since {date}\n',
+        'voyager.status': '📡 Status: contact maintained (NASA DSN)\n',
+        'voyager.note': '\n<i>Distance from Earth varies by ±1 AU as Earth orbits.</i>',
+        'voyager.source': '\n<i>≈ Data: NASA/JPL (propagated from a 2025 epoch)</i>',
+        'voyager.error': '🛰️ Voyager status unavailable. Try again later.',
+
+        # --- Space debris ---
+        'debris.title': '🗑️ <b>Space debris around Earth</b>\n\n',
+        'debris.tracked': '📡 Tracked objects (&gt;10 cm): <b>{v}</b>\n',
+        'debris.cm1': '🔧 Estimated objects (&gt;1 cm): <b>{v}</b>\n',
+        'debris.cm01': '⚛️ Estimated objects (&gt;1 mm): <b>{v}</b>\n',
+        'debris.mass': '⚖️ Total mass on orbit: <b>{v} t</b>\n',
+        'debris.breakups': '💥 Recorded breakups/explosions: <b>{v}</b>\n',
+        'debris.note': "\n<i>Figures are ESA estimates as of {year}.</i>",
+        'debris.source': "\n<a href='{url}'>ESA · Space debris by the numbers</a>",
+        'debris.error': '🗑️ Space debris stats unavailable. Try again later.',
+
+        # --- Weekly sky calendar ---
+        'weekly.title': '📅 <b>This week in the sky</b>\n\n',
+        'weekly.conj': '✨ <b>Conjunction</b> {bodies} — {date} (separation {sep}°)\n',
+        'weekly.meteor': '🌠 <b>{name} meteors</b> — peak {date} (≈{rate}/h)\n',
+        'weekly.full_moon': '🌕 <b>Full Moon</b> — {date}\n',
+        'weekly.new_moon': '🌑 <b>New Moon</b> — {date}\n',
+        'weekly.supermoon': '🌕 <b>Supermoon</b> (full Moon near perigee) — {date}\n',
+        'weekly.retro_begin': '🪐 <b>{planet}</b> begins retrograde — {date}\n',
+        'weekly.retro_end': '🪐 <b>{planet}</b> returns to direct motion — {date}\n',
+        'weekly.empty': '📅 <b>This week in the sky</b>\n\nNo notable events are expected in the next 7 days. Quiet skies. 🌌',
+        'weekly.footer': "\n<i>Ephemeris: JPL DE440s · conjunctions: curated table.</i>",
+
+        # --- Random fact ---
+        'fact.label': '🎲 <b>Space fact</b>\n\n',
+
+        # --- Recent GRBs (on demand) ---
+        'grb.recent_title': '💥 <b>Recent gamma-ray bursts (GRB)</b>\n\n',
+        'grb.recent_empty': '💥 No recent GRB alerts found.',
+        'grb.recent_entry': "• <b>{name}</b> — {title}\n  🔗 <a href='{url}'>#{id}</a>\n",
+        'grb.recent_footer': '\n<i>📡 NASA GCN Circulars</i>',
     },
 }
 

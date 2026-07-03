@@ -51,6 +51,7 @@ def main():
     # Add handlers
     application.add_handler(CommandHandler("start", CommandHandlers.start))
     application.add_handler(CommandHandler("help", CommandHandlers.help))
+    application.add_handler(CommandHandler("fact", CommandHandlers.fact))
     application.add_handler(CallbackQueryHandler(CallbackHandlers.handle))
     application.add_handler(MessageHandler(filters.LOCATION, MessageHandlers.handle_location))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, MessageHandlers.handle))
