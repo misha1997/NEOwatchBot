@@ -1,5 +1,5 @@
 """Callback query handlers"""
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, InputMediaPhoto
 from telegram.ext import ContextTypes
 from services import NasaAPI, N2YOAPI, LaunchAPI, SpaceWeatherAPI, ISSCrewAPI
 from services.moon_mars import MoonMarsAPI
@@ -661,22 +661,52 @@ class CallbackHandlers:
                 reply_markup=get_sky_menu(lang)
             )
             return
-        # Header in the current message, then each photo sent after it.
+        # Header (with back-to-sky keyboard) stays as its own text message.
         await CallbackHandlers._replace_message(update, context,
             t('rovers.combined', lang),
             parse_mode='HTML',
             reply_markup=get_sky_menu(lang)
         )
-        for p in photos:
-            try:
-                await context.bot.send_photo(
-                    chat_id=update.effective_chat.id,
-                    photo=p['img_src'],
-                    caption=MarsRoverAPI.caption_for(p, lang),
-                    parse_mode='HTML'
-                )
-            except Exception as e:
-                logger.error(f"Failed to send rover photo: {e}")
+        # All photos go out as a single Telegram album (media group) instead of
+        # one message per photo. Only the first caption is shown beneath the
+        # album, so we put a combined summary there; every photo still carries
+        # its own camera/sol caption (visible when forwarded individually).
+        try:
+            media = []
+            for idx, p in enumerate(photos):
+                caption = MarsRoverAPI.caption_for(p, lang)
+                if idx == 0:
+                    # Prepend a one-line summary to the first photo's caption.
+                    summary = t('rovers.album_caption', lang,
+                                n=len(photos),
+                                sol=photos[0].get('sol', '—'),
+                                date=photos[0].get('earth_date', '—'))
+                    caption = summary + caption
+                media.append(InputMediaPhoto(media=p['img_src'],
+                                             caption=caption,
+                                             parse_mode='HTML'))
+            await context.bot.send_chat_action(
+                chat_id=update.effective_chat.id,
+                action='upload_photo'
+            )
+            await context.bot.send_media_group(
+                chat_id=update.effective_chat.id,
+                media=media
+            )
+        except Exception as e:
+            logger.error(f"Failed to send rover photo album: {e}")
+            # Fallback: send photos one by one (old behaviour) so the user
+            # still gets something if the album upload fails.
+            for p in photos:
+                try:
+                    await context.bot.send_photo(
+                        chat_id=update.effective_chat.id,
+                        photo=p['img_src'],
+                        caption=MarsRoverAPI.caption_for(p, lang),
+                        parse_mode='HTML'
+                    )
+                except Exception as e2:
+                    logger.error(f"Failed to send rover photo (fallback): {e2}")
 
     @staticmethod
     async def weekly(update: Update, context: ContextTypes.DEFAULT_TYPE):

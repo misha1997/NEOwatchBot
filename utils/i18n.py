@@ -560,6 +560,7 @@ TRANSLATIONS = {
         'rovers.error': '📷 Не вдалося отримати фото з Марса. Спробуй пізніше.',
         'rovers.no_key': '📷 Фото з марсоходів тимчасово недоступні.\n\nЦя функція використовує сторонній API <a href="https://marsvista.dev/signin">Mars Vista</a> (спадкоємець закритого NASA Mars Rover Photos). Потрібен безкоштовний ключ — додай його у змінну <code>MARS_VISTA_API_KEY</code> у файлі <code>.env</code>. Після цього фото Perseverance і Curiosity з’являться тут.',
         'rovers.combined': '📷 <b>Свіжі фото з Марса</b>\n\nPerseverance і Curiosity, найновіший сол. Деталі — у підписах під фото.\n\n',
+        'rovers.album_caption': '📷 <b>Свіжі фото з Марса ({n})</b>\nСол {sol} · 📅 {date}\n\n',
 
         # --- Voyager ---
         'voyager.title': '🛰️ <b>Voyager {n}</b>\n\n',
@@ -1145,6 +1146,7 @@ TRANSLATIONS = {
         'rovers.error': '📷 Could not fetch photos from Mars. Try again later.',
         'rovers.no_key': '📷 Mars rover photos are temporarily unavailable.\n\nThis feature uses the third-party <a href="https://marsvista.dev/signin">Mars Vista</a> API (the successor to the retired NASA Mars Rover Photos API). A free key is required — add it as <code>MARS_VISTA_API_KEY</code> in your <code>.env</code> file. Once set, Perseverance and Curiosity photos will appear here.',
         'rovers.combined': '📷 <b>Fresh photos from Mars</b>\n\nPerseverance and Curiosity, latest sol. Details under each photo.\n\n',
+        'rovers.album_caption': '📷 <b>Fresh photos from Mars ({n})</b>\nSol {sol} · 📅 {date}\n\n',
 
         # --- Voyager ---
         'voyager.title': '🛰️ <b>Voyager {n}</b>\n\n',
