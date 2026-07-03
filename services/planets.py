@@ -9,7 +9,6 @@ lazily and cached for the process lifetime; the first call downloads
 import os
 import math
 import logging
-import numpy as np
 from utils.i18n import t, compass_dir, DEFAULT_LANG
 
 logger = logging.getLogger(__name__)
@@ -144,7 +143,11 @@ class PlanetsAPI:
             pvec = body.at(t).position.au
             ps = -pvec
             pe = evec - pvec
-            cos_i = float(np.dot(ps, pe) / (np.linalg.norm(ps) * np.linalg.norm(pe)))
+            # 3D dot product & norms via stdlib math (avoids a numpy dep here).
+            dot = ps[0]*pe[0] + ps[1]*pe[1] + ps[2]*pe[2]
+            nps = math.sqrt(ps[0]**2 + ps[1]**2 + ps[2]**2)
+            npe = math.sqrt(pe[0]**2 + pe[1]**2 + pe[2]**2)
+            cos_i = dot / (nps * npe)
             cos_i = max(-1.0, min(1.0, cos_i))
             i_deg = math.degrees(math.acos(cos_i))
 
