@@ -3,76 +3,80 @@ import requests
 import logging
 import math
 from datetime import datetime
+from utils.i18n import t, DEFAULT_LANG
 
 logger = logging.getLogger(__name__)
 
 class MoonMarsAPI:
     """Moon phases and Mars weather API"""
-    
+
     @staticmethod
-    def get_moon_phase():
+    def get_moon_phase(lang=DEFAULT_LANG):
         """Calculate current moon phase"""
         try:
             now = datetime.now()
-            
+
             # Moon phase calculation (simplified algorithm)
             # New moon reference: 2000-01-06 18:14 UTC
             year = now.year
             month = now.month
             day = now.day
-            
+
             # Convert to Julian day
             if month < 3:
                 year -= 1
                 month += 12
-            
+
             a = math.floor(year / 100)
             b = 2 - a + math.floor(a / 4)
             jd = math.floor(365.25 * (year + 4716)) + math.floor(30.6001 * (month + 1)) + day + b - 1524.5
-            
+
             # Days since known new moon (2000-01-06)
             days_since_new = jd - 2451549.5
-            
+
             # Moon synodic period (29.53 days)
             synodic = 29.53058867
-            
+
             # Calculate current phase (0 = new, 0.5 = full, 1 = new)
             phase = (days_since_new % synodic) / synodic
-            
-            # Determine phase name and emoji
+
+            # Determine phase name and emoji. The 4th element is a language-neutral
+            # key used to look up the translated name via i18n ('moon.phase.<key>').
             phase_names = [
-                (0.00, 0.03, "🌑 Новий Місяць", "new"),
-                (0.03, 0.22, "🌒 Молода Місяць", "waxing_crescent"),
-                (0.22, 0.28, "🌓 Перша чверть", "first_quarter"),
-                (0.28, 0.47, "🌔 Прибуваючий Місяць", "waxing_gibbous"),
-                (0.47, 0.53, "🌕 Повний Місяць", "full"),
-                (0.53, 0.72, "🌖 Спадаючий Місяць", "waning_gibbous"),
-                (0.72, 0.78, "🌗 Остання чверть", "last_quarter"),
-                (0.78, 0.97, "🌘 Стара Місяць", "waning_crescent"),
-                (0.97, 1.00, "🌑 Новий Місяць", "new"),
+                (0.00, 0.03, "new"),
+                (0.03, 0.22, "waxing_crescent"),
+                (0.22, 0.28, "first_quarter"),
+                (0.28, 0.47, "waxing_gibbous"),
+                (0.47, 0.53, "full"),
+                (0.53, 0.72, "waning_gibbous"),
+                (0.72, 0.78, "last_quarter"),
+                (0.78, 0.97, "waning_crescent"),
+                (0.97, 1.00, "new"),
             ]
-            
-            phase_name = "🌑 Місяць"
+
+            phase_key = None
             illumination = 0
-            
-            for start, end, name, _ in phase_names:
+
+            for start, end, key in phase_names:
                 if start <= phase < end or (start == 0.97 and phase >= 0.97):
-                    phase_name = name
+                    phase_key = key
                     # Calculate illumination percentage
                     if phase <= 0.5:
                         illumination = (phase / 0.5) * 100
                     else:
                         illumination = ((1 - phase) / 0.5) * 100
                     break
-            
+
+            phase_name = t(f'moon.phase.{phase_key}', lang) if phase_key else t('moon.phase.default', lang)
+
             # Find next full moon
             days_to_full = ((0.5 - phase) % 1) * synodic
             next_full = days_to_full if days_to_full < synodic/2 else days_to_full - synodic
             next_full = next_full if next_full > 0 else days_to_full + synodic/2
-            
+
             # Find next new moon
             days_to_new = ((1 - phase) % 1) * synodic
-            
+
             return {
                 'phase_name': phase_name,
                 'illumination': round(illumination, 1),
@@ -80,7 +84,7 @@ class MoonMarsAPI:
                 'days_to_full': round(next_full, 1) if next_full > 0 else round(days_to_full, 1),
                 'days_to_new': round(days_to_new, 1)
             }
-            
+
         except Exception as e:
             logger.error(f"Moon phase error: {e}")
             return None

@@ -4,6 +4,7 @@ import requests
 from typing import Optional, Dict, List
 import mysql.connector
 from mysql.connector import Error, pooling
+from utils.i18n import DEFAULT_LANG
 from config import (
     DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 )
@@ -74,6 +75,7 @@ def init_db():
                 subscribed_meteors BOOLEAN DEFAULT TRUE,
                 subscribed_flares BOOLEAN DEFAULT TRUE,
                 subscribed_grb BOOLEAN DEFAULT TRUE,
+                lang VARCHAR(5) NOT NULL DEFAULT 'uk',
                 last_iss_pass INT,
                 last_apod_date VARCHAR(10),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -226,6 +228,24 @@ def init_db():
         except Error:
             pass
 
+        # Add lang column to existing users (migration)
+        try:
+            cursor.execute('''
+                SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'users'
+                AND COLUMN_NAME = 'lang'
+            ''')
+            if cursor.fetchone()[0] == 0:
+                cursor.execute('''
+                    ALTER TABLE users
+                    ADD COLUMN lang VARCHAR(5) NOT NULL DEFAULT 'uk'
+                ''')
+                conn.commit()
+                logger.info("Added lang column to users table")
+        except Error:
+            pass
+
         conn.commit()
         logger.info("Database initialized (MySQL)")
 
@@ -254,32 +274,91 @@ def get_user(user_id: int) -> Optional[Dict]:
         conn.close()
 
 
+def get_user_lang(user_id: int) -> Optional[str]:
+    """Get a user's language code ('uk' or 'en'), or None if user not found."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('SELECT lang FROM users WHERE user_id = %s', (user_id,))
+        row = cursor.fetchone()
+        return row[0] if row else None
+    except Error as e:
+        logger.error(f"Error getting user language: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def update_user_lang(user_id: int, lang: str) -> bool:
+    """Update a user's language. lang must be one of the supported codes."""
+    from utils.i18n import SUPPORTED_LANGS
+    if lang not in SUPPORTED_LANGS:
+        return False
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'UPDATE users SET lang = %s, updated_at = CURRENT_TIMESTAMP WHERE user_id = %s',
+            (lang, user_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    except Error as e:
+        logger.error(f"Error updating user language: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def create_or_update_user(user_id: int, chat_id: int = None, username: str = None,
                           first_name: str = None, last_name: str = None,
-                          city: str = None, lat: float = None, lon: float = None) -> Dict:
-    """Create or update user"""
+                          city: str = None, lat: float = None, lon: float = None,
+                          lang: str = None) -> Dict:
+    """Create or update user. lang is only applied on insert (new user)."""
     # If chat_id not provided, use user_id
     if chat_id is None:
         chat_id = user_id
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
-        # Insert or update user
-        cursor.execute('''
-            INSERT INTO users (user_id, chat_id, username, first_name, last_name, city, lat, lon)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE
-                chat_id = VALUES(chat_id),
-                username = COALESCE(VALUES(username), username),
-                first_name = COALESCE(VALUES(first_name), first_name),
-                last_name = COALESCE(VALUES(last_name), last_name),
-                city = COALESCE(VALUES(city), city),
-                lat = COALESCE(VALUES(lat), lat),
-                lon = COALESCE(VALUES(lon), lon),
-                updated_at = CURRENT_TIMESTAMP
-        ''', (user_id, chat_id, username, first_name, last_name, city, lat, lon))
-        
+        # Insert or update user. lang defaults to 'uk' via the column default
+        # when not provided; on update lang is left untouched (use update_user_lang).
+        if lang:
+            cursor.execute('''
+                INSERT INTO users (user_id, chat_id, username, first_name, last_name, city, lat, lon, lang)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    chat_id = VALUES(chat_id),
+                    username = COALESCE(VALUES(username), username),
+                    first_name = COALESCE(VALUES(first_name), first_name),
+                    last_name = COALESCE(VALUES(last_name), last_name),
+                    city = COALESCE(VALUES(city), city),
+                    lat = COALESCE(VALUES(lat), lat),
+                    lon = COALESCE(VALUES(lon), lon),
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (user_id, chat_id, username, first_name, last_name, city, lat, lon, lang))
+        else:
+            cursor.execute('''
+                INSERT INTO users (user_id, chat_id, username, first_name, last_name, city, lat, lon)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    chat_id = VALUES(chat_id),
+                    username = COALESCE(VALUES(username), username),
+                    first_name = COALESCE(VALUES(first_name), first_name),
+                    last_name = COALESCE(VALUES(last_name), last_name),
+                    city = COALESCE(VALUES(city), city),
+                    lat = COALESCE(VALUES(lat), lat),
+                    lon = COALESCE(VALUES(lon), lon),
+                    updated_at = CURRENT_TIMESTAMP
+            ''', (user_id, chat_id, username, first_name, last_name, city, lat, lon))
+
         conn.commit()
         return get_user(user_id)
         
@@ -549,26 +628,65 @@ def get_last_apod_for_user(user_id: int) -> Optional[str]:
         conn.close()
 
 
-def geocode_city(city_name: str) -> Optional[tuple]:
-    """Geocode city name to coordinates using OpenStreetMap Nominatim"""
+def _nominatim_accept_language(lang: str) -> str:
+    """Return an accept-language preference string for Nominatim."""
+    return 'uk,en' if lang == 'uk' else 'en'
+
+
+def _short_name_from_address(address: Dict, display_name: str, item_name: str = '') -> str:
+    """Pick the most specific locality name from a Nominatim `address` dict,
+    falling back to the item's `name` field and then the first chunk of
+    `display_name`."""
+    if address:
+        for key in ('city', 'town', 'village', 'hamlet', 'locality',
+                    'municipality', 'county', 'state_district'):
+            val = address.get(key)
+            if val:
+                return val
+    if item_name:
+        return item_name
+    if display_name:
+        return display_name.split(',')[0].strip()
+    return ''
+
+
+def _country_from_address(address: Dict, display_name: str) -> str:
+    """Country name from structured `address`, falling back to the last chunk
+    of `display_name`."""
+    if address and address.get('country'):
+        return address['country']
+    if display_name and ',' in display_name:
+        return display_name.split(',')[-1].strip()
+    return ''
+
+
+def geocode_city(city_name: str, lang: str = DEFAULT_LANG) -> Optional[tuple]:
+    """Geocode city name to coordinates using OpenStreetMap Nominatim.
+
+    Returns (lat, lon, display_name) or None. Single top result — only used as
+    a legacy fallback; the main city flow goes through ``get_city_suggestions``
+    + coord-based callback to avoid wrong-country ambiguity.
+    """
     try:
         url = "https://nominatim.openstreetmap.org/search"
         params = {
             'q': city_name,
             'format': 'json',
-            'limit': 1
+            'limit': 1,
+            'addressdetails': 1,
+            'accept-language': _nominatim_accept_language(lang),
         }
         headers = {'User-Agent': 'NEOwatchBot/1.0'}
-        
+
         response = requests.get(url, params=params, headers=headers, timeout=10)
         data = response.json()
-        
+
         if data and len(data) > 0:
             lat = float(data[0]['lat'])
             lon = float(data[0]['lon'])
             display_name = data[0].get('display_name', city_name)
             return (lat, lon, display_name)
-        
+
         return None
     except Exception as e:
         logger.error(f"Error geocoding city '{city_name}': {e}")
@@ -579,7 +697,7 @@ def get_user_count() -> int:
     """Get total user count"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         cursor.execute('SELECT COUNT(*) FROM users')
         count = cursor.fetchone()[0]
@@ -592,35 +710,99 @@ def get_user_count() -> int:
         conn.close()
 
 
-def get_city_suggestions(city_name: str) -> List[Dict]:
-    """Get city suggestions from OpenStreetMap"""
+def get_city_suggestions(city_name: str, lang: str = DEFAULT_LANG, limit: int = 5) -> List[Dict]:
+    """Get disambiguated city suggestions from OpenStreetMap Nominatim.
+
+    Returns a list of dicts: {short_name, country, country_code, state,
+    display_name, lat, lon}. Structured `addressdetails=1` is requested so the
+    short name and country come from parsed fields (not fragile display_name
+    splitting), and `accept-language` is set per the user's language.
+    """
     try:
         url = "https://nominatim.openstreetmap.org/search"
         params = {
             'q': city_name,
             'format': 'json',
-            'limit': 5,
-            'accept-language': 'uk,en'
+            'limit': limit,
+            'addressdetails': 1,
+            'accept-language': _nominatim_accept_language(lang),
         }
         headers = {'User-Agent': 'NEOwatchBot/1.0'}
-        
+
         response = requests.get(url, params=params, headers=headers, timeout=10)
         data = response.json()
-        
+
         suggestions = []
+        seen = set()
         for item in data:
+            address = item.get('address') or {}
+            display_name = item.get('display_name', '') or ''
+            short_name = _short_name_from_address(address, display_name, item.get('name', ''))
+            country = _country_from_address(address, display_name)
+            country_code = address.get('country_code', '').upper()
+            state = address.get('state', address.get('region', ''))
+
+            # Deduplicate the same place (Nominatim often returns multiple OSM
+            # elements — e.g. a node and a relation — for one city). Merge by
+            # name + country + state; keep the first occurrence's coordinates.
+            try:
+                float(item.get('lat'))
+                float(item.get('lon'))
+            except (TypeError, ValueError):
+                continue
+            key = (short_name.lower(), country.lower(), state.lower())
+            if key in seen:
+                continue
+            seen.add(key)
+
             suggestions.append({
-                'name': item.get('display_name', '').split(',')[0],
-                'display_name': item.get('display_name'),
+                'short_name': short_name or display_name.split(',')[0].strip(),
+                'country': country,
+                'country_code': country_code,
+                'state': state,
+                'display_name': display_name,
                 'lat': item.get('lat'),
                 'lon': item.get('lon'),
-                'country': item.get('display_name', '').split(',')[-1].strip() if ',' in item.get('display_name', '') else ''
             })
-        
+
         return suggestions
     except Exception as e:
         logger.error(f"Error getting city suggestions for '{city_name}': {e}")
         return []
+
+
+def reverse_geocode(lat: float, lon: float, lang: str = DEFAULT_LANG) -> Optional[tuple]:
+    """Reverse-geocode coordinates to a place name via Nominatim /reverse.
+
+    Returns (short_name, display_name, country) or None. Used by the
+    location-share flow and the coord-based picker callback so the stored
+    `city` label matches the user's language.
+    """
+    try:
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {
+            'lat': lat,
+            'lon': lon,
+            'format': 'json',
+            'addressdetails': 1,
+            'accept-language': _nominatim_accept_language(lang),
+        }
+        headers = {'User-Agent': 'NEOwatchBot/1.0'}
+
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        if response.status_code != 200:
+            return None
+        data = response.json()
+        address = data.get('address') or {}
+        display_name = data.get('display_name', '') or ''
+        short_name = _short_name_from_address(address, display_name)
+        country = _country_from_address(address, display_name)
+        if not short_name:
+            return None
+        return (short_name, display_name, country)
+    except Exception as e:
+        logger.error(f"Error reverse-geocoding ({lat}, {lon}): {e}")
+        return None
 
 
 def is_launch_notified(launch_id: str, notification_type: str) -> bool:

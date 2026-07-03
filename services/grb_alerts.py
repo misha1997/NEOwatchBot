@@ -3,6 +3,7 @@ import requests
 import re
 import logging
 from datetime import datetime
+from utils.i18n import t, DEFAULT_LANG
 
 logger = logging.getLogger(__name__)
 
@@ -88,20 +89,17 @@ class GRBAlertAPI:
             return {}
 
     @staticmethod
-    def format_grb_alert(grb: dict, details: dict = None) -> str:
-        """Format GRB alert message in Ukrainian."""
-        msg = (
-            "💥 <b>ВИЯВЛЕНО ГАМА-СПАЛАХ (GRB)!</b>\n\n"
-            f"🌟 Назва: <b>{grb['grb_name']}</b>\n"
-        )
+    def format_grb_alert(grb: dict, details: dict = None, lang: str = DEFAULT_LANG) -> str:
+        """Format GRB alert message in the user's language."""
+        msg = t('grb.title', lang) + t('grb.name', lang, name=grb['grb_name'])
 
         if details:
             if details.get('ra') and details.get('dec'):
-                msg += f"📍 Координати: RA {details['ra']}, Dec {details['dec']}\n"
+                msg += t('grb.coords', lang, ra=details['ra'], dec=details['dec'])
             if details.get('redshift'):
-                msg += f"🔴 Червоний зсув: z = {details['redshift']}\n"
+                msg += t('grb.redshift', lang, z=details['redshift'])
 
-        msg += f"\n📝 {grb['title']}\n"
-        msg += f"\n🔗 <a href='{grb['url']}'>GCN Circular #{grb['circular_id']}</a>\n"
-        msg += "\n<i>📡 Дані: NASA GCN</i>"
+        msg += t('grb.title_line', lang, title=grb['title'])
+        msg += t('grb.link', lang, url=grb['url'], id=grb['circular_id'])
+        msg += t('grb.source', lang)
         return msg

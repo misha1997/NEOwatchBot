@@ -1,11 +1,14 @@
 """Meteor showers data and utilities"""
 import logging
 from datetime import datetime
+from utils.i18n import t, pick, days, DEFAULT_LANG
 
 logger = logging.getLogger(__name__)
 
 # Major meteor showers data
 # Dates are in format (month, day)
+# Each entry has Ukrainian (name/best_time/direction/description) and English
+# (*_en) fields; pick() selects by user language.
 METEOR_SHOWERS = [
     {
         'name': 'Квадрантиди',
@@ -15,8 +18,11 @@ METEOR_SHOWERS = [
         'end': (1, 5),
         'rate': 120,
         'best_time': 'Після півноці до світанку',
+        'best_time_en': 'After midnight until dawn',
         'direction': 'Північна частина неба, сузір\'я Волопаса',
-        'description': 'Один з найактивніших потоків року'
+        'direction_en': 'Northern sky, constellation Boötes',
+        'description': 'Один з найактивніших потоків року',
+        'description_en': 'One of the most active showers of the year'
     },
     {
         'name': 'Ліриди',
@@ -26,8 +32,11 @@ METEOR_SHOWERS = [
         'end': (4, 25),
         'rate': 18,
         'best_time': '02:00 - 04:00',
+        'best_time_en': '02:00 - 04:00',
         'direction': 'Схід, сузір\'я Ліри',
-        'description': 'Відомі яскравими метеорами-вогниками'
+        'direction_en': 'East, constellation Lyra',
+        'description': 'Відомі яскравими метеорами-вогниками',
+        'description_en': 'Known for bright fireball meteors'
     },
     {
         'name': 'Ета-Аквариди',
@@ -37,8 +46,11 @@ METEOR_SHOWERS = [
         'end': (5, 28),
         'rate': 50,
         'best_time': 'Перед світанком (04:00-05:00)',
+        'best_time_en': 'Before dawn (04:00-05:00)',
         'direction': 'Південний схід, сузір\'я Водолія',
-        'description': 'Залишки комети Галлея, швидкі метеори'
+        'direction_en': 'Southeast, constellation Aquarius',
+        'description': 'Залишки комети Галлея, швидкі метеори',
+        'description_en': 'Halley\'s comet debris, fast meteors'
     },
     {
         'name': 'Персеїди',
@@ -48,8 +60,11 @@ METEOR_SHOWERS = [
         'end': (8, 24),
         'rate': 100,
         'best_time': '22:00 - 05:00',
+        'best_time_en': '22:00 - 05:00',
         'direction': 'Північний схід, сузір\'я Персея',
-        'description': 'Найпопулярніший потік, яскраві метеори'
+        'direction_en': 'Northeast, constellation Perseus',
+        'description': 'Найпопулярніший потік, яскраві метеори',
+        'description_en': 'Most popular shower, bright meteors'
     },
     {
         'name': 'Оріоніди',
@@ -59,8 +74,11 @@ METEOR_SHOWERS = [
         'end': (11, 7),
         'rate': 20,
         'best_time': 'Після півноці',
+        'best_time_en': 'After midnight',
         'direction': 'Південний схід, сузір\'я Оріона',
-        'description': 'Залишки комети Галлея'
+        'direction_en': 'Southeast, constellation Orion',
+        'description': 'Залишки комети Галлея',
+        'description_en': 'Halley\'s comet debris'
     },
     {
         'name': 'Леоніди',
@@ -70,8 +88,11 @@ METEOR_SHOWERS = [
         'end': (11, 30),
         'rate': 15,
         'best_time': 'Після опівночі',
+        'best_time_en': 'After midnight',
         'direction': 'Південний схід, сузір\'я Лева',
-        'description': 'Іноді дають метеорний шторм'
+        'direction_en': 'Southeast, constellation Leo',
+        'description': 'Іноді дають метеорний шторм',
+        'description_en': 'Sometimes produce a meteor storm'
     },
     {
         'name': 'Гемініди',
@@ -81,8 +102,11 @@ METEOR_SHOWERS = [
         'end': (12, 17),
         'rate': 150,
         'best_time': '21:00 - 04:00',
+        'best_time_en': '21:00 - 04:00',
         'direction': 'Південний схід, сузір\'я Близнят',
-        'description': 'Найактивніший потік року!'
+        'direction_en': 'Southeast, constellation Gemini',
+        'description': 'Найактивніший потік року!',
+        'description_en': 'Most active shower of the year!'
     }
 ]
 
@@ -162,36 +186,36 @@ class MeteorShower:
         return upcoming[:limit]
     
     @staticmethod
-    def get_shower_status(shower):
+    def get_shower_status(shower, lang=DEFAULT_LANG):
         """Get status emoji and text for shower"""
         now = datetime.now()
         peak = shower['peak_datetime']
-        
+
         # Active period
         start = MeteorShower.get_date_for_year(shower['start'][0], shower['start'][1], peak.year)
         end = MeteorShower.get_date_for_year(shower['end'][0], shower['end'][1], peak.year)
-        
+
         if now >= start and now <= end:
             if abs((now - peak).days) <= 2:
-                return "🔥 ПІК ЗАРАЗ!", "fire"
+                return t('meteor.status.peak', lang), "fire"
             else:
-                return "✨ Активно", "active"
+                return t('meteor.status.active', lang), "active"
         elif shower['days_until'] <= 7:
-            return "⏳ Скоро", "soon"
+            return t('meteor.status.soon', lang), "soon"
         else:
-            return f"📅 Через {shower['days_until']} дн.", "future"
-    
+            return t('meteor.status.future', lang, n=shower['days_until']), "future"
+
     @staticmethod
-    def format_upcoming_showers():
+    def format_upcoming_showers(lang=DEFAULT_LANG):
         """Format upcoming meteor showers for Telegram"""
         showers = MeteorShower.get_upcoming_showers(4)
-        
-        message = "🌠 <b>Метеорні потоки</b>\n\n"
-        message += "📈 <b>Найближчі події:</b>\n\n"
-        
+
+        message = t('meteor.title', lang)
+        message += t('meteor.upcoming', lang)
+
         for i, shower in enumerate(showers):
-            status, status_type = MeteorShower.get_shower_status(shower)
-            
+            status, status_type = MeteorShower.get_shower_status(shower, lang)
+
             # Emoji based on activity
             if status_type == "fire":
                 emoji = "🔥"
@@ -201,28 +225,31 @@ class MeteorShower:
                 emoji = "⏳"
             else:
                 emoji = "📅"
-            
+
             peak_date = shower['peak_datetime'].strftime('%d.%m.%Y')
-            
-            message += f"{emoji} <b>{shower['name']}</b> ({shower['name_en']})\n"
-            message += f"   📅 Пік: {peak_date}\n"
-            message += f"   📊 Інтенсивність: до {shower['rate']} метеорів/год\n"
-            message += f"   🕐 {shower['best_time']}\n"
-            message += f"   {status}\n\n"
-        
+            bold_name = pick(shower, 'name', lang)
+            other_name = shower['name_en'] if lang == 'uk' else shower['name']
+
+            message += t('meteor.entry', lang, emoji=emoji, name=bold_name,
+                          name_en=other_name, date=peak_date,
+                          rate=shower['rate'],
+                          best_time=pick(shower, 'best_time', lang),
+                          status=status)
+
         # Add tips
-        message += "💡 <b>Поради для спостереження:</b>\n"
-        message += "• Знайдіть місце без світлового забруднення\n"
-        message += "• Дайте очам адаптуватись 15-20 хв\n"
-        message += "• Лежіть на спині, щоб бачити все небо\n"
-        message += "• Спокійно очікуйте, метеори з'являться\n\n"
-        
+        message += t('meteor.tips_header', lang)
+        message += t('meteor.tip1', lang)
+        message += t('meteor.tip2', lang)
+        message += t('meteor.tip3', lang)
+        message += t('meteor.tip4', lang)
+        message += '\n'
+
         # Moon phase warning if applicable
         shower = showers[0] if showers else None
         if shower and shower.get('days_until', 999) <= 14:
-            message += "⚠️ До піку <b>менше 2 тижнів</b> — плануйте спостереження!"
+            message += t('meteor.soon_warning', lang)
         else:
-            message += "🌠 Дані оновлюються регулярно"
-        
+            message += t('meteor.regular', lang)
+
         return message
     

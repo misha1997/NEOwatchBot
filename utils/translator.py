@@ -3,6 +3,7 @@ import requests
 import logging
 from typing import List
 from config import DEEPL_API_KEY
+from utils.i18n import t, DEFAULT_LANG
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,12 @@ def _translate(texts: List[str], source: str = "EN", target: str = "UK") -> List
 
 
 class Translator:
-    """Translator for APOD and news using DeepL API with caching."""
+    """Translator for APOD and news using DeepL API with caching.
+
+    The APOD explanation and news titles/excerpts arrive in English from the
+    source (NASA / SpaceflightNow). For users with lang='uk' we translate
+    EN->UK; for lang='en' we return the original English text unchanged.
+    """
 
     @staticmethod
     def translate(text: str, source: str = "en", target: str = "uk") -> str:
@@ -76,27 +82,37 @@ class Translator:
         return _translate([text], source, target)[0]
 
     @staticmethod
-    def translate_apod(explanation: str) -> str:
-        """Translate APOD explanation with fallback."""
+    def translate_apod(explanation: str, lang: str = DEFAULT_LANG) -> str:
+        """Translate APOD explanation with fallback.
+
+        For lang='en' the source is already English — return it unchanged with
+        the English footer. For lang='uk' translate EN->UK (skipping text that
+        already looks Ukrainian).
+        """
         if not explanation:
             return explanation
+
+        if lang == 'en':
+            return f"{explanation}{t('apod.footer_original', 'en')}"
 
         # Skip if already mostly Ukrainian
         cyrillic_count = sum(
             1 for c in explanation if "А" <= c <= "я" or c in "іїєҐґ"
         )
         if cyrillic_count > len(explanation) * 0.3:
-            return explanation
+            return f"{explanation}{t('apod.footer_original', 'uk')}"
 
         translated = Translator.translate(explanation, "en", "uk")
         if translated != explanation:
-            return f"{translated}\n\n<i>📝 Перекладено з англійської</i>"
-        return f"{explanation}\n\n<i>📝 Опис англійською</i>"
+            return f"{translated}{t('apod.footer_translated', 'uk')}"
+        return f"{explanation}{t('apod.footer_original', 'uk')}"
 
     @staticmethod
-    def translate_news(text: str) -> str:
-        """Translate news text with fallback."""
+    def translate_news(text: str, lang: str = DEFAULT_LANG) -> str:
+        """Translate news text with fallback. No-op for lang='en'."""
         if not text or len(text.strip()) < 5:
+            return text
+        if lang == 'en':
             return text
 
         # Skip if already mostly Ukrainian
@@ -109,8 +125,13 @@ class Translator:
         return Translator.translate(text, "en", "uk")
 
     @staticmethod
-    def translate_batch(texts: List[str]) -> List[str]:
-        """Translate multiple texts in a single API call (used by scheduler for news)."""
+    def translate_batch(texts: List[str], lang: str = DEFAULT_LANG) -> List[str]:
+        """Translate multiple texts in a single API call (used by scheduler for news).
+
+        For lang='en' returns the originals unchanged.
+        """
         if not texts:
             return texts
+        if lang == 'en':
+            return list(texts)
         return _translate(texts, "en", "uk")

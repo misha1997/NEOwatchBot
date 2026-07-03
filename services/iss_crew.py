@@ -1,6 +1,7 @@
 """ISS Crew API Service - using corquaid's International Space Station APIs"""
 import logging
 import requests
+from utils.i18n import t, days, astronauts, DEFAULT_LANG
 
 logger = logging.getLogger(__name__)
 
@@ -122,12 +123,18 @@ _FLAG_EMOJI = {
 }
 
 
-def _country_name(raw: str) -> str:
-    return _COUNTRY_NAMES.get(raw, raw)
+def _country_name(raw: str, lang: str = DEFAULT_LANG) -> str:
+    """Country display name. API source is English; for uk map to Ukrainian."""
+    if lang == 'uk':
+        return _COUNTRY_NAMES.get(raw, raw)
+    return raw
 
 
-def _position_name(raw: str) -> str:
-    return _POSITION_NAMES.get(raw, raw)
+def _position_name(raw: str, lang: str = DEFAULT_LANG) -> str:
+    """Position display name. API source is English; for uk map to Ukrainian."""
+    if lang == 'uk':
+        return _POSITION_NAMES.get(raw, raw)
+    return raw
 
 
 def _flag_emoji(code: str) -> str:
@@ -172,7 +179,7 @@ class ISSCrewAPI:
         }
 
     @staticmethod
-    def format_crew_for_telegram(data):
+    def format_crew_for_telegram(data, lang=DEFAULT_LANG):
         """Format crew data into a rich Telegram HTML message and patch URL.
 
         Returns dict with keys:
@@ -182,11 +189,7 @@ class ISSCrewAPI:
         """
         if not data or not data.get('crew'):
             return {
-                'text': (
-                    "👨‍🚀 <b>Екіпаж МКС</b>\n\n"
-                    "❌ Інформація про екіпаж тимчасово недоступна.\n"
-                    "<i>Спробуй пізніше.</i>"
-                ),
+                'text': f"{t('crew.title', lang)}\n\n{t('crew.unavailable', lang)}",
                 'patch_url': None,
                 'expedition_url': None,
             }
@@ -198,26 +201,26 @@ class ISSCrewAPI:
         start_ts = data.get('expedition_start_date')
 
         # Header
-        lines = [f"👨‍🚀 <b>Екіпаж МКС</b>"]
+        lines = [t('crew.title', lang)]
         if expedition:
-            lines.append(f"Експедиція {expedition}")
+            lines.append(t('crew.expedition', lang, n=expedition))
         lines.append("")
 
         # Group by spacecraft
         by_spacecraft = {}
         for person in crew:
-            craft = person.get('spacecraft', 'Невідомий корабель')
+            craft = person.get('spacecraft') or t('crew.unknown_craft', lang)
             by_spacecraft.setdefault(craft, []).append(person)
 
         for spacecraft, members in by_spacecraft.items():
             lines.append(f"🚀 <b>{spacecraft}</b>")
             for person in members:
-                name = person.get('name', 'Невідомо')
+                name = person.get('name') or t('crew.unknown', lang)
                 flag = _flag_emoji(person.get('flag_code', ''))
-                country = _country_name(person.get('country', ''))
-                position = _position_name(person.get('position', ''))
+                country = _country_name(person.get('country', ''), lang)
+                position = _position_name(person.get('position', ''), lang)
                 agency = person.get('agency', '')
-                days = person.get('days_in_space', 0)
+                d = person.get('days_in_space', 0)
 
                 lines.append(
                     f"{flag} {name} — <i>{position}</i>"
@@ -225,11 +228,8 @@ class ISSCrewAPI:
                 detail_parts = []
                 if agency:
                     detail_parts.append(agency)
-                if days is not None:
-                    word = "днів" if days == 0 or (11 <= days % 100 <= 14) else \
-                           "день" if days % 10 == 1 else \
-                           "дні" if 2 <= days % 10 <= 4 else "днів"
-                    detail_parts.append(f"{days} {word} у космосі")
+                if d is not None:
+                    detail_parts.append(t('crew.days_in_space', lang, days_str=days(d, lang)))
                 if detail_parts:
                     lines.append(f"   <code>{' • '.join(detail_parts)}</code>")
             lines.append("")
@@ -238,15 +238,12 @@ class ISSCrewAPI:
         total_iss = len(crew)
         total_space = data.get('number', 0)
         if total_space > total_iss:
-            lines.append(
-                f"<i>Загалом у космосі: {total_space} людей "
-                f"(на МКС: {total_iss})</i>"
-            )
+            lines.append(t('crew.total_space', lang, total=total_space, iss=total_iss))
         else:
-            lines.append(f"<i>Всього на МКС: {total_iss} {ISSCrewAPI._plural_astronauts(total_iss)}</i>")
+            lines.append(t('crew.total_iss', lang, n=total_iss, astronauts=astronauts(total_iss, lang)))
 
         if expedition_url:
-            lines.append(f'\n<a href="{expedition_url}">📖 Детальніше про Експедицію {expedition}</a>')
+            lines.append(f'\n<a href="{expedition_url}">{t("crew.more_link", lang, n=expedition)}</a>')
 
         return {
             'text': '\n'.join(lines),
@@ -255,9 +252,5 @@ class ISSCrewAPI:
         }
 
     @staticmethod
-    def _plural_astronauts(n: int) -> str:
-        if n == 1:
-            return 'астронавт'
-        if 2 <= n % 10 <= 4 and not (12 <= n % 100 <= 14):
-            return 'астронавти'
-        return 'астронавтів'
+    def _plural_astronauts(n: int, lang: str = DEFAULT_LANG) -> str:
+        return astronauts(n, lang)

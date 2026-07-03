@@ -3,6 +3,7 @@ import requests
 import logging
 from io import BytesIO
 from config import ISS_NORAD_ID, GEOAPIFY_KEY
+from utils.i18n import t, lat_hemi, lon_hemi, DEFAULT_LANG
 
 logger = logging.getLogger(__name__)
 
@@ -93,59 +94,56 @@ class ISSMapService:
             return None, None
     
     @staticmethod
-    def get_iss_map_with_info():
+    def get_iss_map_with_info(lang=DEFAULT_LANG):
         """Get ISS position, map image (if available) and formatted info"""
         position = ISSMapService.get_iss_position()
-        
+
         if not position:
-            return None, "❌ Не вдалося отримати позицію МКС", None
-        
+            return None, t('iss.position_error', lang), None
+
         lat = position['lat']
         lon = position['lon']
-        
+
         # Try to generate map
         map_image, map_source = ISSMapService.generate_map_image(lat, lon)
-        
+
         # Format caption
-        lat_dir = 'Пн' if lat >= 0 else 'Пд'
-        lon_dir = 'Сх' if lon >= 0 else 'Зх'
-        
-        caption = f"🛰️ <b>МКС зараз</b>\n\n"
-        caption += f"📍 Координати:\n"
-        caption += f"   🌐 {abs(lat):.4f}° {lat_dir} широти\n"
-        caption += f"   🌐 {abs(lon):.4f}° {lon_dir} довготи\n"
-        caption += f"   🏔️ Висота: {position['altitude']:.1f} км\n"
-        caption += f"   🚀 Швидкість: {position['velocity']:.0f} км/год\n\n"
-        
+        caption = t('iss.now_title', lang)
+        caption += t('iss.coords', lang)
+        caption += t('iss.lat_line', lang, lat=f'{abs(lat):.4f}', hemi=lat_hemi(lat, lang))
+        caption += t('iss.lon_line', lang, lon=f'{abs(lon):.4f}', hemi=lon_hemi(lon, lang))
+        caption += t('iss.altitude', lang, alt=f'{position["altitude"]:.1f}')
+        caption += t('iss.velocity', lang, v=f'{position["velocity"]:.0f}')
+
         # Add location info
-        location = ISSMapService._get_location_name(lat, lon)
+        location = ISSMapService._get_location_name(lat, lon, lang)
         if location:
             caption += f"🌍 {location}\n\n"
-        
+
         # Create Google Maps link
         maps_link = f"https://www.google.com/maps?q={lat:.4f},{lon:.4f}"
-        
+
         return map_image, caption, maps_link
-    
+
     @staticmethod
-    def _get_location_name(lat, lon):
+    def _get_location_name(lat, lon, lang=DEFAULT_LANG):
         """Get rough location description from coordinates"""
         # Major regions
         if -60 < lat < 60:
             if -160 < lon < -80 or (100 < lon < 180 or -180 < lon < -160):
-                return "Над Тихим океаном 🌊"
+                return t('issmap.pacific', lang)
             elif -80 < lon < 20:
-                return "Над Атлантичним океаном 🌊"
+                return t('issmap.atlantic', lang)
             elif 20 < lon < 100:
                 if lat > 30:
-                    return "Над Євразією 🌍"
+                    return t('issmap.eurasia', lang)
                 elif lat < -10:
-                    return "Над Африкою 🌍"
+                    return t('issmap.africa', lang)
                 else:
-                    return "Над Індійським океаном 🌊"
+                    return t('issmap.indian', lang)
         elif lat > 60:
-            return "Над Арктикою ❄️"
+            return t('issmap.arctic', lang)
         elif lat < -60:
-            return "Над Антарктидою 🧊"
-        
-        return "Над океаном 🌊"
+            return t('issmap.antarctic', lang)
+
+        return t('issmap.ocean', lang)

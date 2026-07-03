@@ -3,6 +3,7 @@ import requests
 import logging
 from datetime import datetime
 from parsers.spaceflightnow import SpaceflightNowParser
+from utils.i18n import t, DEFAULT_LANG
 
 logger = logging.getLogger(__name__)
 
@@ -45,43 +46,42 @@ class LaunchAPI:
             return None
 
     @staticmethod
-    def get_upcoming_launches():
+    def get_upcoming_launches(lang=DEFAULT_LANG):
         """Get upcoming launches (Launch Library API → spaceflightnow.com)"""
         raw = LaunchAPI.get_raw_launches()
         if raw:
-            return LaunchAPI._format_launches(raw['results'][:7])
-        return SpaceflightNowParser.get_launches()
-    
+            return LaunchAPI._format_launches(raw['results'][:7], lang)
+        return SpaceflightNowParser.get_launches(lang)
+
     @staticmethod
-    def _format_launches(launches):
+    def _format_launches(launches, lang=DEFAULT_LANG):
         """Format Launch Library data for Telegram"""
-        message = "🚀 <b>Найближчі запуски ракет</b>\n\n"
-        
+        message = t('launch.title', lang)
+        unknown = t('launch.unknown', lang)
+
         for i, launch in enumerate(launches, 1):
-            name = launch.get('name', 'Невідомо')
-            lsp = launch.get('lsp_name', 'Невідомо')
-            rocket = launch.get('rocket', {}).get('configuration', {}).get('name', 'Невідомо')
-            
+            name = launch.get('name') or unknown
+            lsp = launch.get('lsp_name') or unknown
+            rocket = launch.get('rocket', {}).get('configuration', {}).get('name') or unknown
+
             pad = launch.get('pad', {})
-            location = pad.get('location', {}).get('name', 'Невідомо')
+            location = pad.get('location', {}).get('name') or unknown
             pad_name = pad.get('name', '')
-            
+
             net = launch.get('net', '')
             date_str = LaunchAPI._format_launch_date(net)
-            
+
             status_id = launch.get('status', {}).get('id', 0)
-            status = LaunchAPI._get_status_emoji(status_id)
-            
-            message += f"{i}. 📅 <b>{name}</b>\n"
-            message += f"   🚀 {rocket} | {lsp}\n"
-            message += f"   📍 {location}\n"
+            status = LaunchAPI._get_status_emoji(status_id, lang)
+
+            message += t('launch.entry', lang, i=i, name=name, rocket=rocket, lsp=lsp, location=location)
             if pad_name and pad_name != 'Unknown Pad':
-                message += f"   🎯 {pad_name}\n"
-            message += f"   ⏰ {date_str}\n"
-            message += f"   📊 {status}\n\n"
-        
+                message += t('launch.pad_line', lang, pad=pad_name)
+            message += t('launch.date_line', lang, date=date_str)
+            message += t('launch.status_line', lang, status=status)
+
         return {'text': message, 'image': None}
-    
+
     @staticmethod
     def _format_launch_date(net):
         """Format launch date string"""
@@ -94,19 +94,10 @@ class LaunchAPI:
             return net
         except:
             return net[:16] if net else 'TBD'
-    
+
     @staticmethod
-    def _get_status_emoji(status_id):
-        """Get status emoji for launch (Launch Library 2.3.0 status IDs)."""
-        statuses = {
-            1: '🟢 Go for Launch',
-            2: '🟡 TBD',
-            3: '🟠 Hold',
-            4: '🔵 In Flight',
-            5: '🟠 Partial Failure',
-            6: '🔴 Failure',
-            7: '✅ Success',
-            8: '🟡 To Be Confirmed',
-            9: '🟢 Payload Deployed',
-        }
-        return statuses.get(status_id, '—')
+    def _get_status_emoji(status_id, lang=DEFAULT_LANG):
+        """Get status label for launch (Launch Library 2.3.0 status IDs)."""
+        key = f'launch.status.{status_id}'
+        # status.1..9 exist; anything else falls back to .default
+        return t(key if status_id in range(1, 10) else 'launch.status.default', lang)

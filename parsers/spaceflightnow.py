@@ -4,34 +4,35 @@ import re
 import logging
 from datetime import datetime
 from typing import List, Dict, Optional
+from utils.i18n import t, DEFAULT_LANG
 
 logger = logging.getLogger(__name__)
 
 
 class SpaceflightNowParser:
     """HTML parser for spaceflightnow.com/launch-schedule/"""
-    
+
     @staticmethod
-    def get_launches():
+    def get_launches(lang=DEFAULT_LANG):
         """Parse upcoming launches from spaceflightnow.com"""
         try:
             url = "https://spaceflightnow.com/launch-schedule/"
             headers = {'User-Agent': 'Mozilla/5.0 (compatible; NEOwatchBot/1.0)'}
             response = requests.get(url, headers=headers, timeout=15)
-            
+
             if response.status_code != 200:
                 raise Exception(f"HTTP {response.status_code}")
-            
+
             launches = SpaceflightNowParser._parse_html(response.text)
-            
+
             if launches:
-                return SpaceflightNowParser._format_launches(launches)
+                return SpaceflightNowParser._format_launches(launches, lang=lang)
             else:
                 raise Exception("No launches found")
-                
+
         except Exception as e:
             logger.error(f"Spaceflightnow parsing failed: {e}")
-            return SpaceflightNowParser._format_fallback()
+            return SpaceflightNowParser._format_fallback(lang=lang)
     
     @staticmethod
     def _parse_html(html):
@@ -91,22 +92,22 @@ class SpaceflightNowParser:
         return text
     
     @staticmethod
-    def _format_launches(launches, max_count=8):
+    def _format_launches(launches, max_count=8, lang=DEFAULT_LANG):
         """Format launches for Telegram"""
-        message = "🚀 <b>Найближчі запуски ракет</b>\n"
-        message += "<i>(дані з spaceflightnow.com)</i>\n\n"
-        
+        message = t('sfn.title', lang)
+        message += t('sfn.subtitle', lang) + "\n\n"
+
         current_launch_date = None
         for launch in launches[:max_count]:
             if launch['date'] != current_launch_date:
                 current_launch_date = launch['date']
-                message += f"\n📅 <b>{current_launch_date}</b>\n"
-            
+                message += t('sfn.date_line', lang, date=current_launch_date)
+
             mission = launch['mission'].replace('•', '|')
-            message += f"  🚀 {mission}\n"
-            message += f"     ⏰ {launch['time']}\n"
-            message += f"     📍 {launch['site']}\n\n"
-        
+            message += t('sfn.mission_line', lang, mission=mission)
+            message += t('sfn.time_line', lang, time=launch['time'])
+            message += t('sfn.site_line', lang, site=launch['site'])
+
         return {'text': message, 'image': None}
 
     @staticmethod
@@ -203,15 +204,15 @@ class SpaceflightNowParser:
         return articles
 
     @staticmethod
-    def _format_fallback():
+    def _format_fallback(lang=DEFAULT_LANG):
         """Format fallback message when parsing fails"""
         current_date = datetime.now()
-        message = "🚀 <b>Найближчі запуски</b>\n"
-        message += "<i>(API тимчасово недоступний)</i>\n\n"
-        message += "📅 Рекомендую перевірити:\n"
-        message += "• spaceflightnow.com/launch-schedule\n"
-        message += "• nextspaceflight.com/launches\n\n"
-        message += f"📍 Сьогодні: {current_date.strftime('%d.%m.%Y')}\n"
-        message += "🔄 API відновиться через ~20 хв"
-        
+        message = t('sfn.fallback_title', lang)
+        message += t('sfn.fallback_sub', lang) + "\n\n"
+        message += t('sfn.fallback_check', lang)
+        message += t('sfn.fallback_link1', lang)
+        message += t('sfn.fallback_link2', lang) + "\n"
+        message += t('sfn.fallback_today', lang, date=current_date.strftime('%d.%m.%Y'))
+        message += t('sfn.fallback_wait', lang)
+
         return {'text': message, 'image': None}

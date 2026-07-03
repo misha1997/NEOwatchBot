@@ -28,6 +28,7 @@ from database import (
     is_grb_notified, mark_grb_notified, cleanup_old_grb_notifications
 )
 from services import NasaAPI, N2YOAPI
+from utils.i18n import t, pick, compass_dir, normalize_lang
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,6 @@ class NotificationScheduler:
                 logger.error("Failed to get APOD data")
                 return
 
-            formatted = NasaAPI.format_apod(data)
             apod_date = data.get('date', today)
 
             if not subscribers:
@@ -77,10 +77,15 @@ class NotificationScheduler:
                 try:
                     chat_id = user.get('chat_id')
                     user_last_apod = user.get('last_apod_date')
+                    lang = normalize_lang(user.get('lang'))
 
                     # Skip if user already got today's APOD
                     if user_last_apod == apod_date:
                         continue
+
+                    # Format APOD in the user's language (image URL is the
+                    # same regardless of language; caption/text differ).
+                    formatted = NasaAPI.format_apod(data, lang)
 
                     # Send based on media type
                     media_type = data.get('media_type', 'image')
@@ -124,16 +129,11 @@ class NotificationScheduler:
 
     @staticmethod
     def _compass_to_uk(compass: str) -> str:
-        """Convert English compass direction to Ukrainian"""
-        compass_map = {
-            'N': 'північ', 'NNE': 'північний схід', 'NE': 'північний схід',
-            'ENE': 'північний схід', 'E': 'схід', 'ESE': 'південний схід',
-            'SE': 'південний схід', 'SSE': 'південний схід', 'S': 'південь',
-            'SSW': 'південний захід', 'SW': 'південний захід',
-            'WSW': 'південний захід', 'W': 'захід', 'WNW': 'північний захід',
-            'NW': 'північний захід', 'NNW': 'північний захід',
-        }
-        return compass_map.get(compass, compass)
+        """Convert English compass direction to Ukrainian (legacy wrapper).
+
+        Kept for backward compatibility; new code should use ``compass_dir``.
+        """
+        return compass_dir(compass, 'uk')
 
     async def check_iss_passes(self):
         """Check for upcoming ISS passes and notify subscribers"""
@@ -153,6 +153,7 @@ class NotificationScheduler:
                 try:
                     user_id = user['user_id']
                     chat_id = user['chat_id']
+                    lang = normalize_lang(user.get('lang'))
                     lat = user.get('lat')
                     lon = user.get('lon')
 
@@ -185,25 +186,28 @@ class NotificationScheduler:
 
                             duration = iss_pass.get('duration', 0)
                             max_elevation = iss_pass.get('maxEl', 0)
-                            start_dir = self._compass_to_uk(iss_pass.get('startAzCompass', 'SW'))
-                            max_dir = self._compass_to_uk(iss_pass.get('maxAzCompass', ''))
-                            end_dir = self._compass_to_uk(iss_pass.get('endAzCompass', ''))
+                            start_dir = compass_dir(iss_pass.get('startAzCompass', 'SW'), lang)
+                            max_dir = compass_dir(iss_pass.get('maxAzCompass', ''), lang)
+                            end_dir = compass_dir(iss_pass.get('endAzCompass', ''), lang)
                             magnitude = iss_pass.get('mag')
 
-                            msg = f"🛰 <b>Проліт МКС!</b>\n\n"
-                            msg += f"⏰ Час: {pass_time_kyiv.strftime('%d.%m %H:%M')} (київський)\n"
-                            msg += f"⏱ Тривалість: {duration} сек\n"
-                            msg += f"📐 Максимальна висота: {max_elevation}°\n"
+                            msg = t('sch.iss.title', lang)
+                            msg += t('sch.iss.time', lang,
+                                     time=pass_time_kyiv.strftime('%d.%m %H:%M'),
+                                     kyiv=t('kyiv_time', lang))
+                            msg += t('sch.iss.duration', lang, dur=duration)
+                            msg += t('sch.iss.max_el', lang, el=max_elevation)
                             if magnitude is not None:
-                                msg += f"🔆 Яскравість: {magnitude:.1f} магнітуди\n"
-                            msg += f"📍 Місто: {user.get('city', 'Ваше місто')}\n"
-                            msg += f"🧭 Напрямок: {start_dir}"
+                                msg += t('sch.iss.brightness', lang, mag=f"{magnitude:.1f}")
+                            msg += t('sch.iss.city', lang,
+                                     city=user.get('city') or t('sch.iss.city_default', lang))
+                            msg += t('sch.iss.direction', lang, dir=start_dir)
                             if max_dir and max_dir != start_dir:
                                 msg += f" → {max_dir}"
                             if end_dir and end_dir != start_dir:
                                 msg += f" → {end_dir}"
                             msg += "\n"
-                            msg += f"<i>Дивіться на {start_dir} небо!</i>"
+                            msg += t('sch.iss.look_at', lang, dir=start_dir)
 
                             await self.bot.send_message(
                                 chat_id=chat_id,
@@ -315,7 +319,7 @@ class NotificationScheduler:
                 if is_neo_notified(asteroid_id, approach_date):
                     continue
 
-                # Format notification message
+                # Raw (language-neutral) asteroid data
                 name = asteroid['name']
                 distance_km = asteroid['miss_distance_km']
                 diameter_min = asteroid['diameter_min']
@@ -323,25 +327,30 @@ class NotificationScheduler:
                 velocity = asteroid['velocity']
                 url = asteroid['url']
 
-                # Format distance
-                if distance_km >= 1_000_000:
-                    distance_str = f"{distance_km/1_000_000:.2f} млн км"
-                else:
-                    distance_str = f"{distance_km/1000:,.0f} тис км".replace(',', ' ')
-
-                message = f"🚨 <b>НЕБЕЗПЕЧНИЙ АСТЕРОЇД!</b>\n\n"
-                message += f"🌑 {name}\n"
-                message += f"📅 Максимальне наближення: {approach_date}\n"
-                message += f"📍 Відстань: {distance_str}\n"
-                message += f"📏 Розмір: {diameter_min}-{diameter_max} м\n"
-                message += f"🚀 Швидкість: {velocity:,.0f} км/год\n".replace(',', ' ')
-                message += f"⚠️ <b>Потенційно небезпечний для Землі</b>\n\n"
-                if url:
-                    message += f"🔗 <a href='{url}'>Детальніше на NASA JPL</a>"
-
-                # Send to all subscribers
+                # Send to all subscribers, formatted per-user language
                 for user in subscribers:
                     try:
+                        lang = normalize_lang(user.get('lang'))
+
+                        # Format distance in the user's language
+                        if distance_km >= 1_000_000:
+                            distance_str = t('sch.neo.dist_mln', lang,
+                                             v=f"{distance_km/1_000_000:.2f}")
+                        else:
+                            distance_str = t('sch.neo.dist_thousands', lang,
+                                              v=f"{distance_km/1000:,.0f}".replace(',', ' '))
+
+                        message = t('sch.neo.title', lang)
+                        message += t('sch.neo.name', lang, name=name)
+                        message += t('sch.neo.approach', lang, date=approach_date)
+                        message += t('sch.neo.distance', lang, dist=distance_str)
+                        message += t('sch.neo.size', lang, min=diameter_min, max=diameter_max)
+                        message += t('sch.neo.velocity', lang,
+                                     vel=f"{velocity:,.0f}".replace(',', ' '))
+                        message += t('sch.neo.warning', lang)
+                        if url:
+                            message += t('sch.neo.link', lang, url=url)
+
                         await self.bot.send_message(
                             chat_id=user['chat_id'],
                             text=message,
@@ -399,39 +408,30 @@ class NotificationScheduler:
                 logger.info("No subscribers for solar flare alerts")
                 return
 
-            # Build message based on class
-            if flare_class == 'X':
-                header = "🌞 <b>X-КЛАС СОНЯЧНИЙ СПАЛАХ!</b>\n\n"
-                consequences = (
-                    "📡 Можливі наслідки:\n"
-                    "• Радіозатемнення на коротких хвилях\n"
-                    "• Полярне сяйво через 1-3 дні\n"
-                    "• Підвищений Kp-індекс\n"
-                    "• Загроза для супутників\n"
-                )
-            else:
-                header = "🌞 <b>M-КЛАС СОНЯЧНИЙ СПАЛАХ!</b>\n\n"
-                consequences = (
-                    "📡 Можливі наслідки:\n"
-                    "• Слабке радіозатемнення\n"
-                    "• Можливе полярне сяйво\n"
-                    "• Слідкуйте за Kp-індексом\n"
-                )
-
-            description = SpaceWeatherAPI.get_flare_description(flare_class)
+            # Class-level data (language-neutral)
+            flare_desc_key = SpaceWeatherAPI.get_flare_description(flare_class)
             emoji = SpaceWeatherAPI.get_flare_emoji(flare_class)
-
-            message = (
-                f"{header}"
-                f"{emoji} Клас: {flare_class} ({description})\n"
-                f"⚡ Флюс: {flare['flux']:.2e} Вт/м²\n"
-                f"🕐 Час: {flare_time}\n\n"
-                f"{consequences}\n"
-                "<i>Дані: NOAA GOES</i>"
-            )
 
             for user in subscribers:
                 try:
+                    lang = normalize_lang(user.get('lang'))
+
+                    header = t('sch.flare.x_header' if flare_class == 'X'
+                               else 'sch.flare.m_header', lang)
+                    consequences = t('sch.flare.consequences_x' if flare_class == 'X'
+                                     else 'sch.flare.consequences_m', lang)
+                    description = t(f'weather.flare.{flare_desc_key}', lang)
+                    flux_str = f"{flare['flux']:.2e}"
+
+                    message = (
+                        f"{header}"
+                        f"{t('sch.flare.class_line', lang, emoji=emoji, cls=flare_class, desc=description)}"
+                        f"{t('sch.flare.flux', lang, flux=flux_str)}"
+                        f"{t('sch.flare.time', lang, time=flare_time)}"
+                        f"{consequences}\n"
+                        f"{t('sch.flare.source', lang)}"
+                    )
+
                     await self.bot.send_message(
                         chat_id=user['chat_id'],
                         text=message,
@@ -466,8 +466,8 @@ class NotificationScheduler:
 
             kp = storm['kp']
             kp_time = storm['kp_time']
-            g_scale = storm['g_scale']
-            g_scale_full = storm['g_scale_full']
+            g_scale = storm['g_scale']  # 'G1'..'G5' or None
+            g_scale_key = storm['g_scale_key']  # 'g0'..'g5'
             solar_wind = storm.get('solar_wind')
             bz = storm.get('bz')
             forecast = storm.get('forecast')
@@ -484,65 +484,67 @@ class NotificationScheduler:
                 logger.info("No solar activity subscribers")
                 return
 
-            # Build message
+            # Language-neutral derived values
             kp_emoji = "🟠" if kp < 7 else "🔴"
-            message = f"{kp_emoji} <b>ГЕОМАГНІТНА БУРЯ!</b>\n\n"
-            message += f"📊 Індекс Kp: {kp:.1f}/9\n"
-            message += f"⚠️ Шкала: {g_scale_full}\n"
-            message += f"🕐 Час: {kp_time}\n"
-
-            # Solar wind details
-            if solar_wind:
-                speed = solar_wind['speed']
-                speed_status = SpaceWeatherAPI._get_solar_wind_status(speed)
-                message += f"\n💨 <b>Сонячний вітер</b>\n"
-                message += f"Швидкість: {speed:.0f} км/с — {speed_status}\n"
-                message += f"Щільність: {solar_wind['density']:.1f} ч/см³\n"
-
-            # Magnetic field
-            if bz is not None:
-                bz_status = SpaceWeatherAPI._get_bz_status(bz)
-                bz_emoji = SpaceWeatherAPI._get_bz_emoji(bz)
-                message += f"\n🧲 <b>Магнітне поле Bz</b>\n"
-                message += f"{bz_emoji} Bz: {bz:.1f} нТл — {bz_status}\n"
-
-            # Possible effects
-            if g_scale == "G1":
-                effects = "Слабке полярне сяйво на високих широтах"
-            elif g_scale == "G2":
-                effects = "Полярне сяйво, можливі перешкоди зв'язку на півночі"
-            elif g_scale == "G3":
-                effects = "Сяйво на середніх широтах, перешкоди навігації та зв'язку"
-            elif g_scale == "G4":
-                effects = "Сяйво на півдні, проблеми з електроенергією та супутниками"
-            else:
-                effects = "Сяйво видно всюди, серйозні проблеми з енергомережею та супутниками!"
-
-            message += f"\n🌌 <b>Можливі наслідки:</b>\n{effects}\n"
-
-            # Aurora hint for Ukraine (lat ~48-50)
-            if kp >= 5:
-                message += "\n🌃 <b>Полярне сяйво:</b> "
-                if kp >= 8:
-                    message += "Може бути видно навіть в Україні! 🔴"
-                elif kp >= 6:
-                    message += "Можливо на півночі України 🟠"
-                else:
-                    message += "Малоймовірно в Україні, але спостерігайте 🟡"
-
-            # Forecast
-            if forecast:
-                message += "\n\n📅 <b>Прогноз Kp:</b>\n"
-                for day in ['Сьогодні', 'Завтра', 'Післязавтра']:
-                    if day in forecast:
-                        kp_val = forecast[day]
-                        emoji = SpaceWeatherAPI._get_kp_emoji_simple(kp_val)
-                        message += f"{emoji} {day}: Kp {kp_val:.0f}\n"
-
-            message += "\n<i>Дані: NOAA SWPC</i>"
+            effects_key = (g_scale or 'G5').lower()  # g1..g5
 
             for user in subscribers:
                 try:
+                    lang = normalize_lang(user.get('lang'))
+
+                    message = t('sch.storm.title', lang, emoji=kp_emoji)
+                    message += t('sch.storm.kp', lang, kp=f"{kp:.1f}")
+                    message += t('sch.storm.scale', lang,
+                                 scale=t(f'weather.g_scale.{g_scale_key}', lang))
+                    message += t('sch.storm.time', lang, time=kp_time)
+
+                    # Solar wind details
+                    if solar_wind:
+                        speed = solar_wind['speed']
+                        wind_status_key = SpaceWeatherAPI._get_solar_wind_status(speed)
+                        wind_status = t(f'weather.wind.{wind_status_key}', lang)
+                        message += t('sch.storm.wind', lang)
+                        message += t('sch.storm.wind_speed', lang,
+                                     speed=f"{speed:.0f}", status=wind_status)
+                        message += t('sch.storm.wind_density', lang,
+                                     density=f"{solar_wind['density']:.1f}")
+
+                    # Magnetic field
+                    if bz is not None:
+                        bz_status_key = SpaceWeatherAPI._get_bz_status(bz)
+                        bz_status = t(f'weather.bz.{bz_status_key}', lang)
+                        bz_emoji = SpaceWeatherAPI._get_bz_emoji(bz)
+                        message += t('sch.storm.bz', lang)
+                        message += t('sch.storm.bz_line', lang,
+                                     emoji=bz_emoji, bz=f"{bz:.1f}", status=bz_status)
+
+                    # Possible effects
+                    effects = t(f'sch.storm.effects.{effects_key}', lang)
+                    message += t('sch.storm.effects_header', lang, effects=effects)
+
+                    # Aurora hint
+                    if kp >= 5:
+                        message += t('sch.storm.aurora_header', lang)
+                        if kp >= 8:
+                            message += t('sch.storm.aurora.kp8', lang)
+                        elif kp >= 6:
+                            message += t('sch.storm.aurora.kp6', lang)
+                        else:
+                            message += t('sch.storm.aurora.kp5', lang)
+
+                    # Forecast
+                    if forecast:
+                        message += t('sch.storm.forecast', lang)
+                        for day_key in ('today', 'tomorrow', 'day_after'):
+                            if day_key in forecast:
+                                kp_val = forecast[day_key]
+                                emoji = SpaceWeatherAPI._get_kp_emoji_simple(kp_val)
+                                day_name = t(f'weather.day.{day_key}', lang)
+                                message += t('sch.storm.forecast_line', lang,
+                                             emoji=emoji, day=day_name, kp=f"{kp_val:.0f}")
+
+                    message += t('sch.storm.source', lang)
+
                     await self.bot.send_message(
                         chat_id=user['chat_id'],
                         text=message,
@@ -591,15 +593,14 @@ class NotificationScheduler:
                 if is_grb_notified(grb_name):
                     continue
 
-                # Fetch details for richer message
+                # Fetch details for richer message (language-neutral)
                 details = GRBAlertAPI.get_grb_details(grb['circular_id'])
 
-                # Format message
-                message = GRBAlertAPI.format_grb_alert(grb, details)
-
-                # Send to all subscribers
+                # Send to all subscribers, formatted per-user language
                 for user in subscribers:
                     try:
+                        lang = normalize_lang(user.get('lang'))
+                        message = GRBAlertAPI.format_grb_alert(grb, details, lang)
                         await self.bot.send_message(
                             chat_id=user['chat_id'],
                             text=message,
@@ -630,13 +631,15 @@ class NotificationScheduler:
             return
         try:
             from services.astronomy import get_next_eclipse
-            eclipse = get_next_eclipse()
-            if not eclipse:
+            # Use the neutral type field for the dedup decision; language does
+            # not affect whether an eclipse is "tomorrow".
+            eclipse_probe = get_next_eclipse()
+            if not eclipse_probe:
                 return
 
             # Notify 1 day before
-            if eclipse['days_until'] == 1:
-                key = f"eclipse_{eclipse['date']}"
+            if eclipse_probe['days_until'] == 1:
+                key = f"eclipse_{eclipse_probe['date']}"
                 if key in self._notified_eclipses:
                     return
 
@@ -644,19 +647,23 @@ class NotificationScheduler:
                 if not subscribers:
                     return
 
-                emoji = "🌕" if "повне" in eclipse['type'] else "🌑"
-                message = (
-                    f"{emoji} <b>ЗАВТРА АСТРОНОМІЧНА ПОДІЯ!</b>\n\n"
-                    f"<b>{eclipse['name']}</b>\n"
-                    f"📅 {eclipse['date']}\n"
-                    f"🌍 Видимість: {eclipse['visibility']}\n\n"
-                    "🔗 <a href='https://www.timeanddate.com/eclipse/'>Переглянути карту та час</a>\n"
-                    "📺 <a href='https://www.youtube.com/@NASA'>Трансляція NASA</a>\n\n"
-                    "<i>Не пропустіть!</i>"
-                )
+                # `type` is a language-neutral key like 'moon_total' / 'sun_total'.
+                is_total = eclipse_probe['type'].endswith('_total')
+                emoji = "🌕" if is_total else "🌑"
 
                 for user in subscribers:
                     try:
+                        lang = normalize_lang(user.get('lang'))
+                        eclipse = get_next_eclipse(lang)
+
+                        message = t('sch.eclipse.title', lang, emoji=emoji)
+                        message += t('sch.eclipse.name', lang, name=eclipse['name'])
+                        message += t('sch.eclipse.date', lang, date=eclipse['date'])
+                        message += t('sch.eclipse.visibility', lang, vis=eclipse['visibility'])
+                        message += t('sch.eclipse.link1', lang)
+                        message += t('sch.eclipse.link2', lang)
+                        message += t('sch.eclipse.footer', lang)
+
                         await self.bot.send_message(
                             chat_id=user['chat_id'],
                             text=message,
@@ -666,7 +673,7 @@ class NotificationScheduler:
                         logger.error(f"Failed to notify {user['user_id']} about eclipse: {e}")
 
                 self._notified_eclipses.add(key)
-                logger.info(f"Sent eclipse notification: {eclipse['name']}")
+                logger.info(f"Sent eclipse notification: {eclipse_probe['name']}")
 
         except Exception as e:
             logger.error(f"Astronomy event check error: {e}")
@@ -701,61 +708,66 @@ class NotificationScheduler:
                 logger.info("No new articles to send")
                 return
 
-            # Format news digest (top 3 articles)
-            today = datetime.now().strftime('%d.%m.%Y')
-            message = f"📰 <b>Космічні новини ({today})</b>\n"
-            message += "<i>Джерело: spaceflightnow.com</i>\n\n"
-
-            # Batch translate all titles and excerpts in one API call
+            # Pre-translate titles+excerpts to Ukrainian once (single batch call).
+            # English-language subscribers receive the original source text.
             texts_to_translate = []
             for article in new_articles[:3]:
                 texts_to_translate.append(article['title'])
                 if article.get('excerpt'):
                     texts_to_translate.append(article['excerpt'])
+            translated_uk = Translator.translate_batch(texts_to_translate, 'uk')
 
-            translated = Translator.translate_batch(texts_to_translate)
-            trans_idx = 0
+            today = datetime.now().strftime('%d.%m.%Y')
 
-            for i, article in enumerate(new_articles[:3], 1):
-                title = article['title']
-                excerpt = article['excerpt']
-                url = article['url']
-                category = article['category']
-
-                title_uk = translated[trans_idx]
-                trans_idx += 1
-                excerpt_uk = translated[trans_idx] if excerpt else ''
-                if excerpt:
-                    trans_idx += 1
-
-                # Category emoji
-                cat_emoji = "🚀"
-                if 'starlink' in category.lower() or 'falcon' in category.lower():
-                    cat_emoji = "🛰️"
-                elif 'artemis' in category.lower() or 'moon' in category.lower():
-                    cat_emoji = "🌙"
-                elif 'mars' in category.lower():
-                    cat_emoji = "🔴"
-                elif 'iss' in category.lower():
-                    cat_emoji = "🛰️"
-
-                message += f"{i}. {cat_emoji} <b>{title_uk}</b>\n"
-                if excerpt_uk:
-                    # Truncate excerpt if too long
-                    if len(excerpt_uk) > 150:
-                        excerpt_uk = excerpt_uk[:150] + "..."
-                    message += f"   {excerpt_uk}\n"
-                message += f"   🔗 <a href='{url}'>Читати далі</a>\n\n"
-
-                # Mark as notified
-                mark_news_notified(article['url'], article['title'])
-
-            message += "\n<i>📝 Новини автоматично перекладено українською</i>"
-
-            # Send to all subscribers
+            # Send to all subscribers, formatted per-user language
             sent_count = 0
             for user in subscribers:
                 try:
+                    lang = normalize_lang(user.get('lang'))
+
+                    message = t('sch.news.title', lang, date=today)
+                    message += t('sch.news.source', lang)
+
+                    trans_idx = 0
+                    for i, article in enumerate(new_articles[:3], 1):
+                        title = article['title']
+                        excerpt = article['excerpt']
+                        url = article['url']
+                        category = article['category']
+
+                        if lang == 'uk':
+                            title_disp = translated_uk[trans_idx]
+                            trans_idx += 1
+                            excerpt_disp = translated_uk[trans_idx] if excerpt else ''
+                            if excerpt:
+                                trans_idx += 1
+                        else:
+                            # English: use the original source text, skip translation
+                            title_disp = title
+                            excerpt_disp = excerpt or ''
+
+                        # Category emoji
+                        cat_emoji = "🚀"
+                        if 'starlink' in category.lower() or 'falcon' in category.lower():
+                            cat_emoji = "🛰️"
+                        elif 'artemis' in category.lower() or 'moon' in category.lower():
+                            cat_emoji = "🌙"
+                        elif 'mars' in category.lower():
+                            cat_emoji = "🔴"
+                        elif 'iss' in category.lower():
+                            cat_emoji = "🛰️"
+
+                        message += t('sch.news.entry', lang, i=i, emoji=cat_emoji, title=title_disp)
+                        if excerpt_disp:
+                            # Truncate excerpt if too long
+                            if len(excerpt_disp) > 150:
+                                excerpt_disp = excerpt_disp[:150] + "..."
+                            message += t('sch.news.excerpt', lang, excerpt=excerpt_disp)
+                        message += t('sch.news.read_more', lang, url=url)
+
+                    message += t('sch.news.footer_uk' if lang == 'uk'
+                                 else 'sch.news.footer_en', lang)
+
                     await self.bot.send_message(
                         chat_id=user['chat_id'],
                         text=message,
@@ -765,6 +777,10 @@ class NotificationScheduler:
                     sent_count += 1
                 except Exception as e:
                     logger.error(f"Failed to send news to {user['user_id']}: {e}")
+
+            # Mark articles as notified (once, language-neutral key = url)
+            for article in new_articles[:3]:
+                mark_news_notified(article['url'], article['title'])
 
             logger.info(f"Sent daily news to {sent_count}/{len(subscribers)} subscribers")
 
@@ -799,7 +815,7 @@ class NotificationScheduler:
                 return
 
             for shower in showers:
-                shower_name = shower['name']
+                shower_name = shower['name']  # canonical UK name — used as dedup key
                 peak_date = shower['peak_datetime']
                 days_until = shower['days_until']
 
@@ -812,17 +828,24 @@ class NotificationScheduler:
                     if is_meteor_notified(shower_name, peak_date_str, notification_type):
                         continue
 
-                    message = f"🌠 <b>ЗАВТРА МЕТЕОРНИЙ ПОТІК!</b>\n\n"
-                    message += f"✨ {shower_name} ({shower['name_en']})\n"
-                    message += f"📅 Пік: {peak_date.strftime('%d.%m.%Y')}\n"
-                    message += f"💫 До {shower['rate']} метеорів/год\n"
-                    message += f"🕐 Найкращий час: {shower['best_time']}\n"
-                    message += f"📍 Дивіться: {shower['direction']}\n\n"
-                    message += f"📝 {shower['description']}\n\n"
-                    message += "<i>Не забудьте встановити будильник на вечір!</i>"
-
                     for user in subscribers:
                         try:
+                            lang = normalize_lang(user.get('lang'))
+                            name_disp = pick(shower, 'name', lang)
+                            other_name = shower.get('name_en' if lang == 'uk' else 'name')
+                            best_time = pick(shower, 'best_time', lang)
+                            direction = pick(shower, 'direction', lang)
+                            description = pick(shower, 'description', lang)
+
+                            message = t('sch.meteor.tomorrow_title', lang)
+                            message += t('sch.meteor.name', lang, name=name_disp, other=other_name)
+                            message += t('sch.meteor.peak', lang, date=peak_date.strftime('%d.%m.%Y'))
+                            message += t('sch.meteor.rate', lang, rate=shower['rate'])
+                            message += t('sch.meteor.best_time', lang, time=best_time)
+                            message += t('sch.meteor.direction', lang, dir=direction)
+                            message += t('sch.meteor.desc', lang, desc=description)
+                            message += t('sch.meteor.reminder', lang)
+
                             await self.bot.send_message(
                                 chat_id=user['chat_id'],
                                 text=message,
@@ -841,17 +864,24 @@ class NotificationScheduler:
                     if is_meteor_notified(shower_name, peak_date_str, notification_type):
                         continue
 
-                    message = f"🔥 <b>СЬОГОДНІ ПІК МЕТЕОРНОГО ПОТОКУ!</b>\n\n"
-                    message += f"✨ {shower_name} ({shower['name_en']})\n"
-                    message += f"💫 До {shower['rate']} метеорів/год\n"
-                    message += f"🕐 Найкращий час: {shower['best_time']}\n"
-                    message += f"📍 Дивіться: {shower['direction']}\n\n"
-                    message += f"📝 {shower['description']}\n\n"
-                    message += "<b>🌟 Виходьте спостерігати зараз!</b>\n"
-                    message += "💡 Лягайте на спину і дивіться на північний схід"
-
                     for user in subscribers:
                         try:
+                            lang = normalize_lang(user.get('lang'))
+                            name_disp = pick(shower, 'name', lang)
+                            other_name = shower.get('name_en' if lang == 'uk' else 'name')
+                            best_time = pick(shower, 'best_time', lang)
+                            direction = pick(shower, 'direction', lang)
+                            description = pick(shower, 'description', lang)
+
+                            message = t('sch.meteor.today_title', lang)
+                            message += t('sch.meteor.name', lang, name=name_disp, other=other_name)
+                            message += t('sch.meteor.rate', lang, rate=shower['rate'])
+                            message += t('sch.meteor.best_time', lang, time=best_time)
+                            message += t('sch.meteor.direction', lang, dir=direction)
+                            message += t('sch.meteor.desc', lang, desc=description)
+                            message += t('sch.meteor.go_out', lang)
+                            message += t('sch.meteor.tip', lang)
+
                             await self.bot.send_message(
                                 chat_id=user['chat_id'],
                                 text=message,
@@ -911,19 +941,21 @@ class NotificationScheduler:
         return launches
 
     async def _send_launch_notification(self, launch: dict, subscribers: list):
-        """Send launch notification to subscribers"""
+        """Send launch notification to subscribers (per-user language)"""
         try:
             launch_name = launch.get('name', 'Rocket Launch')
             launch_time = launch.get('time', datetime.now())
             live_url = launch.get('url', 'https://spaceflightnow.com/launch-schedule/')
-
-            message = f"🚀 <b>Запуск ракети відбувається зараз!</b>\n\n"
-            message += f"🚀 {launch_name}\n"
-            message += f"📅 {launch_time.strftime('%d.%m.%Y %H:%M UTC')}\n"
-            message += f"\n<i>📺 <a href='{live_url}'>Дивіться трансляцію</a></i>"
+            date_str = launch_time.strftime('%d.%m.%Y %H:%M UTC')
 
             for user in subscribers:
                 try:
+                    lang = normalize_lang(user.get('lang'))
+                    message = t('sch.launch.title', lang)
+                    message += t('sch.launch.name_line', lang, name=launch_name)
+                    message += t('sch.launch.date_line', lang, date=date_str)
+                    message += t('sch.launch.watch', lang, url=live_url)
+
                     await self.bot.send_message(
                         chat_id=user['chat_id'],
                         text=message,
