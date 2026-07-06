@@ -28,6 +28,19 @@ class SpaceDebrisAPI:
     """Curated space-debris statistics."""
 
     @staticmethod
+    def get_stats_dict() -> dict:
+        """Structured debris stats for the website (curated ESA figures)."""
+        return {
+            "year_ref": _DATA["year_ref"],
+            "tracked": _DATA["tracked"],
+            "cm1": _DATA["cm1"],
+            "cm01": _DATA["cm01"],
+            "total_mass_t": _DATA["total_mass_t"],
+            "breakups": _DATA["breakups"],
+            "source_url": _DATA["source_url"],
+        }
+
+    @staticmethod
     def get_stats(lang: str = DEFAULT_LANG) -> str:
         try:
             d = _DATA

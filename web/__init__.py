@@ -1,0 +1,1 @@
+"""NEOwatch web layer — FastAPI site that reuses the bot's service modules."""

@@ -1,0 +1,725 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "notFound": "No events found.",
+    "retry": "Try again later.",
+    "open": "Open →",
+    "compass": { "N": "N", "S": "S", "E": "E", "W": "W", "NE": "NE", "NW": "NW", "SE": "SE", "SW": "SW" },
+    "units": {
+      "km_s": "km/s", "km_h": "km/h", "km": "km", "pa": "Pa", "m_s": "m/s",
+      "c": "°C", "deg": "°", "ao": "AU", "ld": "LD", "days": "d",
+      "hrs": "h", "min": "min", "sec": "s", "nt": "nT", "au_yr": "AU/yr",
+      "mhz": "MHz", "wm2": "W/m²"
+    },
+    "trend": { "up": "↑ brightening", "down": "↓ fading", "stable": "→ stable" },
+    "days": { "today": "today", "tomorrow": "tomorrow", "in_n": "in {{n}} d", "peakToday": "Peak today", "peakTomorrow": "Peak tomorrow", "peakIn": "Peak in {{n}} d" },
+    "months": { "jan": "Jan", "feb": "Feb", "mar": "Mar", "apr": "Apr", "may": "May", "jun": "Jun", "jul": "Jul", "aug": "Aug", "sep": "Sep", "oct": "Oct", "nov": "Nov", "dec": "Dec" }
+  },
+  "nav": {
+    "home": "Sky now",
+    "sky_group": "Sky",
+    "sky": "For observer",
+    "meteors": "Meteors",
+    "events": "Events",
+    "orbit_group": "Orbit",
+    "iss": "ISS",
+    "satellites": "Satellites",
+    "launches": "Launches",
+    "bodies_group": "Solar system",
+    "asteroids": "Asteroids",
+    "comets": "Comets",
+    "deep": "Deep space",
+    "voyager": "Voyager",
+    "sunradio_group": "Sun & radio",
+    "weather": "Space weather",
+    "rtl": "Radio",
+    "community": "Community"
+  },
+  "header": {
+    "tagline": "LIGHT FROM ORBIT",
+    "openBot": "Open bot ↗",
+    "menu": "Menu",
+    "lang": { "uk": "UK", "en": "EN" }
+  },
+  "footer": {
+    "tagline": "LIGHT FROM ORBIT",
+    "intro": "A guide to space: ISS, asteroids, meteors, space weather and rocket launches — live.",
+    "colSky": "Sky",
+    "colOrbit": "ISS & satellites",
+    "colSkyObs": "Sky for observer",
+    "colWeather": "Space weather",
+    "colLaunches": "Rocket launches",
+    "colComets": "Comets",
+    "colRadio": "Radio astronomy",
+    "colCommunity": "Community",
+    "colForum": "Forum",
+    "colGallery": "Photo gallery",
+    "colQuiz": "Quiz",
+    "colDiaries": "Observation diaries",
+    "colProject": "Project",
+    "colBot": "Telegram bot",
+    "colDeep": "Deep space",
+    "colVoyager": "Voyager",
+    "colEvents": "Astronomical events",
+    "copyright": "© 2026 NEOwatch. Data: NASA · NOAA SWPC · ESA · Launch Library 2 · N2YO",
+    "made": "Made for those who look up 🌌"
+  },
+  "title": {
+    "home": "NEOwatch — sky now",
+    "iss": "ISS live — NEOwatch",
+    "satellites": "Satellites on map — NEOwatch",
+    "weather": "Space weather — NEOwatch",
+    "sky": "Sky for observer — NEOwatch",
+    "meteors": "Meteor showers — NEOwatch",
+    "asteroids": "Asteroids — NEOwatch",
+    "events": "Astronomical events — NEOwatch",
+    "launches": "Rocket launches — NEOwatch",
+    "deep": "Deep space — NEOwatch",
+    "voyager": "Voyager — NEOwatch",
+    "comets": "Comets — NEOwatch",
+    "rtl": "Radio astronomy — NEOwatch",
+    "community": "Community — NEOwatch",
+    "404": "Not found — NEOwatch"
+  },
+  "lang": { "name_uk": "Ukrainian", "name_en": "English" },
+  "loc": { "default": "Kyiv, Ukraine" },
+  "picker": {
+    "title": "Choose a city",
+    "placeholder": "Start typing: Kyiv, Lviv…",
+    "hint": "Start typing a city name…",
+    "default": "Default (Kyiv)",
+    "close": "Close",
+    "change": "Change",
+    "detect": "Find me",
+    "detecting": "Detecting location…",
+    "detectFail": "Couldn't detect your location. Allow location access or type a city manually.",
+    "detectBtn": "📍 Find me"
+  },
+  "sat": {
+    "popup": {
+      "altitude": "Altitude",
+      "velocity": "Velocity",
+      "subpoint": "Subpoint",
+      "updated": "Updated"
+    }
+  },
+  "sky": {
+    "dome": { "N": "N", "S": "S", "E": "E", "W": "W", "zenith": "zenith" },
+    "hero": {
+      "eyebrow": "Observer's guide",
+      "title": "Sky for the <span class=\"accent\">observer</span>",
+      "sub": "Visible planets, Moon phase, space weather and tips — everything to plan a successful night of observing over your city.",
+      "planets": "Visible planets →",
+      "diary": "Observer diaries"
+    },
+    "planets": {
+      "title": "Visible planets",
+      "col_planet": "Planet",
+      "col_vis": "Visibility",
+      "col_best": "Best",
+      "visibleNow": "now",
+      "belowHorizon": "Below horizon",
+      "visible": "Visible, {{alt}}°, {{az}}",
+      "ph": {
+        "venus": "Venus", "mars": "Mars", "jupiter": "Jupiter", "saturn": "Saturn",
+        "venusVis": "Morning, in the east", "marsVis": "Low in the west", "jupiterVis": "High, in the south", "saturnVis": "At opposition, SE",
+        "venusBest": "until 05:20", "marsBest": "until 23:10", "allNight": "all night"
+      }
+    },
+    "moon": {
+      "title": "Moon phase",
+      "phName": "Young Moon, waxing",
+      "darkNote": "Ideal conditions for observing faint objects",
+      "brightNote": "Bright Moon interferes with faint objects"
+    },
+    "weather": {
+      "kp": "Kp index",
+      "wind": "Solar wind",
+      "bz": "Bz",
+      "aurora": "Aurora chance"
+    },
+    "s1": { "eyebrow": "Space weather", "title": "Aurora & magnetosphere", "link": "Home →" },
+    "s2": { "eyebrow": "Tips for observer", "title": "How to prepare for the night" },
+    "tips": {
+      "t1_tag": "01 · LOCATION", "t1_title": "Pick a dark sky", "t1_body": "Get away from light pollution — 20–30 km from the city you can see twice as many stars.",
+      "t2_tag": "02 · ADAPTATION", "t2_title": "Give your eyes 20 min", "t2_body": "A red flashlight doesn't ruin night vision — use it for charts and instruments.",
+      "t3_tag": "03 · GEAR", "t3_title": "Start with 10×50 binoculars", "t3_body": "Enough to see the Moon, Jupiter, the Orion nebula and the Milky Way.",
+      "t4_tag": "04 · PLAN", "t4_title": "Check the sky forecast", "t4_body": "Cloud cover, Moon phase and ISS passes — all in the “Sky now” dashboard."
+    },
+    "s3": { "eyebrow": "This week's calendar", "title": "Events not to miss" },
+    "calendar": {
+      "loading": "Loading…",
+      "title": "Week's events",
+      "sub": "ISS passes, launches and Moon phases — live.",
+      "soon": "Coming up",
+      "noEvents": "No events found",
+      "retry": "Try again later.",
+      "issPill": "ISS",
+      "issTitle": "ISS pass",
+      "issDetail": "Max altitude {{el}}°, {{from}} → {{to}} · {{dur}} min",
+      "moonPill": "Moon",
+      "newMoonTitle": "New Moon",
+      "newMoonDetail": "Dark sky — ideal for observing",
+      "fullMoonTitle": "Full Moon",
+      "fullMoonDetail": "Bright Moon all night"
+    }
+  },
+  "weather": {
+    "xray": {
+      "extreme": "Strong flare (X-class)",
+      "large": "M-class flare",
+      "moderate": "Moderate (C-class)",
+      "weak": "Weak (B-class)",
+      "quiet": "Quiet (A/B)"
+    },
+    "aurora": {
+      "everywhere": "Possible across the whole country",
+      "north": "Possible in the north",
+      "maybe_north": "Low chance in the north",
+      "not_visible": "Not visible at this latitude"
+    },
+    "windFoot": {
+      "calm": "Quiet solar wind",
+      "moderate": "Moderate — favourable for aurora",
+      "fast": "Fast stream — high aurora chance"
+    },
+    "bzFoot": {
+      "calm": "Calm magnetosphere",
+      "south": "Southward orientation — aurora possible",
+      "open": "Open magnetosphere — high aurora"
+    },
+    "card": { "kp": "Kp index", "wind": "Solar wind", "bz": "Bz component", "aurora": "Aurora chance" },
+    "kpFoot": { "storm": "Geomagnetic storm {{g}}", "moderate": "Moderate magnetic-field disturbance" },
+    "auroraDefault": "Possible in the north of the country",
+    "hero": {
+      "eyebrow": "Live · NOAA SWPC",
+      "title": "Space <span class=\"accent\">weather</span>",
+      "sub": "Solar activity, geomagnetic storms and the radiation environment near Earth in real time — with charts and an aurora forecast for your latitude.",
+      "now": "Current conditions →", "aurora": "Aurora forecast →"
+    },
+    "current": {
+      "eyebrow": "Current conditions", "title": "Space weather state",
+      "xray": "X-ray (GOES)", "kpModerate": "Moderate disturbance",
+      "windFoot": "Density {{density}} cm⁻³ · T {{temp}} MK"
+    },
+    "storm": { "strong": "Geomagnetic storm.", "body": "Kp ≥ 5 — possible radio disruption and aurora south of usual latitudes." },
+    "s1": { "eyebrow": "Magnetic storms", "title": "Kp index", "sub": "The planetary K-index (Kp) measures Earth's magnetic-field disturbance. Values ≥ 5 indicate a geomagnetic storm (G1–G5 scale).", "history": "7-day history", "historySub": "3-hourly measurements · NOAA", "forecast": "3-day forecast", "forecastSub": "hourly · observed/forecast" },
+    "s2": { "eyebrow": "Solar wind", "title": "Plasma stream from the Sun", "sub": "Solar-wind speed (DSCOVR/ACE) and the Bz component of the magnetic field. Southward Bz (< 0) «opens» the magnetosphere to aurora.", "wind": "Solar wind speed", "windSub": "last ~4 h, 1-min", "bz": "Magnetic-field Bz", "bzSub": "plus/minus — orientation" },
+    "s3": { "eyebrow": "Solar flares", "title": "X-ray flux (GOES)", "sub": "Soft X-ray flux 0.1–0.8 nm. Classes: A < B < C < M < X (each step ×10). M- and X-class flares affect radio communications.", "xray": "6-hour flux", "xraySub": "logarithmic scale · classes A/B/C/M/X" },
+    "s4": { "eyebrow": "Aurora", "title": "Aurora forecast", "sub": "NOAA OVATION aurora visibility map for the Northern Hemisphere — refreshed about every 5 minutes. The aurora chance for your latitude is computed from the current Kp.", "chance": "Aurora chance above you", "mapAlt": "OVATION aurora forecast map" },
+    "s5": { "eyebrow": "Another planet", "title": "Weather on Mars", "sub": "Latest telemetry from the InSight (NASA) weather station on the surface of Mars — temperature, pressure and wind over the last sol (Martian day)." },
+    "mars": {
+      "title": "Weather on Mars",
+      "unavailable": "InSight weather-station data is no longer updated (mission ended in 2022). The last available sol is shown if the feed responds.",
+      "sol": "Sol", "avg": "Avg", "min": "Min", "max": "Max",
+      "pressure": "Pressure", "wind": "Wind", "windUnit": "m/s · {{dir}}", "samples": "Samples",
+      "source": "Source: NASA InSight · {{date}}",
+      "what": "What is this?",
+      "whatBody": "A sol is a Martian day (24 h 39 min). InSight measured temperature and pressure in Elysium crater for over two Martian years. The mission ended in December 2022 — the feed returns the last available sol.",
+      "northHemi": "Northern hemisphere"
+    },
+    "chart": { "observed": "Observed", "forecast": "Forecast", "kp": "Kp", "flux": "Flux" }
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "Updated in real time",
+      "title": "The sky is more interesting<br />when you look <span class=\"accent\">not alone</span>",
+      "sub": "ISS, asteroids, rocket launches, aurora, meteors and the NASA photo of the day — all space events in a convenient visual format.",
+      "skyNow": "Sky now →",
+      "telegram": "Open in Telegram ↗"
+    },
+    "tonight": {
+      "eyebrow": "Tonight",
+      "title": "Highlights over Kyiv",
+      "link": "Detailed forecast →",
+      "sub": "Approximate for latitude 50° N. Times are local Kyiv (UTC+3)."
+    },
+    "weather": { "eyebrow": "Space weather", "title": "Aurora conditions right now", "link": "NOAA SWPC details →" },
+    "iss": { "eyebrow": "ISS", "title": "Upcoming station passes", "link": "ISS page →" },
+    "launches": { "eyebrow": "Rocket launches", "title": "This week's launch calendar", "link": "All launches (Launch Library 2) →" },
+    "sections": {
+      "eyebrow": "Sections",
+      "title": "Explore the whole sky",
+      "sub": "Every bot section has a richer web counterpart with maps, charts and interactivity.",
+      "issTitle": "ISS & satellites",
+      "issBody": "Where the station is now and when it passes over you.",
+      "skyTitle": "Sky for observer",
+      "skyBody": "Planets, Moon phase, tips for amateur astronomy.",
+      "communityTitle": "Community",
+      "communityBody": "Forum, photo gallery, quizzes and observer rankings."
+    },
+    "skyEvents": {
+      "issTitle": "ISS pass",
+      "issDetail": "Bright pass, max altitude 78°, from NW to SE",
+      "planetTitle": "Saturn at opposition",
+      "planetTime": "all night",
+      "planetDetail": "Best visibility this week, high in the SE",
+      "meteorTitle": "Perseids — activity rising",
+      "meteorTime": "after 01:00",
+      "meteorDetail": "~18 meteors/h, radiant in Perseus",
+      "moonTitle": "Moon at 34% phase",
+      "moonDetail": "Young Moon, won't interfere with faint objects"
+    }
+  },
+  "iss": {
+    "maxAlt": "° max altitude",
+    "brightness": " · brightness {{mag}}",
+    "loadingPos": "Loading ISS position…",
+    "expedition": "Expedition {{n}}",
+    "hero": {
+      "eyebrow": "Live",
+      "title": "ISS & <span class=\"accent\">satellites</span>",
+      "sub": "Track the International Space Station in real time and plan observations of its passes over your city.",
+      "passes": "Passes over Kyiv →",
+      "telegram": "Remind in Telegram ↗"
+    },
+    "map": { "live": "Where the ISS is now", "note": "TLE propagation in the browser — position updates every second." },
+    "coords": "{{lat}} · {{lon}} · altitude {{alt}} km",
+    "s1": { "eyebrow": "Orbital parameters", "title": "The station in numbers" },
+    "card": {
+      "speed": "Speed",
+      "alt": "Altitude",
+      "orbit": "Orbit around Earth",
+      "crew": "Crew on board",
+      "leo": "Low Earth orbit",
+      "orbitFoot": "~15.5 orbits per day",
+      "crewUnit": "people"
+    },
+    "s2": {
+      "eyebrow": "Passes over Kyiv",
+      "title": "Brightest visible passes",
+      "link": "← Sky now",
+      "sub": "Upcoming days. Times are local Kyiv (UTC+3). Brightness by stellar magnitude (smaller number = brighter)."
+    },
+    "col": { "date": "Date", "time": "Time", "duration": "Duration", "maxAlt": "Max altitude", "dir": "Direction", "bright": "Brightness" },
+    "s3": { "eyebrow": "How to observe", "title": "Tips for a pass" },
+    "tips": {
+      "t1_tag": "01 · TIME", "t1_title": "Step out 5 min before the pass", "t1_num": "more →", "t1_body": "Give your eyes 10–15 min to adapt to the dark — you'll see much more.",
+      "t2_tag": "02 · FIND", "t2_title": "Look toward where it appears", "t2_num": "more →", "t2_body": "The ISS looks like a very bright star slowly moving across the sky.",
+      "t3_tag": "03 · SHOT", "t3_title": "Long-exposure photo", "t3_num": "more →", "t3_body": "Smartphone on a tripod, 10–30 s exposure — you'll get a bright streak of the pass."
+    },
+    "crew": {
+      "eyebrow": "Crew",
+      "title": "Astronauts aboard",
+      "sub": "Who is currently working aboard the International Space Station — expedition members grouped by their arrival spacecraft.",
+      "since": "in orbit since {{date}}",
+      "daysInSpace": "{{n}} days in space",
+      "expeditionLink": "Expedition {{n}} page ↗",
+      "totalInSpace": "Total people in space: {{n}}",
+      "loading": "Loading crew…",
+      "unavailable": "Crew roster is unavailable right now. Try refreshing the page.",
+      "unknownCraft": "Astronauts"
+    }
+  },
+  "launches": {
+    "badge": "🚀 Launch calendar",
+    "title": "Rocket launches",
+    "desc": "Track upcoming launches, enable reminders in the bot and watch live streams — all in one place.",
+    "next": "Next launch",
+    "col": { "date": "Date · time", "mission": "Mission", "rocket": "Rocket", "pad": "Pad", "country": "Country", "status": "Status" },
+    "country": { "usa": "USA", "eu": "EU", "nz": "New Zealand", "cn": "China" },
+    "ph": {
+      "pad1": "LC-39A, Kennedy", "pad2": "SLC-40, Canaveral", "pad3": "ELA-4, Kourou",
+      "pad4": "LC-1, Mahia", "pad5": "Xichang",
+      "canaveral40": "Cape Canaveral, SLC-40", "kourou": "Kourou, ELA-4", "mahia": "Mahia, LC-1",
+      "canaveral39a": "Cape Canaveral, LC-39A", "tanegashima": "Tanegashima", "wenchang": "Wenchang",
+      "alos4": "ALOS-4 re-flight", "stationModule": "Station module"
+    },
+    "provider": { "casc": "CASC (China)" },
+    "s1": { "eyebrow": "Schedule", "title": "Upcoming launches" },
+    "s2": { "eyebrow": "2026 so far", "title": "Who launches the most" },
+    "s3": { "eyebrow": "Archive", "title": "Notable recent launches" },
+    "stats": {
+      "byProvider": "Launches by provider", "total": "Overall statistics",
+      "f1": "total launches", "f2": "successful missions", "f3": "stage landings", "f4": "busiest pad"
+    },
+    "archive": {
+      "ok": "✓ Success", "partial": "⚠ Partial failure",
+      "a1title": "Starship — fifth orbital test flight", "a1desc": "First full landing of both stages within a single mission.",
+      "a2title": "Ariane 6 — first commercial commsat launch", "a2desc": "Confirming the rocket is ready for regular commercial missions.",
+      "a3title": "Electron — payload lost on second stage", "a3desc": "Rocket Lab opened an investigation; upcoming launches temporarily paused."
+    }
+  },
+  "meteors": {
+    "hero": {
+      "eyebrow": "Meteor shower calendar",
+      "title": "Meteor shower <span class=\"accent\">over your head</span>",
+      "sub": "The year's most active meteor showers — peak dates, expected zenithal hourly rate (ZHR), radiant and best observing time. Active showers are highlighted live.",
+      "calendar": "Shower calendar →",
+      "tips": "How to observe"
+    },
+    "s1": { "eyebrow": "Full list", "title": "Showers of this and next season", "sub": "Showers are sorted by proximity to peak. ZHR is the zenithal hourly rate: how many meteors an ideal observer would see per hour under a clear, dark sky." },
+    "s2": { "eyebrow": "Tips", "title": "How to watch a meteor shower" },
+    "tips": {
+      "t1_tag": "01 · RADIANT", "t1_title": "Look a bit off the radiant", "t1_body": "Meteors are visible across the whole sky, but near the radiant their “trails” are shortest — better to look 30–60° away from it.",
+      "t2_tag": "02 · DARKNESS", "t2_title": "Light-polluted sky is the enemy", "t2_body": "Get 20–30 km out of the city. Faint meteors vanish in light pollution first.",
+      "t3_tag": "03 · MOON", "t3_title": "Check the Moon phase", "t3_body": "New Moon is ideal. A full Moon “washes out” everything but the brightest fireballs. The “For observer” page shows the phase.",
+      "t4_tag": "04 · PATIENCE", "t4_title": "Put the phone away and wait", "t4_body": "Eyes need 20 minutes to adapt. Lie back in a chair, grab a blanket and count for at least an hour — ZHR is an estimate."
+    },
+    "card": {
+      "activity": "Activity (ZHR)",
+      "zhrHigh": "High",
+      "zhrMid": "Medium",
+      "zhrLow": "Low",
+      "perHour": "meteors per hour",
+      "radiant": "Radiant",
+      "bestTime": "Best time",
+      "from": "from {{start}}",
+      "to": "to {{end}}"
+    }
+  },
+  "events": {
+    "hero": {
+      "eyebrow": "Eclipses · conjunctions · supermoon",
+      "title": "Astronomical <span class=\"accent\">events</span>",
+      "sub": "A calendar of eclipses, planetary conjunctions, supermoons and retrograde motions — a year ahead. Plus a concise digest of this week's events: what you can already see tonight.",
+      "next": "Next eclipse →",
+      "weekly": "This week"
+    },
+    "next": {
+      "label": "Eclipse",
+      "title": "Next eclipse",
+      "fallback": "No eclipses expected in the coming year.",
+      "visibility": "Visibility:"
+    },
+    "what": {
+      "title": "What is an eclipse?",
+      "body": "A solar eclipse occurs when the Moon covers the Sun; a lunar eclipse when Earth casts its shadow on the Moon. A total solar eclipse is one of the most awe-inspiring celestial sights, but it is only visible from a narrow strip on Earth."
+    },
+    "s1": { "eyebrow": "Through the year", "title": "Eclipses and planetary conjunctions", "sub": "Events of the coming year — eclipses (solar and lunar) and planetary conjunctions, when two bodies appear close together in the sky." },
+    "eclipses": "🌑 Eclipses",
+    "conjunctions": "✨ Planetary conjunctions",
+    "conjunctionSep": "angular separation {{sep}}",
+    "s2": { "eyebrow": "This week", "title": "Events of the next 7 days", "sub": "Digest: meteor-shower peaks, Moon phases (including supermoon), conjunctions, eclipses and planetary retrograde motions over the next seven days — computed with skyfield ephemerides." },
+    "weekly": "Upcoming events",
+    "supermoon": "Supermoon & retrogrades",
+    "supermoonTitle": "Supermoon",
+    "supermoonBody": " — a full Moon near perigee (closest to Earth), appears 14% larger and brighter.",
+    "retroTitle": "Retrograde motion",
+    "retroBody": " — a planet appears to move “backward” among the stars: an optical effect of Earth overtaking it in its orbit."
+  },
+  "asteroids": {
+    "hero": {
+      "eyebrow": "Near-Earth objects · updated just now",
+      "title": "Asteroids approaching <span class=\"accent\">Earth</span>",
+      "sub": "Upcoming asteroid close approaches with Earth. Distance is shown in “lunar” units (LD) — distances to the Moon."
+    },
+    "stats": { "approaches": "upcoming approaches", "hazardous": "potentially hazardous" },
+    "legend": { "safe": "Safe", "hazard": "Potentially hazardous", "moon": "Moon's orbit (1 LD)" },
+    "s1": { "eyebrow": "Details", "title": "Each object up close" },
+    "ph": {
+      "approach": "Approach {{date}}",
+      "d1": "Jul 6", "d2": "Jul 8", "d3": "Jul 11", "d4": "Jul 14", "d5": "Jul 17", "d6": "Jul 21"
+    },
+    "card": {
+      "danger": "Hazardous",
+      "safe": "Safe",
+      "diameter": "Diameter",
+      "distance": "Distance",
+      "velocity": "Velocity",
+      "earth": "Earth",
+      "moon": "Moon (1 LD)",
+      "diameterVal": "{{min}}–{{max}} m"
+    },
+    "orbit": { "moon": "Moon", "earth": "Earth" }
+  },
+  "comets": {
+    "hero": {
+      "eyebrow": "Near-Sun wanderers · updated just now",
+      "title": "Icy wanderers<br />from the <span class=\"accent\">edges of the system</span>",
+      "sub": "Where comets are now on their orbit, when perihelion arrives and how bright they can be seen from Earth.",
+      "liveBadge": "Brightest right now"
+    },
+    "prefix": "Comet",
+    "fallbackName": "Comet C/2025 R4 (Boryova)",
+    "fallbackType": "Long-period · in Auriga · 4.8m",
+    "inConstellation": "in {{name}}",
+    "toSun": "To the Sun",
+    "toEarth": "To Earth",
+    "toPerihelion": "To perihelion",
+    "daysUnit": "days",
+    "coordsFallback": "{{sun}} AU to the Sun · {{earth}} AU to Earth · perihelion in {{peri}} days",
+    "s1": { "eyebrow": "Forecast", "title": "Brightness curve" },
+    "brightnessNote": "Weeks before/after perihelion · lower on the chart = brighter",
+    "readChart": "How to read the chart",
+    "readBody": "The magnitude drops closer to perihelion — the comet is brightest when closest to the Sun, then gradually fades as it moves away.",
+    "now": "Now",
+    "peak": "Peak (perihelion)",
+    "trend": "Trend",
+    "s2": { "eyebrow": "Catalog", "title": "Other comets in view" },
+    "col": { "comet": "Comet", "type": "Type", "mag": "Magnitude", "constellation": "Constellation", "bestTime": "Best time", "visibility": "Visibility" },
+    "ph": {
+      "type1": "Long-period", "type2": "Periodic, 14.9 yr", "type3": "Periodic, 6.5 yr",
+      "const1": "Auriga", "const2": "Sagittarius", "const3": "Cassiopeia", "const4": "Libra",
+      "vis1": "Naked eye", "vis2": "Telescope needed", "vis3": "Binoculars/telescope", "vis4": "Large telescope only"
+    },
+    "s3": { "eyebrow": "Famous comets", "title": "Those remembered for long" },
+    "famous": {
+      "f1_tag": "Period 76 years", "f1_title": "1P/Halley", "f1_num": "next time — 2061", "f1_body": "The most famous periodic comet in history; last seen in 1986.",
+      "f2_tag": "Period ~2,533 years", "f2_title": "Hale-Bopp (C/1995 O1)", "f2_num": "seen 1996–1997", "f2_body": "Visible to the naked eye for 18 consecutive months — a record among recent comets.",
+      "f3_tag": "Period ~6,800 years", "f3_title": "NEOWISE (C/2020 F3)", "f3_num": "seen 2020", "f3_body": "The brightest comet for the Northern Hemisphere in 23 years, visible even from cities."
+    },
+    "s4": { "eyebrow": "Tip", "title": "How to observe a comet" },
+    "howto": {
+      "h1_title": "Find a dark sky", "h1_num": "Bortle 3 and darker", "h1_body": "Even a bright comet is lost in city light pollution — get out of town or to a park far from streetlights.",
+      "h2_title": "Bring binoculars", "h2_num": "wide field of view", "h2_body": "The tail and coma open up better in 7×50 or 10×50 binoculars than in the narrow field of a telescope.",
+      "h3_title": "Mind the Moon phase", "h3_num": "see phase on /sky", "h3_body": "A bright Moon washes out a faint comet tail — pick days near new Moon."
+    },
+    "chart": { "now": "now", "weeksShort": "w", "earth": "Earth", "earthAu": "Earth · 1 AU" }
+  },
+  "deep": {
+    "hero": {
+      "eyebrow": "Beyond orbit",
+      "title": "Deep <span class=\"accent\">space</span>",
+      "sub": "Things beyond daily ISS passes: space debris around Earth, the most powerful explosions in the Universe — gamma-ray bursts, and the farthest human-made probes, Voyager, flying into interstellar space.",
+      "debris": "Space debris →",
+      "grb": "Gamma-ray bursts"
+    },
+    "s1": { "eyebrow": "Debris in orbit", "title": "Space debris", "link": "ESA Space Environment →", "sub": "Everything orbiting Earth that is uncontrolled: spent upper stages, dead satellites, collision fragments. Even a 1-cm fragment at orbital velocity hits like a shell." },
+    "debris": {
+      "tracked": "Tracked (>10 cm)",
+      "cm1": "≥ 1 cm (est.)",
+      "cm01": "≥ 1 mm (est.)",
+      "mass": "Mass in orbit",
+      "tons": "t",
+      "breakups": "Recorded breakups",
+      "breakupsFoot": "explosions and collisions in orbit",
+      "why": "Why it matters",
+      "whyBody": "Debris breeds more debris: collisions cascade fragments (Kessler syndrome), threatening comms and navigation satellites.",
+      "data": "Data",
+      "dataBody": "Statistics from the ESA Space Environment Report {{year}}. Updated yearly.",
+      "source": "ESA source ↗"
+    },
+    "s2": { "eyebrow": "Most powerful explosions", "title": "Gamma-ray bursts (GRB)", "link": "GCN archive →", "sub": "Gamma-ray bursts are the most energetic explosions in the Universe since the Big Bang: collapse of a massive star or merger of neutron stars. NASA GCN sends circulars to observers within minutes of an event." },
+    "grb": {
+      "fresh": "Fresh GCN circulars",
+      "loading": "Loading…",
+      "empty": "No fresh bursts found.",
+      "what": "What is this?",
+      "whatBody1": "A GRB lasts from milliseconds to hundreds of seconds. In a few seconds it emits more energy than the Sun in a billion years. Light from the farthest GRBs takes billions of years to reach us.",
+      "whatBody2": "GCN (Gamma-ray Coordinates Network) relays the burst's coordinates to telescopes worldwide for rapid follow-up of the “afterglow”.",
+      "link": "GCN Circular ↗"
+    },
+    "s3": { "eyebrow": "Beyond the Solar System", "title": "Voyager 1 & 2", "link": "Voyager page →" },
+    "v1": { "title": "Voyager 1 — the farthest human-made object", "body": "Launched in 1977. The first probe in interstellar space (2017). Carries the “Golden Record” with a message for aliens.", "link": "Current distance →" },
+    "v2": { "title": "Voyager 2 — the only probe to visit all ice giants", "body": "Flew past Jupiter, Saturn, Uranus and Neptune. Also in interstellar space (2018). Its signal takes over 18 hours to reach Earth.", "link": "Current distance →" }
+  },
+  "voyager": {
+    "hero": {
+      "eyebrow": "49 years in flight · beyond the Solar System",
+      "title": "The path taken by<br /><span class=\"accent\">Voyager 1 and 2</span>",
+      "sub": "Two spacecraft launched in the summer of 1977 became the farthest human-made objects in history. Both have left the heliosphere and are flying through interstellar space, moving tens of kilometers farther every second.",
+      "timeline": "Mission timeline ↓",
+      "compare": "Compare the probes"
+    },
+    "legend": {
+      "v1": "Voyager 1 — course north of the ecliptic",
+      "v2": "Voyager 2 — course south of the ecliptic",
+      "helio": "Heliopause — the limit of the Sun's influence"
+    },
+    "s1": { "eyebrow": "Live · estimate for mid-2026", "title": "Where they are now" },
+    "cards": {
+      "v1": "Voyager 1",
+      "v2": "Voyager 2",
+      "speedV1": "Speed V1",
+      "speedV2": "Speed V2",
+      "lightHours": "≈ {{n}} h of light travel to Earth",
+      "auPerYear": "Receding by ≈ {{n}} AU per year"
+    },
+    "compare": { "col": "Parameter", "v1": "Voyager 1", "v2": "Voyager 2" },
+    "row": {
+      "launch": "Launch date",
+      "distance": "Current distance",
+      "helio": "Heliopause crossing",
+      "planets": "Planets visited",
+      "dir": "Direction from ecliptic",
+      "signal": "Signal time to Earth",
+      "instruments": "Active instruments",
+      "launchV1": "September 5, 1977",
+      "launchV2": "August 20, 1977",
+      "north": "northward",
+      "south": "southward",
+      "planetsV1": "Jupiter, Saturn",
+      "planetsV2": "Jupiter, Saturn, Uranus, Neptune",
+      "instrumentsV": "4 of 10",
+      "signalV": "≈ {{n}} h"
+    },
+    "s2": { "eyebrow": "Timeline", "title": "Key milestones of the journey" },
+    "tl": {
+      "t1_tag": "20.08.1977 · 05.09.1977", "t1_title": "Launch from Cape Canaveral", "t1_num": "point of departure", "t1_body": "Voyager 2 launched first but on a slower trajectory — Voyager 1 caught up and overtook it before Jupiter.",
+      "t2_tag": "1979", "t2_title": "Jupiter flyby", "t2_num": "gravity assist", "t2_body": "Both probes discovered active volcanoes on Io and a thin ring around Jupiter.",
+      "t3_tag": "1980–1981", "t3_title": "Saturn flyby", "t3_num": "routes diverge", "t3_body": "Detailed images of the ring system; after this the probes' paths parted for good.",
+      "t4_tag": "1986 · 1989", "t4_title": "Uranus and Neptune (Voyager 2 only)", "t4_num": "unique data", "t4_body": "The only close-up images of these planets in history — Voyager 1 took the northern route and visited neither.",
+      "t5_tag": "25.08.2012 · 05.11.2018", "t5_title": "Heliopause crossing", "t5_num": "edge of the Solar System", "t5_body": "Instruments recorded a sharp drop in solar-wind pressure — both probes officially entered interstellar space.",
+      "t6_tag": "2026", "t6_title": "Farther than anything humanity has ever built", "t6_num": "ongoing", "t6_body": "Both probes keep transmitting data about the interstellar medium, cosmic rays and magnetic fields."
+    },
+    "s3": { "eyebrow": "Probe vs probe", "title": "Voyager 1 and Voyager 2" },
+    "s4": { "eyebrow": "Power source", "title": "How much longer they'll last" },
+    "rtg": {
+      "v1": "Voyager 1 · RTG power",
+      "v1Body": "Power drops by about 4 W per year. At current estimates, the last science instruments will have to be shut down around 2025–2027, after which the probe will continue flying silently.",
+      "v2": "Voyager 2 · RTG power",
+      "v2Body": "NASA engineers have already turned off some heater systems to keep the science instruments running a few more years beyond the original plan."
+    },
+    "s5": { "eyebrow": "On board", "title": "Golden Record" },
+    "gold": {
+      "tag": "Voyager Golden Record",
+      "title": "A message for anyone who finds them",
+      "num": "built to last billions of years",
+      "body": "Each probe carries a gold-plated copper record with sounds of Earth, music from many cultures and greetings in 55 languages — including Ukrainian."
+    },
+    "orbitMap": {
+      "start": "Launch",
+      "jupiter": "Jupiter",
+      "saturn": "Saturn",
+      "uranus": "Uranus",
+      "neptune": "Neptune",
+      "helio": "Heliopause",
+      "nowAu": "Now · {{au}} AU",
+      "helioLabel": "HELIOPAUSE · edge of the Solar System",
+      "hint": "Click a milestone dot to learn more",
+      "probe": { "v1": "Voyager 1", "v2": "Voyager 2" },
+      "milestones": {
+        "start": "Voyager 2 launched Aug 20, 1977 — 16 days before Voyager 1 (Sep 5, 1977), but on a slower trajectory.",
+        "v1_jupiter": "Jupiter flyby in March 1979 — first close-ups of the Great Red Spot and the planet's rings.",
+        "v1_saturn": "Saturn flyby in November 1980 — studied the rings and the moon Titan.",
+        "v1_helio": "Aug 25, 2012: Voyager 1 became the first craft to cross the heliopause, the solar wind's edge.",
+        "v1_now": "The farthest human-made object — over 166 AU from the Sun, in interstellar space.",
+        "v2_jupiter": "Jupiter flyby in July 1979 — discovered active volcanoes on the moon Io.",
+        "v2_saturn": "Saturn flyby in August 1981 — trajectory bent onward toward Uranus.",
+        "v2_uranus": "Uranus flyby in January 1986 — the only close-up images of the planet in history.",
+        "v2_neptune": "Neptune flyby in August 1989 — the final planetary encounter, then heading south.",
+        "v2_helio": "Nov 5, 2018: Voyager 2 crossed the heliopause, second after Voyager 1.",
+        "v2_now": "Over 139 AU from the Sun, sending interstellar data from the southern direction."
+      }
+    }
+  },
+  "rtl": {
+    "hero": {
+      "eyebrow": "Amateur radio astronomy",
+      "title": "RTL-SDR as a real<br /><span class=\"accent\">scientific instrument</span>",
+      "sub": "For a cheap USB receiver and a simple antenna you can do real science — from receiving Jupiter's radio emission to counting meteors by radio reflection. The data you collect is used by professional observation networks too."
+    },
+    "s1": { "eyebrow": "18–28 MHz · decametric band", "title": "Jupiter radio bursts", "sub": "Jupiter is a powerful source of natural radio emission. The interaction of its magnetosphere with the moon Io creates short pulses (S-bursts) and longer “drifting” bursts (L-bursts) you can hear and see on an ordinary SDR receiver with a simple antenna — no telescope needed." },
+    "spectroCaption": "Example waterfall of Jupiter reception, 18–28 MHz",
+    "spectro": { "sBurst": "S-bursts", "lBurst": "L-burst (drift)" },
+    "cards": {
+      "range": "Reception range",
+      "rangeFoot": "Decametric radio bursts (DAM)",
+      "bestTime": "Best time",
+      "bestTimeVal": "Io phase",
+      "bestTimeFoot": "Activity is tied to the position of the moon Io in its orbit",
+      "network": "Observation network",
+      "networkVal": "RadioJOVE",
+      "networkFoot": "A NASA project where amateurs submit their data"
+    },
+    "sBurst": { "title": "S-bursts", "body": "Very short pulses (milliseconds) that sound like crackling or “popcorn pops”. They arrive in bursts during active Io passes past specific magnetic field lines of Jupiter." },
+    "lBurst": { "title": "L-bursts", "body": "Last from seconds to a few minutes, with a slight frequency drift — they sound like surf or wind noise that rises and falls." },
+    "s2": { "eyebrow": "Forward-scatter · meteor radar", "title": "Meteor radio monitoring", "sub": "When a meteor burns up in the atmosphere it leaves a brief ionized trail that can reflect signals from distant transmitters — TV towers, radars or even foreign FM stations. An RTL-SDR pointed at such a distant signal (one normally not received directly due to Earth's curvature) registers short “pings” each time a meteor flies between transmitter and receiver." },
+    "pingCaption": "Example recording: quiet background and five reflected “ping” signals from meteors",
+    "metCards": {
+      "range": "Reception range",
+      "rangeFoot": "VHF: distant FM/TV stations, GRAVES radars",
+      "measure": "What we measure",
+      "measureVal": "Count and duration",
+      "measureFoot": "Pings per hour — the basis of your own activity statistics",
+      "use": "Application",
+      "useVal": "24/7",
+      "useFoot": "Works during the day and in cloudy weather — unlike visual observing"
+    },
+    "showerTitle": "Radio statistics vs visual observations",
+    "showerNum": "weather-independent",
+    "showerBody": "The number of recorded radio pings correlates well with a shower's peak — you can plot your own activity chart even under a cloudy sky.",
+    "showerDefault": "Perseids · peak Aug 12–13",
+    "s3": { "eyebrow": "Equipment", "title": "What you need to start" },
+    "gear": {
+      "g1": "RTL-SDR V3/V4", "p1": "A receiver with direct sampling for the HF band — that's what lets it receive Jupiter's 18–28 MHz without an extra converter.",
+      "g2": "Jupiter antenna", "p2": "A simple dipole or a magnetic loop antenna tuned to 20 MHz — even a basic build gives acceptable reception.",
+      "g3": "Meteor antenna", "p3": "A directional antenna (Yagi) for your chosen distant transmitter significantly increases the number of recorded pings compared to a simple dipole.",
+      "g4": "Software", "p4": "SDR# or GNU Radio for reception and recording; dedicated RadioJOVE software for analyzing and submitting Jupiter observations to the NASA network.",
+      "g5": "Installation site", "p5": "Far from electrical noise sources (power supplies, Wi-Fi routers) — industrial interference often masks faint natural signals."
+    },
+    "s4": { "eyebrow": "Community", "title": "You're not alone in this" },
+    "communityTag": "Forum · Radio astronomy",
+    "communityTitle": "Discussing antennas, settings and reception results",
+    "communityNum": "156 topics",
+    "communityBody": "NEOwatch members share Jupiter spectrograms, compare meteor ping statistics and help with first SDR setup.",
+    "forum": "Go to forum ↗",
+    "bot": "Questions in the bot"
+  },
+  "community": {
+    "hero": {
+      "eyebrow": "4,218 observers",
+      "title": "The sky is more interesting<br />when you look <span class=\"accent\">not alone</span>",
+      "sub": "Forum, photo gallery, joint observations and personal diaries — a space for everyone who looks up. Join via Telegram in one click.",
+      "login": "Log in via Telegram ↗",
+      "browse": "Browse the forum"
+    },
+    "s1": { "eyebrow": "Forum", "title": "Community categories", "link": "All topics →" },
+    "cats": {
+      "c1_h": "Observations", "c1_p": "What you saw tonight, planning tips", "c1_n": "1,204",
+      "c2_h": "Equipment", "c2_p": "Telescopes, binoculars, cameras — choice and maintenance", "c2_n": "842",
+      "c3_h": "Astrophotography", "c3_p": "Image processing, settings, photo breakdown", "c3_n": "967",
+      "c4_h": "Spaceflight news", "c4_p": "Discussion of launches, missions, discoveries", "c4_n": "1,511",
+      "c5_h": "Beginner help", "c5_p": "First steps in amateur astronomy", "c5_n": "693",
+      "c6_h": "Regional chapters", "c6_p": "Find observers in your city", "c6_n": "218"
+    },
+    "units": { "themes": "topics", "themesFew": "topics" },
+    "last": { "min": "{{n}} min ago", "hr": "{{n}} h ago" },
+    "s2": { "eyebrow": "Photo of the week", "title": "Community photo gallery", "link": "Add your photo →" },
+    "photos": {
+      "p1_t": "Perseid over the Carpathians", "p1_a": "@olena_sky · Ivano-Frankivsk",
+      "p2_t": "Moon through clouds", "p2_a": "@max_orbit · Lviv",
+      "p3_t": "Saturn in an 8\" Dobson", "p3_a": "@astro_taras · Odesa",
+      "p4_t": "Aurora, a rarity for Sumy", "p4_a": "@nichna_varta · Sumy"
+    },
+    "s3": { "eyebrow": "Weekly quiz", "title": "Leaderboard", "link": "Take the quiz →" },
+    "lb": { "pts": "{{n}} points" },
+    "quiz": {
+      "qTitle": "Question of the week",
+      "q": "Which planet in the Solar System has the shortest day?",
+      "opt1": "Jupiter", "opt2": "Saturn", "opt3": "Neptune"
+    },
+    "s4": { "eyebrow": "Observation diaries", "title": "What was seen this night", "link": "Start your own diary →" },
+    "diaries": {
+      "d1_user": "olena_sky · Ivano-Frankivsk", "d1_when": "today, 23:41",
+      "d1_text": "Caught 6 Perseid meteors in an hour, though the peak isn't here yet. Sky 4 out of 5, slight light pollution from the city. Jupiter is especially sharp today in the 8\" Dobson — all four Galilean moons visible.",
+      "d2_user": "nichna_varta · Sumy", "d2_when": "yesterday, 22:05",
+      "d2_text": "The ISS passed exactly as the bot predicted — appeared in the southwest, duration 4 min. Managed to film it on my phone, got a bright streak on a long-exposure shot."
+    },
+    "s5": { "eyebrow": "NEOwatch Meetups", "title": "Local observer groups" },
+    "meetups": {
+      "m1_tag": "12.08 · 22:00", "m1_h": "Perseid peak observing, T. Shevchenko park", "m1_p": "Sumy · 14 participants registered · bring a blanket and a thermos", "m1_num": "join →",
+      "m2_tag": "21.07 · 00:30", "m2_h": "Joint viewing of the partial eclipse", "m2_p": "Lviv, Lychakivskyi park · 9 participants", "m2_num": "join →"
+    }
+  },
+  "satellites": {
+    "hero": {
+      "eyebrow": "Live · TLE propagation",
+      "title": "Satellites <span class=\"accent\">live</span>",
+      "sub": "Thousands of objects in orbit — Starlink, ISS, bright and weather satellites — move on the map in real time. Click a marker to learn the object's altitude, velocity and coordinates.",
+      "map": "Open the map →",
+      "iss": "← ISS only"
+    },
+    "loading": "Loading groups…",
+    "onMap": "On the map: {{n}} objects",
+    "s1_sub": "Positions are calculated right in the browser from orbital elements (TLE, Celestrak) — with no per-frame API calls. Click markers for details. Data updates every second.",
+    "s2": { "eyebrow": "How it works", "title": "Orbit propagation" },
+    "cards": {
+      "tle": "TLE elements",
+      "tleBody": "The server fetches two-line orbital elements from Celestrak and serves them to the browser via /api/tle.",
+      "sgp4": "SGP4 in the browser",
+      "sgp4Body": "The satellite.js library computes each satellite's position for the current moment using the SGP4 model.",
+      "realtime": "Real time",
+      "realtimeBody": "Every second markers move to new coordinates — with no server calls. Click for altitude, velocity and coordinates."
+    }
+  },
+  "notFound": {
+    "eyebrow": "Signal lost",
+    "code": "404",
+    "title": "Lost in space",
+    "body": "This page doesn't exist in our galaxy. Perhaps a black hole swallowed it, or you simply drifted off course.",
+    "home": "Return to Earth",
+    "back": "Back"
+  }
+}

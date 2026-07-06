@@ -132,6 +132,10 @@ chown -R neowatch:neowatch /opt/neowatch/data
 
 ## 8. Автозапуск через systemd
 
+Сайт і бот тепер живуть в одному процесі (FastAPI + uvicorn піднімає і
+Telegram-бота, і веб-дашборд через один event-loop). Раніше `ExecStart` був
+`python bot.py` — заміни його на uvicorn, як нижче.
+
 ```bash
 sudo nano /etc/systemd/system/neowatch.service
 ```
@@ -139,7 +143,7 @@ sudo nano /etc/systemd/system/neowatch.service
 Встав:
 ```ini
 [Unit]
-Description=NEOwatch Telegram Bot
+Description=NEOwatch (Telegram bot + website)
 After=network.target mysql.service
 
 [Service]
@@ -147,7 +151,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/neowatch
 Environment="PATH=/opt/neowatch/venv/bin"
-ExecStart=/opt/neowatch/venv/bin/python /opt/neowatch/bot.py
+ExecStart=/opt/neowatch/venv/bin/python -m uvicorn web.app:app --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -163,6 +167,10 @@ sudo systemctl daemon-reload
 sudo systemctl enable neowatch
 sudo systemctl start neowatch
 ```
+
+Сайт буде доступний на `http://<server>:8000/`, API — на `/api/*`.
+Щоб пускати лише бота без сайту (як раніше), можна окремо запускати
+`python bot.py` — але тоді веб-дашборд працювати не буде.
 
 ## 9. Перевірка
 
