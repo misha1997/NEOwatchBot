@@ -1,7 +1,7 @@
 // Sticky site header: logo, grouped nav (single links + dropdown groups),
 // language switcher, CTA button, and a mobile burger that toggles the dropdown
 // panel. (index.html header.site, reworked into compact grouped submenus.)
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { NAV_GROUPS, BOT_URL } from "../../lib/constants";
@@ -18,6 +18,24 @@ export default function Header() {
   const groupActive = (items) => items.some((l) => pathname === l.to || pathname.startsWith(l.to + "/"));
 
   const closeMobile = () => { setOpen(false); setOpenGroup(null); };
+
+  // Close the mobile menu on route change.
+  useEffect(() => { closeMobile(); }, [pathname]);
+
+  // Close on Escape and on any click outside the header while the burger
+  // panel is open. The burger button stops propagation on its own click, and
+  // link taps inside the panel close via the nav onClick below.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => { if (e.key === "Escape") closeMobile(); };
+    const onDocClick = (e) => { if (!e.target.closest("header.site")) closeMobile(); };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("click", onDocClick);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("click", onDocClick);
+    };
+  }, [open]);
 
   const LangBtn = ({ code }) => (
     <button
@@ -79,8 +97,10 @@ export default function Header() {
           </span>
           <a href={BOT_URL} className="cta-btn" target="_blank" rel="noreferrer">{t("header.openBot")}</a>
         </nav>
-        <button className="burger" aria-label={t("header.menu")} aria-expanded={open}
-          onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); setOpenGroup(null); }}>☰</button>
+        <button className={"burger" + (open ? " open" : "")} aria-label={t("header.menu")} aria-expanded={open}
+          onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); setOpenGroup(null); }}>
+          <span></span><span></span><span></span>
+        </button>
       </div>
     </header>
   );

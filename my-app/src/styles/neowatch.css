@@ -258,12 +258,44 @@ nav.links a.active {
 
 .burger {
   display: none;
+  width: 40px;
+  height: 40px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
   background: none;
   border: 0;
-  color: var(--text);
-  font-size: 22px;
   cursor: pointer;
-  padding: 4px
+  padding: 0;
+  border-radius: 9px;
+  transition: background .2s
+}
+
+.burger:hover {
+  background: rgba(237, 238, 245, .05)
+}
+
+.burger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: transform .25s cubic-bezier(.4, 0, .2, 1), opacity .2s ease
+}
+
+.burger.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg)
+}
+
+.burger.open span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0)
+}
+
+.burger.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg)
 }
 
 /* Language switcher — animated sliding thumb. The track carries a gold
@@ -1779,27 +1811,53 @@ footer a:hover {
 }
 
 @media(max-width:1000px) {
-  .burger {
-    display: block
+  /* Mobile gutter shared by .wrap and the burger panel negation, so the
+     dropdown can break out to the screen edges while page content stays
+     inset. Falls back to 0 above this breakpoint (var undefined → padding
+     reverts to 0), so desktop is unaffected. */
+  :root { --gut: 18px }
+
+  .wrap {
+    padding-left: var(--gut);
+    padding-right: var(--gut)
   }
 
+  .burger {
+    display: flex
+  }
+
+  /* The panel is absolutely anchored to .nav; negative left/right equal to
+     the gutter push it out to the header edges for a full-bleed mobile menu.
+     Animated via opacity/transform (display:none can't transition). */
   nav.links {
-    display: none;
     position: absolute;
     top: 100%;
-    right: 0;
-    left: 0;
+    left: calc(-1 * var(--gut));
+    right: calc(-1 * var(--gut));
     flex-direction: column;
     align-items: stretch;
     gap: 2px;
-    padding: 10px 16px 14px;
+    padding: 12px var(--gut) 16px;
     background: var(--panel-solid, #12142a);
     border-bottom: 1px solid var(--border);
-    box-shadow: 0 18px 40px rgba(0, 0, 0, .4);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .45);
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s
   }
 
   nav.links.open {
-    display: flex
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    pointer-events: auto;
+    transition: opacity .18s ease, transform .18s ease, visibility 0s
   }
 
   nav.links a {
@@ -1809,12 +1867,13 @@ footer a:hover {
   }
 
   nav.links a.cta-btn {
-    margin: 6px 0 0;
+    margin: 8px 0 0;
     text-align: center
   }
 
   .lang-switch {
-    margin: 8px 0 0
+    margin: 10px 0 0;
+    align-self: flex-start
   }
 
   .nav {
@@ -3516,10 +3575,10 @@ h1.page-title {
    so equal-specificity rules win the cascade over earlier blocks.
    ============================================================ */
 
-/* Tablets and below — add a page gutter and shrink the big spacing. */
+/* Tablets and below — add a page gutter and shrink the big spacing.
+   (The gutter itself is set via --gut in the <=1000px burger block above so
+   the dropdown panel can negate it to reach the screen edges.) */
 @media (max-width: 900px) {
-  .wrap { padding-left: 18px; padding-right: 18px }
-
   .hero { padding: 44px 0 30px }
   .section { padding: 38px 0 }
   .page-head { padding: 38px 0 6px }
@@ -3560,7 +3619,7 @@ h1.page-title {
 
 /* Phones — tighter gutters, smaller type, single-column footer. */
 @media (max-width: 560px) {
-  .wrap { padding-left: 15px; padding-right: 15px }
+  :root { --gut: 15px }
 
   .hero { padding: 34px 0 22px }
   .section { padding: 28px 0 }
