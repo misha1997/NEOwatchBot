@@ -38,7 +38,7 @@ export function MarsWeatherView({ d }) {
     ? d.northern_season : (ok ? (d.season || "") : "");
 
   return (
-    <div className="grid cols-2" style={{ gridTemplateColumns: "1fr 1fr" }}>
+    <div className="grid cols-2">
       <div className="card" id="mars-card">
         {!ok ? (
           <>
@@ -56,7 +56,7 @@ export function MarsWeatherView({ d }) {
               </div>
               {season && <span className="pill coral" style={{ textTransform: "capitalize" }}>{season}</span>}
             </div>
-            <div className="grid cols-3" style={{ marginTop: 16 }}>
+            <div className="grid cols-3 mars-temps" style={{ marginTop: 16 }}>
               <MarsTemp label={t("weather.mars.avg")} val={d.temp_avg} t={t} />
               <MarsTemp label={t("weather.mars.min")} val={d.temp_min} t={t} />
               <MarsTemp label={t("weather.mars.max")} val={d.temp_max} t={t} />

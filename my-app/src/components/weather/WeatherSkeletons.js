@@ -92,5 +92,5 @@ export function MarsSkeleton() {
       <Sk className="sk-line" />
     </div>
   );
-  return <div className="grid cols-2" style={{ gridTemplateColumns: "1fr 1fr" }}>{card}{card}</div>;
+  return <div className="grid cols-2">{card}{card}</div>;
 }

@@ -1470,6 +1470,81 @@ table.data tr:hover td {
   margin: 0 auto
 }
 
+/* Aurora forecast block: a rich info card beside the OVATION map so the
+   column isn't empty on desktop. The card is a flex column and the tip line
+   uses margin-top:auto, so it anchors to the bottom and fills whatever height
+   the card stretches to next to the map. The map column is slightly wider so
+   the aurora oval reads with more detail. */
+.grid.aurora-grid {
+  align-items: stretch;
+  grid-template-columns: 0.95fr 1.05fr
+}
+
+.aurora-grid .aurora-map-wrap {
+  max-width: 100%
+}
+
+.aurora-grid .aurora-map {
+  max-width: 100%
+}
+
+.aurora-card {
+  display: flex;
+  flex-direction: column
+}
+
+.aurora-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-top: 12px;
+  flex-wrap: wrap
+}
+
+.aurora-head .v {
+  margin-top: 0;
+  font-size: 40px
+}
+
+.aurora-status {
+  color: var(--text-dim);
+  font-size: 13.5px;
+  line-height: 1.4
+}
+
+.aurora-kp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  font-size: 13px
+}
+
+.aurora-kp-row .lbl { color: var(--text-dim) }
+
+.aurora-kp-row .val {
+  font-family: var(--font-mono);
+  font-weight: 500
+}
+
+.aurora-kp-row .val .unit {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-left: 3px
+}
+
+.aurora-facts { margin-top: 6px }
+
+.aurora-tip {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-top: auto;
+  padding-top: 16px;
+  font-style: italic;
+  border-top: 1px solid var(--border)
+}
+
 /* ---------- weather preloader (shimmer skeletons) ---------- */
 .sk {
   position: relative;
@@ -2796,6 +2871,13 @@ h1.page-title {
   font-size: 12.5px
 }
 
+/* Mars temp cards (avg/min/max) stay 3-up even on phones — they're small
+   enough, and the 2+1 wrap from the generic cols-3→2 rule looks unbalanced.
+   Same specificity as .grid.cols-3 but later in source, so it wins. */
+@media (max-width: 560px) {
+  .grid.mars-temps { grid-template-columns: repeat(3, 1fr) }
+}
+
 .dist-bar {
   margin-top: 16px
 }
@@ -3417,6 +3499,32 @@ h1.page-title {
 .meteor-card.active .mc-period-dot {
   background: var(--teal);
   box-shadow: 0 0 10px rgba(79, 209, 197, .6)
+}
+
+/* ---- meteor cards: phone layout ----
+   The grid is 3→2 columns at <=900px; on phones the cards are too dense for
+   two columns, so drop to a single centered column and tighten the card
+   internals (padding, glyph, peak/ZHR sizes). */
+@media (max-width: 600px) {
+  #meteor-grid {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto
+  }
+}
+
+@media (max-width: 560px) {
+  .meteor-card { padding: 16px; border-radius: 14px }
+  .mc-glyph { width: 40px; height: 40px; border-radius: 11px; font-size: 21px }
+  .mc-titles h3 { font-size: 16.5px }
+  .mc-peak { margin-top: 14px; gap: 10px }
+  .mc-date { font-size: 22px }
+  .mc-zhr { margin-top: 14px; padding: 12px 14px }
+  .mc-zhr-num { font-size: 26px; min-width: 42px }
+  .mc-meta { margin-top: 14px; gap: 10px }
+  .mc-desc { font-size: 12.5px; margin-top: 12px; padding-left: 10px }
+  .mc-period { margin-top: 14px }
 }
 
 /* ---- ISS crew section ---- */

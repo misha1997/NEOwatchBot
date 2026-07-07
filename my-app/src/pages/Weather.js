@@ -20,7 +20,7 @@ import Xray from "../components/charts/Xray";
 import { useApi } from "../hooks/useApi";
 import { useLoc } from "../context/LocationContext";
 import { getWeather, getWeatherSeries, getMars } from "../lib/api";
-import { fmtNum } from "../lib/format";
+import { fmtNum, kpColor } from "../lib/format";
 import { auroraStatus } from "../lib/constants";
 
 export default function Weather() {
@@ -37,6 +37,16 @@ export default function Weather() {
   const aur = w && w.aurora;
   const aurPct = aur ? fmtNum(aur.chance_pct, 0) : "—";
   const aurFoot = aur ? auroraStatus(aur.status_key) : "—";
+
+  // Aurora context: current Kp drives the chance, and the 3-day Kp forecast
+  // tells whether to expect aurora soon. Shown in the rich aurora card so the
+  // column beside the OVATION map isn't empty space on desktop.
+  const kp = w && w.kp != null ? w.kp : null;
+  const kpBar = kp != null ? Math.min(100, kp / 9 * 100) : 0;
+  const fc = (w && w.forecast) || {};
+  const fcToday = fc.today != null ? fmtNum(fc.today, 1) : "—";
+  const fcTomorrow = fc.tomorrow != null ? fmtNum(fc.tomorrow, 1) : "—";
+  const locName = loc && loc.label ? loc.label : t("weather.s4.noLoc");
 
   const kpHist = (s && s.kp_history) || [];
   const kpFc = (s && s.kp_forecast) || [];
@@ -139,11 +149,24 @@ export default function Weather() {
           </div>
           <p className="section-sub">{t("weather.s4.sub")}</p>
           {wLoading && !w ? <AuroraSkeleton /> : (
-            <div className="grid cols-2" style={{ alignItems: "center" }}>
-              <div className="card" style={{ textAlign: "center" }}>
-                <div className="k">{t("weather.s4.chance")}</div>
-                <div className="v accent">{aurPct}<span className="unit">%</span></div>
-                <div className="foot">{aurFoot}</div>
+            <div className="grid cols-2 aurora-grid">
+              <div className="card aurora-card">
+                <div className="k">{t("weather.s4.chance")} <span className="dot live" /></div>
+                <div className="aurora-head">
+                  <div className="v accent">{aurPct}<span className="unit">%</span></div>
+                  <div className="aurora-status">{aurFoot}</div>
+                </div>
+                <div className="kp-gauge"><div className="bar" style={{ width: kpBar + "%", background: kp != null ? kpColor(kp) : undefined }} /></div>
+                <div className="aurora-kp-row">
+                  <span className="lbl">{t("weather.card.kp")}</span>
+                  <span className="val">{kp != null ? fmtNum(kp, 1) : "—"}<span className="unit">/9</span></span>
+                </div>
+                <div className="divider" />
+                <div className="aurora-facts">
+                  <div className="dl-row"><span className="lbl">{t("weather.s4.location")}</span><span className="val">{locName}</span></div>
+                  <div className="dl-row"><span className="lbl">{t("weather.s4.forecastKp")}</span><span className="val">{t("weather.s4.today")} {fcToday} · {t("weather.s4.tomorrow")} {fcTomorrow}</span></div>
+                </div>
+                <p className="aurora-tip">{t("weather.s4.tip")}</p>
               </div>
               <div className="aurora-map-wrap">
                 {auroraMap && <img className="aurora-map" src={auroraMap} alt={t("weather.s4.mapAlt")} />}
