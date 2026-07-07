@@ -12,8 +12,8 @@ export default function Footer() {
         <div className="foot-grid">
           <div>
             <div className="logo" style={{ marginBottom: 12 }}>
-              <span className="mark"></span>
-              <span>NEOwatch<small>{t("footer.tagline")}</small></span>
+              <img className="logo-img" src="/web-app-manifest-192x192.png" alt="" aria-hidden="true" />
+              <span>OrbitLight<small>{t("footer.tagline")}</small></span>
             </div>
             <p style={{ color: "var(--text-dim)", fontSize: 13.5, maxWidth: 280 }}>
               {t("footer.intro")}

@@ -61,25 +61,44 @@
     "colDeep": "Deep space",
     "colVoyager": "Voyager",
     "colEvents": "Astronomical events",
-    "copyright": "© 2026 NEOwatch. Data: NASA · NOAA SWPC · ESA · Launch Library 2 · N2YO",
+    "copyright": "© 2026 OrbitLight. Data: NASA · NOAA SWPC · ESA · Launch Library 2 · N2YO",
     "made": "Made for those who look up 🌌"
   },
   "title": {
-    "home": "NEOwatch — sky now",
-    "iss": "ISS live — NEOwatch",
-    "satellites": "Satellites on map — NEOwatch",
-    "weather": "Space weather — NEOwatch",
-    "sky": "Sky for observer — NEOwatch",
-    "meteors": "Meteor showers — NEOwatch",
-    "asteroids": "Asteroids — NEOwatch",
-    "events": "Astronomical events — NEOwatch",
-    "launches": "Rocket launches — NEOwatch",
-    "deep": "Deep space — NEOwatch",
-    "voyager": "Voyager — NEOwatch",
-    "comets": "Comets — NEOwatch",
-    "rtl": "Radio astronomy — NEOwatch",
-    "community": "Community — NEOwatch",
-    "404": "Not found — NEOwatch"
+    "home": "OrbitLight — sky now",
+    "iss": "ISS live — OrbitLight",
+    "satellites": "Satellites on map — OrbitLight",
+    "weather": "Space weather — OrbitLight",
+    "sky": "Sky for observer — OrbitLight",
+    "meteors": "Meteor showers — OrbitLight",
+    "asteroids": "Asteroids — OrbitLight",
+    "events": "Astronomical events — OrbitLight",
+    "launches": "Rocket launches — OrbitLight",
+    "deep": "Deep space — OrbitLight",
+    "voyager": "Voyager — OrbitLight",
+    "comets": "Comets — OrbitLight",
+    "rtl": "Radio astronomy — OrbitLight",
+    "community": "Community — OrbitLight",
+    "404": "Not found — OrbitLight"
+  },
+  "seo": {
+    "desc": {
+      "home": "OrbitLight — sky now: ISS, asteroids, meteors, space weather and rocket launches live.",
+      "iss": "ISS live: ground-track map, visible passes over your city, current crew and expedition.",
+      "satellites": "Satellites on a real-time map: Starlink, ISS, weather and amateur orbits you can track.",
+      "weather": "Space weather live: Kp index, solar wind, Bz, X-ray flux, aurora forecast and OVATION map.",
+      "sky": "Sky for observers: visible planets, Moon phase, meteors and ISS passes for your location.",
+      "meteors": "Meteor showers: calendar, peak dates, ZHR, radiants and best viewing times all year round.",
+      "asteroids": "Asteroids: upcoming Earth close approaches, LD distances, hazardous objects and monitoring.",
+      "events": "Astronomy events: eclipses, conjunctions, Moon phases, retrograde stations — full calendar.",
+      "launches": "Rocket launches: schedule, missions, launch vehicles and livestreams of upcoming flights.",
+      "deep": "Deep space: space debris, gamma-ray bursts, Voyager and the latest news from beyond Earth orbit.",
+      "voyager": "Voyager 1 & 2: current distance, speed and light-time from Earth, updated in real time.",
+      "comets": "Comets: orbits, current positions, upcoming approaches and telescope/naked-eye visibility.",
+      "rtl": "Radio astronomy: meteor pings, Jupiter and solar spectra received on an SDR receiver.",
+      "community": "OrbitLight community: forum, photo gallery, observation diaries and local groups.",
+      "404": "Page not found — return to the OrbitLight home page to see the sky now."
+    }
   },
   "lang": { "name_uk": "Ukrainian", "name_en": "English" },
   "loc": { "default": "Kyiv, Ukraine" },
@@ -643,7 +662,7 @@
     "communityTag": "Forum · Radio astronomy",
     "communityTitle": "Discussing antennas, settings and reception results",
     "communityNum": "156 topics",
-    "communityBody": "NEOwatch members share Jupiter spectrograms, compare meteor ping statistics and help with first SDR setup.",
+    "communityBody": "OrbitLight members share Jupiter spectrograms, compare meteor ping statistics and help with first SDR setup.",
     "forum": "Go to forum ↗",
     "bot": "Questions in the bot"
   },
@@ -687,7 +706,7 @@
       "d2_user": "nichna_varta · Sumy", "d2_when": "yesterday, 22:05",
       "d2_text": "The ISS passed exactly as the bot predicted — appeared in the southwest, duration 4 min. Managed to film it on my phone, got a bright streak on a long-exposure shot."
     },
-    "s5": { "eyebrow": "NEOwatch Meetups", "title": "Local observer groups" },
+    "s5": { "eyebrow": "OrbitLight Meetups", "title": "Local observer groups" },
     "meetups": {
       "m1_tag": "12.08 · 22:00", "m1_h": "Perseid peak observing, T. Shevchenko park", "m1_p": "Sumy · 14 participants registered · bring a blanket and a thermos", "m1_num": "join →",
       "m2_tag": "21.07 · 00:30", "m2_h": "Joint viewing of the partial eclipse", "m2_p": "Lviv, Lychakivskyi park · 9 participants", "m2_num": "join →"

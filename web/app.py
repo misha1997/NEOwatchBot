@@ -22,12 +22,13 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Query
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from database import init_db
 from web.api import router as api_router
+from web.seo import build_robots_txt, build_sitemap_xml, render_html
 
 logger = logging.getLogger(__name__)
 
@@ -146,16 +147,43 @@ if _SPA_STATIC.is_dir():
     app.mount("/static", StaticFiles(directory=_SPA_STATIC), name="react-static")
 
 
+def _spa_html(full_path: str, lang: str) -> HTMLResponse:
+    """Serve the SPA shell with per-route SEO meta injected server-side.
+
+    Crawlers that don't run JavaScript (FB/Twitter/Telegram scrapers, Bing) get
+    a correct, unique <title>/description/canonical/OG/JSON-LD for the requested
+    URL instead of the homepage's. See web/seo.py.
+    """
+    body = render_html(_SPA_INDEX.read_text(encoding="utf-8"), full_path, lang)
+    return HTMLResponse(content=body, headers={"Cache-Control": "public, max-age=300"})
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+async def _sitemap():
+    return Response(build_sitemap_xml(), media_type="application/xml; charset=utf-8",
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/robots.txt", include_in_schema=False)
+async def _robots():
+    return Response(build_robots_txt(), media_type="text/plain; charset=utf-8",
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
 @app.get("/{full_path:path}")
-async def _spa(full_path: str):
-    """Serve a built asset if it exists, else index.html (client route)."""
+async def _spa(full_path: str, lang: str = Query("uk", pattern="uk|en")):
+    """Serve a built asset if it exists, else the SPA shell (client route).
+
+    Route requests (no matching file) get server-injected per-route meta for
+    non-JS crawlers; the client still hydrates and takes over navigation.
+    """
     if full_path:
         target = (REACT_BUILD_DIR / full_path).resolve()
         try:
             target.relative_to(REACT_BUILD_DIR.resolve())
         except ValueError:
-            return FileResponse(_SPA_INDEX)
+            return _spa_html(full_path, lang)
         if target.is_file():
             return FileResponse(target)
-    return FileResponse(_SPA_INDEX)
+    return _spa_html(full_path, lang)
 logger.info("Serving React build from %s", REACT_BUILD_DIR)

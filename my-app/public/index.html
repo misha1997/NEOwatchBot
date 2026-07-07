@@ -2,13 +2,76 @@
 <html lang="uk">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <!-- Always-on meta (route-independent) -->
+    <meta name="keywords" content="OrbitLight, МКС, астероїди, метеори, космічна погода, ракетні запуски, супутники, Starlink, аврора, сузір'я, астрономія" />
+    <meta name="author" content="OrbitLight" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="theme-color" content="#0a0b1a" />
-    <meta name="description" content="NEOwatch — небо зараз: МКС, астероїди, метеори, космічна погода й ракетні запуски наживо." />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <title>NEOwatch — небо зараз</title>
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Icons -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" />
+    <link rel="icon" type="image/png" href="%PUBLIC_URL%/favicon-96x96.png" sizes="96x96" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png" />
+    <link rel="mask-icon" href="%PUBLIC_URL%/favicon.svg" color="#0a0b1a" />
+    <link rel="manifest" href="%PUBLIC_URL%/site.webmanifest" />
+
+    <!-- Per-route SEO head. Default = homepage (dev/fallback). The FastAPI
+         _spa catch-all rewrites this block per requested path + ?lang= so
+         non-JS crawlers see the right title/description/canonical/OG/JSON-LD.
+         Markers are meta tags (not comments) because CRA's production build
+         strips HTML comments. See web/seo.py. -->
+    <meta name="seo-head" content="start" />
+    <title>OrbitLight — небо зараз</title>
+    <meta name="description" content="OrbitLight — небо зараз: МКС, астероїди, метеори, космічна погода й ракетні запуски наживо." />
+    <link rel="canonical" href="https://orbitlight.space/" />
+    <link rel="alternate" hreflang="uk" href="https://orbitlight.space/" />
+    <link rel="alternate" hreflang="en" href="https://orbitlight.space/?lang=en" />
+    <link rel="alternate" hreflang="x-default" href="https://orbitlight.space/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OrbitLight" />
+    <meta property="og:locale" content="uk_UA" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:title" content="OrbitLight — небо зараз" />
+    <meta property="og:description" content="OrbitLight — небо зараз: МКС, астероїди, метеори, космічна погода й ракетні запуски наживо." />
+    <meta property="og:url" content="https://orbitlight.space/" />
+    <meta property="og:image" content="https://orbitlight.space/web-app-manifest-512x512.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="OrbitLight — лого" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="OrbitLight — небо зараз" />
+    <meta name="twitter:description" content="OrbitLight — небо зараз: МКС, астероїди, метеори, космічна погода й ракетні запуски наживо." />
+    <meta name="twitter:image" content="https://orbitlight.space/web-app-manifest-512x512.png" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"OrbitLight — небо зараз","description":"OrbitLight — небо зараз: МКС, астероїди, метеори, космічна погода й ракетні запуски наживо.","url":"https://orbitlight.space/","inLanguage":"uk","isPartOf":{"@type":"WebSite","url":"https://orbitlight.space/","name":"OrbitLight"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"OrbitLight","item":"https://orbitlight.space/"}]}}</script>
+    <meta name="seo-head" content="end" />
+
+    <!-- Always-on structured data: organization + website (sitewide). -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "name": "OrbitLight",
+          "url": "https://orbitlight.space/",
+          "logo": "https://orbitlight.space/web-app-manifest-512x512.png",
+          "sameAs": ["https://t.me/NEOwatchBot"]
+        },
+        {
+          "@type": "WebSite",
+          "name": "OrbitLight",
+          "url": "https://orbitlight.space/",
+          "inLanguage": ["uk", "en"],
+          "publisher": { "@type": "Organization", "name": "OrbitLight" }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <noscript>Потрібно увімкнути JavaScript для роботи цього сайту.</noscript>

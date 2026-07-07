@@ -4,9 +4,12 @@ import { useEffect } from "react";
 import Header from "./Header";
 import Footer from "./Footer";
 import Starfield from "../Starfield";
+import { useSeo } from "../../hooks/useSeo";
 
 export default function Layout() {
   const { pathname } = useLocation();
+  // Per-route <title>/description/canonical/OG for the live tab + JS crawlers.
+  useSeo();
   // Reset scroll on navigation (static pages always start at the top).
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
 

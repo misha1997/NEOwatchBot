@@ -100,6 +100,15 @@ header.site {
   box-shadow: 0 0 12px 2px var(--gold)
 }
 
+.logo .logo-img {
+  width: 28px;
+  height: 28px;
+  display: block;
+  flex-shrink: 0;
+  border-radius: 7px;
+  object-fit: contain
+}
+
 .logo small {
   display: block;
   font-family: var(--font-mono);

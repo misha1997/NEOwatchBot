@@ -89,7 +89,7 @@ function LocationPickerModal() {
           </span>
           <div className="lp-titles">
             <div className="lp-title">{t("picker.title")}</div>
-            <div className="lp-sub">NEOwatch</div>
+            <div className="lp-sub">OrbitLight</div>
           </div>
           <button type="button" className="lp-close" onClick={close} aria-label={t("picker.close")} title={t("picker.close")}>×</button>
         </div>

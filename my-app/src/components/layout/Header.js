@@ -35,8 +35,8 @@ export default function Header() {
     <header className="site">
       <div className="wrap nav">
         <Link to="/" className="logo" onClick={closeMobile}>
-          <span className="mark"></span>
-          <span>NEOwatch<small>{t("header.tagline")}</small></span>
+          <img className="logo-img" src="/web-app-manifest-192x192.png" alt="" aria-hidden="true" />
+          <span>OrbitLight<small>{t("header.tagline")}</small></span>
         </Link>
         <nav className={"links" + (open ? " open" : "")} onClick={(e) => {
           // Close the mobile panel when a leaf link is tapped.
