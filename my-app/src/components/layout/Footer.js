@@ -25,6 +25,7 @@ export default function Footer() {
             <Link to="/?weather">{t("footer.colWeather")}</Link>
             <Link to="/?launches">{t("footer.colLaunches")}</Link>
             <Link to="/comets">{t("footer.colComets")}</Link>
+            <Link to="/exoplanets">{t("nav.exoplanets")}</Link>
           </div>
           <div>
             <h5>{t("footer.colProject")}</h5>

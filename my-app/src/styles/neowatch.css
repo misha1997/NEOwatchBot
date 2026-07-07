@@ -2573,6 +2573,25 @@ h1.page-title {
   gap: 10px
 }
 
+/* Webcast / details link inside a launch card (right side, under countdown). */
+.launch-link {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: .02em;
+  color: var(--teal);
+  padding: 5px 10px;
+  border: 1px solid rgba(79, 209, 197, .28);
+  border-radius: 8px;
+  transition: .2s;
+  white-space: nowrap
+}
+
+.launch-link:hover {
+  color: var(--gold);
+  border-color: rgba(232, 185, 77, .4);
+  background: rgba(232, 185, 77, .06)
+}
+
 .seq {
   position: relative;
   padding-left: 28px

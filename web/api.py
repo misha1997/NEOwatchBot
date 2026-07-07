@@ -154,6 +154,13 @@ async def comets(lang: str = LANG_Q):
     return await data.get_comets(lang)
 
 
+@router.get("/exoplanets")
+async def exoplanets():
+    """Exoplanet digest from the NASA Exoplanet Archive (TAP): confirmed +
+    TOI candidate counts, featured planet, radius/period scatter, catalog."""
+    return await data.get_exoplanets()
+
+
 @router.get("/geocode")
 async def geocode(q: str = Query(..., min_length=2, description="City name to search")):
     """City suggestions (Nominatim proxy) for the location picker."""

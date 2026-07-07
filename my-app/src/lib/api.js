@@ -54,6 +54,8 @@ export const getNeo = (lang) => fetchJSON(API + "/neo" + withLang("", lang));
 export const getMeteors = (lang) => fetchJSON(API + "/meteors" + withLang("", lang));
 export const getEvents = (lang) => fetchJSON(API + "/events" + withLang("", lang));
 export const getComets = (lang) => fetchJSON(API + "/comets" + withLang("", lang));
+// Language-neutral (numeric) NASA Exoplanet Archive data.
+export const getExoplanets = () => fetchJSON(API + "/exoplanets");
 export const getTle = (group, limit = 300, lang) =>
   fetchJSON(API + "/tle?group=" + group + "&limit=" + limit + (lang ? "&lang=" + lang : ""));
 export const getTleGroups = (lang) => fetchJSON(API + "/tle/groups" + withLang("", lang));

@@ -8,6 +8,8 @@ export default function NextLaunch({ l }) {
   const { t } = useTranslation();
   if (!l) return null;
   const dt = l.net_ts ? formatLaunchDt(l.net_ts) : l.date;
+  // Webcast URL takes priority; fall back to the launch's detail page.
+  const href = (l && (l.webcast || l.url)) || "";
   return (
     <div className="next-launch" id="next-launch">
       <span className="badge-live"><span className="dot" />{t("launches.next")}</span>
@@ -21,6 +23,12 @@ export default function NextLaunch({ l }) {
             <PadIcon /> {l.pad}
           </div>
           <div className="launch-datetime" id="next-launch-dt">{dt}</div>
+          {href && (
+            <a className="btn primary launch-watch" href={href} target="_blank" rel="noreferrer"
+              style={{ marginTop: 16 }}>
+              ▶ {t("launches.link.watch")}
+            </a>
+          )}
         </div>
         <Countdown ts={l.net_ts || 0} units="dhms" />
       </div>

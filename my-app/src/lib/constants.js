@@ -21,6 +21,7 @@ export const NAV_GROUPS = [
   { labelKey: "nav.bodies_group", items: [
     { to: "/asteroids", labelKey: "nav.asteroids" },
     { to: "/comets", labelKey: "nav.comets" },
+    { to: "/exoplanets", labelKey: "nav.exoplanets" },
     { to: "/deep", labelKey: "nav.deep" },
     { to: "/voyager", labelKey: "nav.voyager" },
   ]},

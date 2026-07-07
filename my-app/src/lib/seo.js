@@ -17,6 +17,7 @@ export const ROUTES = {
   deep: "deep",
   voyager: "voyager",
   comets: "comets",
+  exoplanets: "exoplanets",
   // /rtl-sdr and /community are kept on disk but unlinked — omitted so
   // nameForPath() falls back to "404" for them. Re-add to restore.
 };

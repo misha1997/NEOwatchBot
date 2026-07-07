@@ -28,6 +28,7 @@
     "bodies_group": "Solar system",
     "asteroids": "Asteroids",
     "comets": "Comets",
+    "exoplanets": "Exoplanets",
     "deep": "Deep space",
     "voyager": "Voyager",
     "sunradio_group": "Sun & radio",
@@ -77,6 +78,7 @@
     "deep": "Deep space — OrbitLight",
     "voyager": "Voyager — OrbitLight",
     "comets": "Comets — OrbitLight",
+    "exoplanets": "Exoplanets (TESS) — OrbitLight",
     "rtl": "Radio astronomy — OrbitLight",
     "community": "Community — OrbitLight",
     "404": "Not found — OrbitLight"
@@ -95,6 +97,7 @@
       "deep": "Deep space: space debris, gamma-ray bursts, Voyager and the latest news from beyond Earth orbit.",
       "voyager": "Voyager 1 & 2: current distance, speed and light-time from Earth, updated in real time.",
       "comets": "Comets: orbits, current positions, upcoming approaches and telescope/naked-eye visibility.",
+      "exoplanets": "Exoplanets: the latest TESS discoveries, sizes and orbits of planets around other stars, and the habitable zone.",
       "rtl": "Radio astronomy: meteor pings, Jupiter and solar spectra received on an SDR receiver.",
       "community": "OrbitLight community: forum, photo gallery, observation diaries and local groups.",
       "404": "Page not found — return to the OrbitLight home page to see the sky now."
@@ -357,7 +360,8 @@
       "a1title": "Starship — fifth orbital test flight", "a1desc": "First full landing of both stages within a single mission.",
       "a2title": "Ariane 6 — first commercial commsat launch", "a2desc": "Confirming the rocket is ready for regular commercial missions.",
       "a3title": "Electron — payload lost on second stage", "a3desc": "Rocket Lab opened an investigation; upcoming launches temporarily paused."
-    }
+    },
+    "link": { "webcast": "Webcast", "details": "Details", "watch": "Watch live" }
   },
   "meteors": {
     "hero": {
@@ -485,6 +489,72 @@
       "h3_title": "Mind the Moon phase", "h3_num": "see phase on /sky", "h3_body": "A bright Moon washes out a faint comet tail — pick days near new Moon."
     },
     "chart": { "now": "now", "weeksShort": "w", "earth": "Earth", "earthAu": "Earth · 1 AU" }
+  },
+  "exoplanets": {
+    "hero": {
+      "eyebrow": "NASA Exoplanet Archive · TESS data",
+      "title": "Worlds around<br />other <span class=\"accent\">stars</span>",
+      "sub": "The TESS satellite finds new exoplanet candidates every day. OrbitLight shows the freshest discoveries, compares their sizes and orbits, and highlights those that fall in the habitable zone.",
+      "confirmedLabel": "confirmed exoplanets",
+      "candidateLabel": "TESS candidates (TOI)",
+      "countFallback": "—"
+    },
+    "featuredLabel": "Exoplanet of the week",
+    "feat": {
+      "radius": "Radius",
+      "period": "Orbital period",
+      "distance": "Distance from Earth",
+      "radiusFoot": "close to Earth",
+      "radiusFootBig": "larger than Earth",
+      "radiusFootSmall": "smaller than Earth",
+      "periodFoot": "around a dwarf star",
+      "periodFootHost": "around {{host}}",
+      "distanceFoot": "from the Sun",
+      "habitable": "in the habitable zone",
+      "edge": "on the edge of the habitable zone",
+      "hot": "too hot",
+      "cold": "too cold",
+      "unknown": "no temperature data"
+    },
+    "radiusUnit": "R⊕",
+    "periodUnit": "days",
+    "lyUnit": "ly",
+    "scatter": {
+      "eyebrow": "TESS catalog",
+      "title": "Size vs orbital period",
+      "legend": "Teal — confirmed planets, gold — unconfirmed candidates (TOI)",
+      "radiusAxis": "Radius (R⊕)",
+      "periodAxis": "Period (days, log)"
+    },
+    "catalog": {
+      "eyebrow": "Latest finds",
+      "title": "Candidates and confirmed planets",
+      "col": { "name": "Name", "host": "Host star", "radius": "Radius", "period": "Period", "distance": "Distance", "status": "Status" },
+      "confirmed": "Confirmed",
+      "candidate": "Candidate",
+      "noData": "—",
+      "ph": {
+        "name1": "TOI-700 d", "host1": "TOI-700 (M dwarf)", "r1": "1.19", "p1": "37.40", "d1": "101",
+        "name2": "TOI-1452 b", "host2": "TOI-1452", "r2": "1.67", "p2": "11.06", "d2": "100",
+        "name3": "TOI-4600 c", "host3": "TOI-4600", "r3": "4.60", "p3": "82.70", "d3": "224",
+        "name4": "TOI-2109 b", "host4": "TOI-2109", "r4": "12.70", "p4": "0.67", "d4": "855",
+        "name5": "TOI-5205 b", "host5": "TOI-5205", "r5": "11.20", "p5": "1.63", "d5": "150",
+        "name6": "TOI-6002.01", "host6": "TOI-6002", "r6": "2.30", "p6": "15.20", "d6": "310",
+        "name7": "TOI-7145.01", "host7": "TOI-7145", "r7": "1.40", "p7": "6.80", "d7": "190",
+        "phStatus": ["confirmed", "confirmed", "confirmed", "confirmed", "confirmed", "candidate", "candidate"]
+      }
+    },
+    "notable": {
+      "eyebrow": "Notable discoveries",
+      "title": "Exoplanets worth knowing",
+      "f1_tag": "4.2 ly", "f1_title": "Proxima Centauri b", "f1_num": "1.07 R⊕", "f1_body": "The closest known exoplanet to Earth, in the habitable zone around the star nearest to the Sun.",
+      "f2_tag": "39 ly", "f2_title": "TRAPPIST-1 system", "f2_num": "7 planets", "f2_body": "Seven Earth-sized planets around a single red dwarf, three of them in the habitable zone.",
+      "f3_tag": "1,400 ly", "f3_title": "Kepler-452b", "f3_num": "Earth's cousin", "f3_body": "One of the first Earth-sized planets found in the habitable zone of a Sun-like star."
+    },
+    "diagram": {
+      "hzLabel": "habitable zone",
+      "starLabel": "M dwarf TOI-700"
+    }
   },
   "deep": {
     "hero": {

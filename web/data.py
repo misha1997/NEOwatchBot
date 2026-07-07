@@ -35,6 +35,7 @@ from services.astronomy import (
 from services.debris import SpaceDebrisAPI
 from services.grb_alerts import GRBAlertAPI
 from services.comets import CometAPI
+from services.exoplanets import ExoplanetAPI
 from services.iss_crew import (
     ISSCrewAPI, _country_name as crew_country, _position_name as crew_position,
     _flag_emoji as crew_flag,
@@ -64,6 +65,7 @@ MARS_TTL = 3600           # Mars weather (InSight feed is stale; refresh gently)
 DEBRIS_TTL = 86400        # curated ESA figures, ~annual
 GRB_TTL = 1800            # GCN circulars archive
 COMETS_TTL = 3600         # curated comet digest; days-to-perihelion updates daily
+EXO_TTL = 3600            # exoplanet archive (TAP); new finds trickle in daily
 
 # Ukrainian short compass abbreviations (8-point) for the dashboard, matching
 # the template style ("ПнЗ → ПдС"). Collapsed from N2YO's 16-point codes.
@@ -287,6 +289,18 @@ def _launch_row(launch: dict) -> dict:
             date_local = net[:16]
     status_id = (launch.get("status") or {}).get("id", 0)
     label, cls = _LAUNCH_STATUS.get(status_id, ("TBD", ""))
+
+    # Webcast + launch detail page (Launch Library 2.3.0). vidURLs is a list of
+    # {url, title, type}; vidURL is the legacy single-string form. Either may be
+    # absent, so the card falls back to the launch's own page on ll.thespacedevs.
+    webcast = ""
+    vid_urls = launch.get("vidURLs") or []
+    if vid_urls and isinstance(vid_urls, list):
+        webcast = (vid_urls[0] or {}).get("url") or ""
+    if not webcast:
+        webcast = launch.get("vidURL") or ""
+    url = launch.get("url") or ""
+
     return {
         "date": date_local,
         "name": name,
@@ -297,6 +311,8 @@ def _launch_row(launch: dict) -> dict:
         "status_label": label,
         "status_class": cls,
         "net_ts": net_ts,
+        "webcast": webcast,
+        "url": url,
     }
 
 
@@ -1166,3 +1182,20 @@ def _comets_raw(lang: str = DEFAULT_LANG) -> dict:
 
 async def get_comets(lang: str = DEFAULT_LANG) -> dict:
     return await asyncio.to_thread(get_or_fetch, f"comets:{lang}", COMETS_TTL, lambda: _comets_raw(lang))
+
+
+# ---------------------------------------------------------------------------
+# Exoplanets — NASA Exoplanet Archive (TAP): confirmed count, TOI candidates,
+# featured planet, radius-vs-period scatter, catalog table.
+# ---------------------------------------------------------------------------
+
+def _exoplanets_raw() -> dict:
+    try:
+        return ExoplanetAPI.get_exoplanets()
+    except Exception as e:
+        logger.error("exoplanets: %s", e)
+        return {}
+
+
+async def get_exoplanets() -> dict:
+    return await asyncio.to_thread(get_or_fetch, "exoplanets", EXO_TTL, _exoplanets_raw)

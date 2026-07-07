@@ -1,4 +1,5 @@
 // Launch list card (launches.html #launches-list). Port of app.js launchCardHtml.
+import { useTranslation } from "react-i18next";
 import Countdown from "../Countdown";
 import { ProviderIcon, RocketIcon, PadIcon } from "../../lib/icons";
 import { launchPillClass } from "../../lib/constants";
@@ -9,7 +10,10 @@ function Meta({ icon, label }) {
 }
 
 export default function LaunchCard({ l }) {
+  const { t } = useTranslation();
   const dt = l.net_ts ? formatLaunchDt(l.net_ts) : l.date;
+  // Webcast URL takes priority; fall back to the launch's detail page.
+  const href = l.webcast || l.url || "";
   return (
     <div className="launch-card">
       <div>
@@ -26,6 +30,11 @@ export default function LaunchCard({ l }) {
       </div>
       <div className="side">
         <Countdown ts={l.net_ts || 0} units="dhm" />
+        {href && (
+          <a className="launch-link" href={href} target="_blank" rel="noreferrer">
+            {l.webcast ? t("launches.link.webcast") : t("launches.link.details")} ↗
+          </a>
+        )}
       </div>
     </div>
   );
