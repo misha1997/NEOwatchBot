@@ -9,7 +9,7 @@ import SatMap from "../components/SatMap";
 import SectionHead from "../components/primitives/SectionHead";
 import FeatureRow from "../components/primitives/FeatureRow";
 import { useApi } from "../hooks/useApi";
-import { useLoc } from "../context/LocationContext";
+import { useLoc, locCity } from "../context/LocationContext";
 import { getIssPasses, getIssCrew, getIssNow } from "../lib/api";
 import { fmtInt } from "../lib/format";
 import { BOT_URL } from "../lib/constants";
@@ -137,6 +137,7 @@ export default function Iss() {
   const { lang } = useLang();
   const mapRef = useRef(null);
   const { loc } = useLoc();
+  const city = locCity(loc) || t("common.kyiv");
   const [note, setNote] = useState(t("iss.loadingPos"));
   const [pos, setPos] = useState(null); // {lat,lon,alt,vel} from onTick
 
@@ -180,7 +181,7 @@ export default function Iss() {
             <h1 className="hero-title" dangerouslySetInnerHTML={{ __html: t("iss.hero.title") }} />
             <p className="hero-sub">{t("iss.hero.sub")}</p>
             <div className="hero-actions">
-              <a href="#passes" className="btn primary">{t("iss.hero.passes")}</a>
+              <a href="#passes" className="btn primary">{t("iss.hero.passes", { city })}</a>
               <a href={BOT_URL} className="btn ghost" target="_blank" rel="noreferrer">{t("iss.hero.telegram")}</a>
             </div>
           </div>
@@ -236,7 +237,7 @@ export default function Iss() {
 
       <section className="section" id="passes" style={{ paddingTop: 0 }}>
         <div className="wrap">
-          <SectionHead gold eyebrow={t("iss.s2.eyebrow")} title={t("iss.s2.title")} linkTo="/" linkLabel={t("iss.s2.link")} />
+          <SectionHead gold eyebrow={t("iss.s2.eyebrow", { city })} title={t("iss.s2.title")} linkTo="/" linkLabel={t("iss.s2.link")} />
           <p className="section-sub">{t("iss.s2.sub")}</p>
           <div className="table-wrap">
             <table className="data">

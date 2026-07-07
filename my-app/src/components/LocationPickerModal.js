@@ -4,7 +4,7 @@
 import { createContext, useContext, useState, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useLoc } from "../context/LocationContext";
-import { getGeocode, getReverseGeocode } from "../lib/api";
+import { getGeocode, getReverseGeocode, getIpGeo } from "../lib/api";
 
 const PickerCtx = createContext(null);
 export const usePicker = () => useContext(PickerCtx);
@@ -17,32 +17,65 @@ export function PickerProvider({ children }) {
 
   const close = useCallback(() => setOpen(false), []);
 
+  // Save coordinates + label and close. Used by every detect path.
+  const saveAndClose = useCallback((lat, lon, label) => {
+    saveLoc(lat, lon, label || (lat.toFixed(2) + "°, " + lon.toFixed(2) + "°"));
+    setDetecting(false);
+    close();
+  }, [saveLoc, close]);
+
+  // Last-resort fallback: approximate location from the caller's IP. Used when
+  // the browser geolocation API is unavailable, denied, or times out. On
+  // success saves the (coarse) location silently; on failure opens the manual
+  // picker with the error so the user can type a city.
+  const fallbackToIp = useCallback(() => {
+    getIpGeo()
+      .then((d) => {
+        if (d && d.lat != null && d.lon != null) {
+          saveAndClose(d.lat, d.lon, d.label);
+        } else {
+          throw new Error("no ip geo");
+        }
+      })
+      .catch(() => {
+        setDetecting(false);
+        setDetectErr(true);
+        setOpen(true);
+      });
+  }, [saveAndClose]);
+
   // Request geolocation directly — does NOT open the modal. On success it
   // saves the location and closes any modal that happened to be open. On
-  // failure (blocked / unavailable / timeout) it opens the modal so the user
-  // can type a city manually, surfacing the error inline.
+  // failure (blocked / unavailable / timeout) it tries the IP-based fallback
+  // before giving up and opening the manual picker with the error.
   const requestDetect = useCallback(() => {
-    if (!navigator.geolocation) { setDetectErr(true); setOpen(true); return; }
     setDetecting(true);
     setDetectErr(false);
+    if (!navigator.geolocation) { fallbackToIp(); return; }
+    let triedRetry = false;
     navigator.geolocation.getCurrentPosition((pos) => {
       const lat = pos.coords.latitude, lon = pos.coords.longitude;
       getReverseGeocode(lat, lon)
-        .then((d) => {
-          const label = d && d.label ? d.label
-            : (lat.toFixed(2) + "°, " + lon.toFixed(2) + "°");
-          saveLoc(lat, lon, label);
-          setDetecting(false);
-          close();
-        })
-        .catch(() => {
-          saveLoc(lat, lon, lat.toFixed(2) + "°, " + lon.toFixed(2) + "°");
-          setDetecting(false);
-          close();
-        });
-    }, () => { setDetecting(false); setDetectErr(true); setOpen(true); },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
-  }, [saveLoc, close]);
+        .then((d) => saveAndClose(lat, lon, d && d.label ? d.label : null))
+        .catch(() => saveAndClose(lat, lon, null));
+    }, (err) => {
+      // TIMEOUT (code 3) can happen on a cold GPS / slow WiFi lookup — retry
+      // once with a longer window before falling back to IP. PERMISSION_DENIED
+      // (code 1) and POSITION_UNAVAILABLE (code 2) go straight to the fallback.
+      if (err && err.code === 3 && !triedRetry) {
+        triedRetry = true;
+        navigator.geolocation.getCurrentPosition((pos) => {
+          const lat = pos.coords.latitude, lon = pos.coords.longitude;
+          getReverseGeocode(lat, lon)
+            .then((d) => saveAndClose(lat, lon, d && d.label ? d.label : null))
+            .catch(() => saveAndClose(lat, lon, null));
+        }, () => fallbackToIp(),
+          { enableHighAccuracy: false, timeout: 25000, maximumAge: 300000 });
+      } else {
+        fallbackToIp();
+      }
+    }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
+  }, [saveAndClose, fallbackToIp]);
 
   const openPicker = useCallback(() => { setDetectErr(false); setOpen(true); }, []);
 

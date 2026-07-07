@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BOT_URL } from "../lib/constants";
+import { useLoc, locCity } from "../context/LocationContext";
 import SectionHead from "../components/primitives/SectionHead";
 import FeatureCard from "../components/primitives/FeatureCard";
 import LocationPill from "../components/LocationPill";
@@ -15,6 +16,8 @@ import LaunchesTable from "../components/launches/LaunchesTable";
 
 export default function Home() {
   const { t } = useTranslation();
+  const { loc } = useLoc();
+  const city = locCity(loc) || t("common.kyiv");
   useEffect(() => { document.title = t("title.home"); }, [t]);
   return (
     <>
@@ -38,9 +41,12 @@ export default function Home() {
 
       <section className="section" id="tonight">
         <div className="wrap">
-          <SectionHead eyebrow={t("home.tonight.eyebrow")} title={t("home.tonight.title")}
+          <SectionHead eyebrow={t("home.tonight.eyebrow")} title={t("home.tonight.title", { city })}
             linkTo="/sky" linkLabel={t("home.tonight.link")} />
-          <p className="section-sub">{t("home.tonight.sub")}</p>
+          <p className="section-sub">{t("home.tonight.sub", {
+            lat: Math.abs(Math.round(loc ? loc.lat : 50)),
+            ns: ((loc ? loc.lat : 50) >= 0) ? t("common.latN") : t("common.latS"),
+          })}</p>
           <SkyEvents />
         </div>
       </section>

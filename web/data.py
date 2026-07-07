@@ -773,6 +773,45 @@ async def reverse_geocode(lat: float, lon: float) -> dict:
             "lat": lat, "lon": lon, "label": label}
 
 
+async def ip_geocode(ip: str) -> dict | None:
+    """Approximate location from the client IP (fallback when the browser
+    geolocation API is unavailable, denied, or times out). Uses ip-api.com
+    (free, no key; HTTP-only on the free tier, which is fine server→server).
+    Returns {lat, lon, label, source:"ip"} or None on any failure (reserved
+    ranges like 127.0.0.1, rate limits, network errors)."""
+    if not ip:
+        return None
+    # Strip any IPv6 mapping prefix like "::ffff:" and take the first of a list.
+    ip = ip.split(",")[0].strip()
+    if ip.startswith("::ffff:"):
+        ip = ip[7:]
+    if not ip or ip.startswith(("127.", "10.", "192.168.", "169.254.")) or ip == "::1":
+        # Loopback / private → ip-api would return a "reserved range" fail, so
+        # don't even ask. Lets local dev fail fast instead of hitting the API.
+        return None
+    try:
+        resp = await asyncio.to_thread(
+            requests.get,
+            "http://ip-api.com/json/" + ip,
+            params={"fields": "status,message,lat,lon,city,regionName,country,countryCode"},
+            timeout=8,
+        )
+    except Exception as e:
+        logger.warning("ip geocode: %s", e)
+        return None
+    if resp.status_code != 200:
+        return None
+    try:
+        d = resp.json()
+    except Exception:
+        return None
+    if d.get("status") != "success" or d.get("lat") is None:
+        return None
+    label_parts = [p for p in (d.get("city"), d.get("country")) if p]
+    label = ", ".join(label_parts) if label_parts else f"{d['lat']:.2f}°, {d['lon']:.2f}°"
+    return {"lat": float(d["lat"]), "lon": float(d["lon"]), "label": label, "source": "ip"}
+
+
 # ---------------------------------------------------------------------------
 # Satellite TLEs (Celestrak) — for the live interactive map
 # ---------------------------------------------------------------------------

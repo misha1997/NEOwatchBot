@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 from config import DEFAULT_LAT, DEFAULT_LON
 from web import data
@@ -174,6 +174,18 @@ async def geocode_reverse(
 ):
     """Reverse-geocode coordinates to a place label (Nominatim /reverse)."""
     return await data.reverse_geocode(lat, lon)
+
+
+@router.get("/geo/ip")
+async def geo_ip(request: Request):
+    """Approximate location from the caller's IP — fallback when the browser
+    geolocation API is unavailable, denied, or times out. Reads the client IP
+    from X-Forwarded-For (when behind nginx) or the direct peer."""
+    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    if not ip:
+        ip = request.client.host if request.client else ""
+    res = await data.ip_geocode(ip)
+    return res or {"lat": None, "lon": None, "label": None, "source": None}
 
 
 @router.get("/tle")

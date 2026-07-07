@@ -55,3 +55,12 @@ export function useLoc() {
 export function locLabel(loc) {
   return (loc && loc.label) || DEFAULT_LOC.label;
 }
+
+// The short city name (the part before the first comma in the label), or null
+// when no location is set — callers fall back to the translated "Kyiv"
+// (t("common.kyiv")) so the default city follows the UI language. Used to
+// localize headings like "Найцікавіше над {{city}}" to the observer's city.
+export function locCity(loc) {
+  if (!loc || !loc.label) return null;
+  return (loc.label.split(",")[0] || "").trim() || null;
+}
