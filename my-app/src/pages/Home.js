@@ -80,9 +80,6 @@ export default function Home() {
             <FeatureCard to="/sky" icon="🔭" title={t("home.sections.skyTitle")}>
               {t("home.sections.skyBody")}
             </FeatureCard>
-            <FeatureCard to="/community" icon="🌌" title={t("home.sections.communityTitle")}>
-              {t("home.sections.communityBody")}
-            </FeatureCard>
           </div>
         </div>
       </section>

@@ -17,8 +17,8 @@ export const ROUTES = {
   deep: "deep",
   voyager: "voyager",
   comets: "comets",
-  "rtl-sdr": "rtl",
-  community: "community",
+  // /rtl-sdr and /community are kept on disk but unlinked — omitted so
+  // nameForPath() falls back to "404" for them. Re-add to restore.
 };
 
 // Absolute site origin for canonical/og:url. Must match web/seo.py SITE_URL.

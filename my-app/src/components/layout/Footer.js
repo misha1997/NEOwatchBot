@@ -1,5 +1,4 @@
-// Site footer (index.html footer). Links are mostly internal routes; the
-// community sub-links point at /community anchors.
+// Site footer (index.html footer). Links are mostly internal routes.
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BOT_URL } from "../../lib/constants";
@@ -26,14 +25,6 @@ export default function Footer() {
             <Link to="/?weather">{t("footer.colWeather")}</Link>
             <Link to="/?launches">{t("footer.colLaunches")}</Link>
             <Link to="/comets">{t("footer.colComets")}</Link>
-            <Link to="/rtl-sdr">{t("footer.colRadio")}</Link>
-          </div>
-          <div>
-            <h5>{t("footer.colCommunity")}</h5>
-            <Link to="/community">{t("footer.colForum")}</Link>
-            <Link to="/community#gallery">{t("footer.colGallery")}</Link>
-            <Link to="/community#quiz">{t("footer.colQuiz")}</Link>
-            <Link to="/community#diary">{t("footer.colDiaries")}</Link>
           </div>
           <div>
             <h5>{t("footer.colProject")}</h5>

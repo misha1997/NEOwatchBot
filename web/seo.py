@@ -66,8 +66,9 @@ ROUTES: list[tuple[str, str]] = [
     ("deep", "deep"),
     ("voyager", "voyager"),
     ("comets", "comets"),
-    ("rtl-sdr", "rtl"),
-    ("community", "community"),
+    # /rtl-sdr and /community pages are kept on disk but currently unlinked
+    # (routes disabled in App.js). They resolve to the 404 head here and are
+    # omitted from the sitemap. Re-add to restore indexing.
 ]
 
 # path -> name for O(1) lookup; unknown paths resolve to the 404 entry.
