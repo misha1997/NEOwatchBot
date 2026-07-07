@@ -34,7 +34,7 @@ export default function Sky() {
 
       <section className="section" style={{ paddingTop: 8 }}>
         <div className="wrap">
-          <div className="grid cols-2" style={{ gridTemplateColumns: "1.4fr 1fr" }}>
+          <div className="grid cols-2 split">
             <div className="card" id="planets">
               <div className="k">{t("sky.planets.title")} <span className="dot live" /></div>
               <div style={{ marginTop: 14 }}>

@@ -815,6 +815,12 @@ h2.section-title {
   grid-template-columns: repeat(2, 1fr)
 }
 
+/* "split" = main column + narrower side column (1.4fr 1fr). On phones it
+   collapses to a single stacked column — see the mobile block at the end. */
+.grid.split {
+  grid-template-columns: 1.4fr 1fr
+}
+
 .card {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -1870,10 +1876,6 @@ footer a:hover {
     grid-template-columns: 1fr
   }
 
-  .dome-wrap {
-    order: -1
-  }
-
   .grid.cols-4 {
     grid-template-columns: repeat(2, 1fr)
   }
@@ -2188,12 +2190,6 @@ footer a:hover {
   width: 14px;
   height: 3px;
   border-radius: 2px
-}
-
-@media(max-width:900px) {
-  .orbit-wrap {
-    order: -1
-  }
 }
 
 /* ---------- power bar + compare-table emphasis ---------- */
@@ -3509,4 +3505,87 @@ h1.page-title {
   .crew-layout { grid-template-columns: 1fr; gap: 18px; }
   .crew-exp-card { position: static; flex-direction: row; flex-wrap: wrap; justify-content: center; }
   .crew-patch { width: 96px; height: 96px; }
+}
+
+/* ============================================================
+   MOBILE RESPONSIVENESS
+   Edge gutters (.wrap had padding:0 → content hugged the screen
+   edges), tighter vertical rhythm, smaller cards/blocks, stacked
+   2-column grids, readable horizontally-scrollable tables, and
+   title-before-diagram ordering on narrow screens. Appended last
+   so equal-specificity rules win the cascade over earlier blocks.
+   ============================================================ */
+
+/* Tablets and below — add a page gutter and shrink the big spacing. */
+@media (max-width: 900px) {
+  .wrap { padding-left: 18px; padding-right: 18px }
+
+  .hero { padding: 44px 0 30px }
+  .section { padding: 38px 0 }
+  .page-head { padding: 38px 0 6px }
+  .section-head { margin-bottom: 22px; gap: 12px }
+  .section-sub { font-size: 14px }
+
+  .card { padding: 16px }
+  .next-launch { padding: 18px }
+  .launch-card { padding: 16px }
+  .stat-mini .box { padding: 14px }
+  .stat-mini .box .n { font-size: 24px }
+
+  /* Two-column grids collapse to one stacked column on phones. */
+  .grid.cols-2 { grid-template-columns: 1fr }
+  .grid.split { grid-template-columns: 1fr }
+  .grid { gap: 12px }
+
+  /* Hero diagrams: the dome/orbit sit beside the title on desktop; on
+     phones the title comes first and the diagram drops below it (DOM
+     order is text → diagram, so a small top gap is all we add). */
+  .hero-grid { gap: 18px }
+  .dome-wrap { margin-top: 6px }
+  .orbit-wrap svg { max-width: 380px }
+
+  /* Tables: tighter cells; wide tables scroll horizontally inside their
+     .table-wrap instead of overflowing the page. */
+  table.data th { padding: 8px 10px; font-size: 10px }
+  table.data td { padding: 11px 10px; font-size: 13px }
+  .table-wrap { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch }
+  .table-wrap table.data { min-width: 560px }
+
+  /* Maps a touch shorter on phones. */
+  .sat-map { min-height: 340px }
+  .sk-map { height: 260px; max-width: 100% }
+
+  .foot-grid { gap: 26px }
+}
+
+/* Phones — tighter gutters, smaller type, single-column footer. */
+@media (max-width: 560px) {
+  .wrap { padding-left: 15px; padding-right: 15px }
+
+  .hero { padding: 34px 0 22px }
+  .section { padding: 28px 0 }
+  .page-head { padding: 30px 0 4px }
+
+  h1.hero-title { font-size: 30px }
+  h1.page-title { font-size: 25px }
+  h2.section-title { font-size: 20px }
+  .hero-sub { font-size: 15px; margin-top: 14px }
+  .hero-actions { gap: 10px; margin-top: 22px }
+  .btn { padding: 10px 16px; font-size: 12.5px }
+  .section-sub { font-size: 13.5px }
+
+  .card { padding: 14px; border-radius: 12px }
+  .grid { gap: 10px }
+  .next-launch { padding: 14px; border-radius: 14px }
+  .launch-card { padding: 14px; border-radius: 14px }
+  .stat-mini { gap: 10px }
+  .stat-mini .box { padding: 12px }
+
+  .foot-grid { grid-template-columns: 1fr; gap: 20px }
+  .orbit-wrap svg { max-width: 300px }
+  .sat-map { min-height: 300px }
+
+  table.data th { padding: 7px 8px }
+  table.data td { padding: 9px 8px; font-size: 12.5px }
+  .table-wrap table.data { min-width: 500px }
 }

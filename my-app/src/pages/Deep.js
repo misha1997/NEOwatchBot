@@ -108,7 +108,7 @@ export default function Deep() {
           <SectionHead eyebrow={t("deep.s2.eyebrow")} title={t("deep.s2.title")}
             linkHref="https://gcn.gsfc.nasa.gov/gcn3_archive.html" linkLabel={t("deep.s2.link")} />
           <p className="section-sub">{t("deep.s2.sub")}</p>
-          <div className="grid cols-2" style={{ gridTemplateColumns: "1.4fr 1fr" }}>
+          <div className="grid cols-2 split">
             <div className="card">
               <div className="k">{t("deep.grb.fresh")} <span className="dot live" /></div>
               <GrbList t={t} />

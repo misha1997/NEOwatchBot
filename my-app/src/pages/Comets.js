@@ -97,6 +97,7 @@ export default function Comets() {
       <section className="section" id="visible">
         <div className="wrap">
           <SectionHead eyebrow={t("comets.s2.eyebrow")} title={t("comets.s2.title")} />
+          <div className="table-wrap">
           <table className="data">
             <thead>
               <tr><th>{t("comets.col.comet")}</th><th>{t("comets.col.type")}</th><th>{t("comets.col.mag")}</th><th>{t("comets.col.constellation")}</th><th>{t("comets.col.bestTime")}</th><th>{t("comets.col.visibility")}</th></tr>
@@ -114,6 +115,7 @@ export default function Comets() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </section>
 

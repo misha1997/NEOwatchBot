@@ -67,7 +67,7 @@ export default function Events() {
       <div id="events-root">
         <section className="section" id="next" style={{ paddingTop: 8 }}>
           <div className="wrap">
-            <div className="grid cols-2" style={{ gridTemplateColumns: "1.3fr 1fr" }}>
+            <div className="grid cols-2 split">
               {!data ? (
                 <div className="card" id="next-eclipse">
                   <div className="k">{t("events.next.title")}</div>
@@ -107,7 +107,7 @@ export default function Events() {
           <div className="wrap">
             <SectionHead gold eyebrow={t("events.s2.eyebrow")} title={t("events.s2.title")} />
             <p className="section-sub">{t("events.s2.sub")}</p>
-            <div className="grid cols-2" style={{ gridTemplateColumns: "1.3fr 1fr" }}>
+            <div className="grid cols-2 split">
               <div className="card">
                 <div className="k">{t("events.weekly")}</div>
                 <div style={{ marginTop: 14 }}>
