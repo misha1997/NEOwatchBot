@@ -290,16 +290,39 @@ def _launch_row(launch: dict) -> dict:
     status_id = (launch.get("status") or {}).get("id", 0)
     label, cls = _LAUNCH_STATUS.get(status_id, ("TBD", ""))
 
-    # Webcast + launch detail page (Launch Library 2.3.0). vidURLs is a list of
-    # {url, title, type}; vidURL is the legacy single-string form. Either may be
-    # absent, so the card falls back to the launch's own page on ll.thespacedevs.
+    # Webcast link (Launch Library 2.3.0). The list endpoint returns `vid_urls`
+    # (snake_case) — a list of {url, title, type, source, priority}. Pick the
+    # most watchable one: prefer an Official Webcast, then any YouTube URL, then
+    # the first entry. `vidURLs`/`vidURL` (camelCase) are kept as a legacy
+    # fallback. When no webcast is attached, fall back to a YouTube search for
+    # the launch name so the link is still useful (the raw API `url` is not).
     webcast = ""
-    vid_urls = launch.get("vidURLs") or []
+    vid_urls = launch.get("vid_urls") or launch.get("vidURLs") or []
     if vid_urls and isinstance(vid_urls, list):
-        webcast = (vid_urls[0] or {}).get("url") or ""
+        def pick(v):
+            return (v or {}).get("url") or ""
+        # Official webcast first.
+        for v in vid_urls:
+            if ((v or {}).get("type") or {}).get("id") == 1 and pick(v):
+                webcast = pick(v); break
+        # Then any YouTube link.
+        if not webcast:
+            for v in vid_urls:
+                u = pick(v)
+                if u and "youtube.com/watch" in u:
+                    webcast = u; break
+        # Then whatever is first.
+        if not webcast:
+            webcast = pick(vid_urls[0]) if vid_urls else ""
     if not webcast:
         webcast = launch.get("vidURL") or ""
     url = launch.get("url") or ""
+    # Fallback link when there is no webcast: a YouTube search for the mission
+    # name (URL-encoded). The card uses this only when `webcast` is empty.
+    search = ""
+    if not webcast and name and name != "—":
+        from urllib.parse import quote
+        search = "https://www.youtube.com/results?search_query=" + quote(name + " launch")
 
     return {
         "date": date_local,
@@ -313,6 +336,7 @@ def _launch_row(launch: dict) -> dict:
         "net_ts": net_ts,
         "webcast": webcast,
         "url": url,
+        "search": search,
     }
 
 

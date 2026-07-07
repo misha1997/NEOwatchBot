@@ -361,7 +361,7 @@
       "a2title": "Ariane 6 — first commercial commsat launch", "a2desc": "Confirming the rocket is ready for regular commercial missions.",
       "a3title": "Electron — payload lost on second stage", "a3desc": "Rocket Lab opened an investigation; upcoming launches temporarily paused."
     },
-    "link": { "webcast": "Webcast", "details": "Details", "watch": "Watch live" }
+    "link": { "webcast": "Webcast", "details": "Details", "search": "Find stream", "watch": "Watch live" }
   },
   "meteors": {
     "hero": {
@@ -554,6 +554,32 @@
     "diagram": {
       "hzLabel": "habitable zone",
       "starLabel": "M dwarf TOI-700"
+    },
+    "interact": {
+      "hint": "Click a planet in the TOI-700 system or a catalog row to see its details.",
+      "clickRow": "Click a row to expand details"
+    },
+    "detail": {
+      "title": "Planet details",
+      "close": "Close",
+      "host": "Host star",
+      "radius": "Radius",
+      "period": "Orbital period",
+      "distance": "Distance from Earth",
+      "teq": "Equilibrium temp",
+      "stTeff": "Stellar temperature",
+      "stMass": "Stellar mass",
+      "discYear": "Discovery year",
+      "facility": "Observatory",
+      "habitability": "Habitability",
+      "units": { "teq": "K", "stMass": "M☉" },
+      "blurb": {
+        "habitable": "Potentially habitable: equilibrium temperature in the 180–310 K range where liquid water could exist on the surface.",
+        "edge": "On the edge of the habitable zone — temperature is near the limit for liquid water.",
+        "hot": "Too hot for liquid water on the surface.",
+        "cold": "Too cold for liquid water without a dense atmosphere.",
+        "unknown": "No temperature data — habitability is undetermined."
+      }
     }
   },
   "deep": {

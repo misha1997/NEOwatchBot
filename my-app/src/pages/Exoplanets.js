@@ -1,7 +1,9 @@
 // Exoplanets page (exoplanets.html): confirmed/candidate counts, featured
 // planet, radius-vs-period scatter, catalog table, notable finds.
 // Port of the template, wired to live NASA Exoplanet Archive (TAP) data.
-import { useEffect } from "react";
+// Planets in the TOI-700 diagram and rows in the catalog table are clickable
+// and surface a detail panel (ExoDetail) with the planet's parameters.
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/useApi";
 import { getExoplanets } from "../lib/api";
@@ -10,6 +12,8 @@ import SectionHead from "../components/primitives/SectionHead";
 import FeatureRow from "../components/primitives/FeatureRow";
 import ExoSystem from "../components/exoplanets/ExoSystem";
 import ExoScatter from "../components/exoplanets/ExoScatter";
+import ExoDetail from "../components/exoplanets/ExoDetail";
+import { CardsSkeleton, ScatterSkeleton, CatalogSkeleton } from "../components/exoplanets/ExoplanetsSkeleton";
 
 function radiusFoot(t, r) {
   if (r == null) return "";
@@ -30,7 +34,10 @@ export default function Exoplanets() {
     return () => document.body.classList.remove("p-exoplanets");
   }, [t]);
 
-  const { data } = useApi(() => getExoplanets(), { deps: [] });
+  const { data, loading } = useApi(() => getExoplanets(), { deps: [] });
+
+  // Expanded catalog row index (accordion). null = none open.
+  const [openRow, setOpenRow] = useState(null);
 
   // Placeholder catalog rows (used until /api/exoplanets resolves).
   const ph = t("exoplanets.catalog.ph", { returnObjects: true });
@@ -48,6 +55,7 @@ export default function Exoplanets() {
   const featured = data && data.featured;
   const scatter = (data && data.scatter) || [];
   const catalog = (data && data.catalog && data.catalog.length) ? data.catalog : PH;
+  const showSkeleton = loading && !data;
 
   // Featured card values: live if available, else placeholder TOI-700 d.
   const featName = featured ? featured.name : "TOI-700 d";
@@ -79,10 +87,9 @@ export default function Exoplanets() {
                 <div className="l">{t("exoplanets.hero.candidateLabel")}</div>
               </div>
             </div>
+            <p className="exo-interact-hint">{t("exoplanets.interact.hint")}</p>
           </div>
-          <div className="exo-wrap">
-            <ExoSystem />
-          </div>
+          <ExoSystem />
         </div>
         <div className="wrap" style={{ marginTop: 8 }}>
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
@@ -102,80 +109,87 @@ export default function Exoplanets() {
         </div>
       </section>
 
-      <section className="section" style={{ paddingTop: 8 }}>
-        <div className="wrap">
-          <div className="grid cols-4">
-            <div className="card">
-              <div className="k">{t("exoplanets.featuredLabel")}</div>
-              <div className="v" style={{ fontSize: 20 }}>{featName}</div>
-              <div className="foot">{featHabi}</div>
-            </div>
-            <div className="card">
-              <div className="k">{t("exoplanets.feat.radius")}</div>
-              <div className="v">{featRadius}<span className="unit">{t("exoplanets.radiusUnit")}</span></div>
-              <div className="foot">{featRadiusFoot}</div>
-            </div>
-            <div className="card">
-              <div className="k">{t("exoplanets.feat.period")}</div>
-              <div className="v">{featPeriod}<span className="unit">{t("exoplanets.periodUnit")}</span></div>
-              <div className="foot">{featPeriodFoot}</div>
-            </div>
-            <div className="card">
-              <div className="k">{t("exoplanets.feat.distance")}</div>
-              <div className="v">{featDist}<span className="unit">{t("exoplanets.lyUnit")}</span></div>
-              <div className="foot">{featDistFoot}</div>
+      {showSkeleton ? (
+        <CardsSkeleton />
+      ) : (
+        <section className="section" style={{ paddingTop: 8 }}>
+          <div className="wrap">
+            <div className="grid cols-4">
+              <div className="card">
+                <div className="k">{t("exoplanets.featuredLabel")}</div>
+                <div className="v" style={{ fontSize: 20 }}>{featName}</div>
+                <div className="foot">{featHabi}</div>
+              </div>
+              <div className="card">
+                <div className="k">{t("exoplanets.feat.radius")}</div>
+                <div className="v">{featRadius}<span className="unit">{t("exoplanets.radiusUnit")}</span></div>
+                <div className="foot">{featRadiusFoot}</div>
+              </div>
+              <div className="card">
+                <div className="k">{t("exoplanets.feat.period")}</div>
+                <div className="v">{featPeriod}<span className="unit">{t("exoplanets.periodUnit")}</span></div>
+                <div className="foot">{featPeriodFoot}</div>
+              </div>
+              <div className="card">
+                <div className="k">{t("exoplanets.feat.distance")}</div>
+                <div className="v">{featDist}<span className="unit">{t("exoplanets.lyUnit")}</span></div>
+                <div className="foot">{featDistFoot}</div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      <section className="section" id="scatter">
-        <div className="wrap">
-          <SectionHead eyebrow={t("exoplanets.scatter.eyebrow")} title={t("exoplanets.scatter.title")} />
-          <div className="exo-scatter-wrap">
-            <ExoScatter points={scatter} />
+      {showSkeleton ? (
+        <ScatterSkeleton />
+      ) : (
+        <section className="section" id="scatter">
+          <div className="wrap">
+            <SectionHead eyebrow={t("exoplanets.scatter.eyebrow")} title={t("exoplanets.scatter.title")} />
+            <div className="exo-scatter-wrap">
+              <ExoScatter points={scatter} />
+            </div>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)", marginTop: 10, textAlign: "center" }}>
+              {t("exoplanets.scatter.legend")}
+            </p>
           </div>
-          <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)", marginTop: 10, textAlign: "center" }}>
-            {t("exoplanets.scatter.legend")}
-          </p>
-        </div>
-      </section>
+        </section>
+      )}
 
-      <section className="section" id="catalog">
-        <div className="wrap">
-          <SectionHead eyebrow={t("exoplanets.catalog.eyebrow")} title={t("exoplanets.catalog.title")} />
-          <div className="table-wrap">
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>{t("exoplanets.catalog.col.name")}</th>
-                  <th>{t("exoplanets.catalog.col.host")}</th>
-                  <th>{t("exoplanets.catalog.col.radius")}</th>
-                  <th>{t("exoplanets.catalog.col.period")}</th>
-                  <th>{t("exoplanets.catalog.col.distance")}</th>
-                  <th>{t("exoplanets.catalog.col.status")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {catalog.map((c, i) => (
-                  <tr key={i}>
-                    <td>{c.name}</td>
-                    <td>{c.host}</td>
-                    <td className="mono">{c.radius != null ? fmtNum(c.radius, 2) + " R⊕" : t("exoplanets.catalog.noData")}</td>
-                    <td className="mono">{c.period != null ? fmtNum(c.period, 2) + " д" : t("exoplanets.catalog.noData")}</td>
-                    <td className="mono">{c.distance_ly != null ? c.distance_ly + " св. р." : t("exoplanets.catalog.noData")}</td>
-                    <td>
-                      <span className={c.confirmed ? "pill teal" : "pill gold"}>
-                        {c.confirmed ? t("exoplanets.catalog.confirmed") : t("exoplanets.catalog.candidate")}
-                      </span>
-                    </td>
+      {showSkeleton ? (
+        <CatalogSkeleton />
+      ) : (
+        <section className="section" id="catalog">
+          <div className="wrap">
+            <SectionHead eyebrow={t("exoplanets.catalog.eyebrow")} title={t("exoplanets.catalog.title")} />
+            <div className="table-wrap">
+              <table className="data exo-table">
+                <thead>
+                  <tr>
+                    <th>{t("exoplanets.catalog.col.name")}</th>
+                    <th>{t("exoplanets.catalog.col.host")}</th>
+                    <th>{t("exoplanets.catalog.col.radius")}</th>
+                    <th>{t("exoplanets.catalog.col.period")}</th>
+                    <th>{t("exoplanets.catalog.col.distance")}</th>
+                    <th>{t("exoplanets.catalog.col.status")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {catalog.map((c, i) => (
+                    <CatalogRow
+                      key={i}
+                      row={c}
+                      open={openRow === i}
+                      onToggle={() => setOpenRow(openRow === i ? null : i)}
+                      t={t}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section className="section" id="notable">
         <div className="wrap">
@@ -191,6 +205,38 @@ export default function Exoplanets() {
           </FeatureRow>
         </div>
       </section>
+    </>
+  );
+}
+
+function CatalogRow({ row: c, open, onToggle, t }) {
+  return (
+    <>
+      <tr className={"exo-row" + (open ? " open" : "")}
+          onClick={onToggle}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
+          tabIndex={0}
+          role="button"
+          aria-expanded={open}
+          title={t("exoplanets.interact.clickRow")}>
+        <td>{c.name}</td>
+        <td>{c.host}</td>
+        <td className="mono">{c.radius != null ? fmtNum(c.radius, 2) + " R⊕" : t("exoplanets.catalog.noData")}</td>
+        <td className="mono">{c.period != null ? fmtNum(c.period, 2) + " д" : t("exoplanets.catalog.noData")}</td>
+        <td className="mono">{c.distance_ly != null ? c.distance_ly + " св. р." : t("exoplanets.catalog.noData")}</td>
+        <td>
+          <span className={c.confirmed ? "pill teal" : "pill gold"}>
+            {c.confirmed ? t("exoplanets.catalog.confirmed") : t("exoplanets.catalog.candidate")}
+          </span>
+        </td>
+      </tr>
+      {open && (
+        <tr className="exo-expanded-row">
+          <td colSpan={6} className="exo-expanded">
+            <ExoDetail planet={c} onClose={() => onToggle()} />
+          </td>
+        </tr>
+      )}
     </>
   );
 }

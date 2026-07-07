@@ -8,8 +8,8 @@ export default function NextLaunch({ l }) {
   const { t } = useTranslation();
   if (!l) return null;
   const dt = l.net_ts ? formatLaunchDt(l.net_ts) : l.date;
-  // Webcast URL takes priority; fall back to the launch's detail page.
-  const href = (l && (l.webcast || l.url)) || "";
+  // Webcast URL takes priority; otherwise a YouTube search for the mission.
+  const href = (l && (l.webcast || l.search || l.url)) || "";
   return (
     <div className="next-launch" id="next-launch">
       <span className="badge-live"><span className="dot" />{t("launches.next")}</span>

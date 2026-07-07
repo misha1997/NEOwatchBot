@@ -2953,6 +2953,257 @@ h1.page-title {
   grid-template-columns: 1fr
 }
 
+/* ---------- exoplanet system diagram (hero) ---------- */
+.exo-wrap {
+  padding: 16px
+}
+
+.exo-stage {
+  position: relative;
+  width: 100%
+}
+
+.exo-wrap svg {
+  width: 100%;
+  height: auto;
+  display: block
+}
+
+.exo-orbit {
+  fill: none;
+  stroke: var(--grid-line);
+  stroke-width: 1;
+  stroke-dasharray: 3 4
+}
+
+.exo-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  fill: var(--text-dim)
+}
+
+.exo-label.strong {
+  fill: var(--gold);
+  font-weight: 500
+}
+
+/* ---------- exoplanet scatter chart (radius vs period) ---------- */
+.exo-scatter-wrap {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+  padding: 20px;
+  overflow: hidden
+}
+
+.exo-scatter-wrap svg {
+  width: 100%;
+  height: auto;
+  display: block
+}
+
+.exo-axis {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  fill: var(--text-dim)
+}
+
+.exo-gridline {
+  stroke: var(--border);
+  stroke-width: 1
+}
+
+/* Interactive: clickable planet dots in the TOI-700 diagram */
+.exo-dot-btn { cursor: pointer; outline: none; }
+.exo-dot-btn .obj-dot { transition: r .15s ease, fill-opacity .15s ease; }
+.exo-dot-btn:hover .obj-dot { filter: drop-shadow(0 0 6px currentColor); }
+.exo-dot-btn.selected .obj-dot { fill-opacity: 1; }
+
+/* Inline hint under the hero stats */
+.exo-interact-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 14px;
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+/* Detail panel (expanded catalog row) */
+.exo-detail {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.exo-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.exo-detail-head h3 {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.exo-detail-head .k {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-dim);
+}
+
+.exo-detail-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.exo-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color .15s ease, color .15s ease;
+}
+
+.exo-close:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.exo-detail .dl-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.exo-detail .dl-row .lbl {
+  color: var(--text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.exo-detail .dl-row .val {
+  font-family: var(--font-mono);
+  color: var(--text);
+  text-align: right;
+}
+
+.exo-blurb {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+/* Diagram detail popup (voyager orbit-stage pattern, shares .oi-pop/.oi-card) */
+.exo-pop { width: 250px; }
+
+.exo-pop .oi-tag {
+  font-size: 12.5px;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.exo-pop .oi-probe {
+  font-size: 9px;
+  padding: 3px 8px;
+  min-width: auto;
+}
+
+.exo-pop-rows {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.exo-pop-rows .dl-row {
+  margin-top: 6px;
+  font-size: 12px;
+  gap: 10px;
+}
+
+.exo-pop-rows .dl-row:first-child {
+  margin-top: 0;
+}
+
+.exo-pop-rows .dl-row .lbl {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-dim);
+}
+
+.exo-pop-rows .dl-row .val {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text);
+}
+
+.exo-pop .oi-desc {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Clickable / expandable catalog rows */
+table.exo-table tr.exo-row {
+  cursor: pointer;
+  transition: background .12s ease;
+  outline: none;
+}
+
+table.exo-table tr.exo-row:hover td {
+  background: rgba(255, 255, 255, .025);
+}
+
+table.exo-table tr.exo-row.open td {
+  background: rgba(0, 229, 184, .06);
+  border-bottom-color: var(--teal);
+}
+
+table.exo-table tr.exo-row:focus-visible td {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+}
+
+.exo-expanded {
+  padding: 0 !important;
+  background: rgba(0, 229, 184, .03);
+  border-bottom: 1px solid var(--border);
+}
+
+.exo-expanded .exo-detail {
+  margin: 12px 0;
+  border-color: rgba(0, 229, 184, .3);
+  background: var(--panel);
+}
+
 .comet-wrap {
   border: 1px solid var(--border);
   border-radius: 16px;

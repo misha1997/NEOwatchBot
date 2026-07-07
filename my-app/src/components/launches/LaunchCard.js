@@ -12,8 +12,12 @@ function Meta({ icon, label }) {
 export default function LaunchCard({ l }) {
   const { t } = useTranslation();
   const dt = l.net_ts ? formatLaunchDt(l.net_ts) : l.date;
-  // Webcast URL takes priority; fall back to the launch's detail page.
-  const href = l.webcast || l.url || "";
+  // Webcast URL takes priority; otherwise a YouTube search for the mission;
+  // only fall back to the raw LL2 detail page if neither exists.
+  const href = l.webcast || l.search || l.url || "";
+  const labelKey = l.webcast ? "launches.link.webcast"
+    : l.search ? "launches.link.search"
+    : "launches.link.details";
   return (
     <div className="launch-card">
       <div>
@@ -32,7 +36,7 @@ export default function LaunchCard({ l }) {
         <Countdown ts={l.net_ts || 0} units="dhm" />
         {href && (
           <a className="launch-link" href={href} target="_blank" rel="noreferrer">
-            {l.webcast ? t("launches.link.webcast") : t("launches.link.details")} ↗
+            {t(labelKey)} ↗
           </a>
         )}
       </div>
