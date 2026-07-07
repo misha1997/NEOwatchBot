@@ -13,6 +13,8 @@ import asyncio
 import json
 import logging
 import os
+import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
 
 import requests
@@ -506,6 +508,57 @@ async def get_sky(lat: float, lon: float, lang: str = DEFAULT_LANG) -> dict:
 
 NEO_TTL = 1800  # 30 min — NASA NEO feed is daily
 
+# NASA NEO lookup endpoint (per-asteroid orbital elements). The Feed endpoint
+# only returns close-approach data; orbital elements (a, e, i, ω, Ω, M, q, Q)
+# come from this lookup. 24 h cache — elements barely change between epochs.
+NASA_NEO_LOOKUP = "https://api.nasa.gov/neo/rest/v1/neo/"
+_ORBIT_TTL = 86400
+_ORBIT_CACHE: dict[str, tuple[dict, float]] = {}
+
+
+def _neo_orbit(neo_id: str) -> dict | None:
+    """Orbital elements for one NEO from the lookup endpoint, cached 24 h."""
+    if not neo_id:
+        return None
+    cached = _ORBIT_CACHE.get(neo_id)
+    if cached and (time.time() - cached[1]) < _ORBIT_TTL:
+        return cached[0]
+    try:
+        resp = requests.get(
+            NASA_NEO_LOOKUP + str(neo_id),
+            params={"api_key": NASA_API_KEY},
+            timeout=6,
+        )
+        resp.raise_for_status()
+        od = (resp.json() or {}).get("orbital_data", {}) or {}
+    except Exception as e:
+        logger.warning("NEO orbit lookup failed for %s: %s", neo_id, e)
+        return None
+
+    def _f(node, key):
+        try:
+            return float(node.get(key))
+        except (TypeError, ValueError):
+            return None
+
+    orbit = {
+        "a": _f(od, "semi_major_axis"),
+        "e": _f(od, "eccentricity"),
+        "i": _f(od, "inclination"),
+        "w": _f(od, "perihelion_argument"),
+        "om": _f(od, "ascending_node_longitude"),
+        "q": _f(od, "perihelion_distance"),
+        "Q": _f(od, "aphelion_distance"),
+        "ma": _f(od, "mean_anomaly"),
+        "period": _f(od, "orbital_period"),
+        "epoch": _f(od, "epoch_osculation"),
+        "class": ((od.get("orbit_class") or {}).get("orbit_class_type") or None),
+    }
+    if orbit["a"] is None or orbit["e"] is None:
+        return None
+    _ORBIT_CACHE[neo_id] = (orbit, time.time())
+    return orbit
+
 
 def _neo_row(neo: dict, lang: str = DEFAULT_LANG) -> dict:
     diam = neo.get("estimated_diameter", {}).get("meters", {})
@@ -522,6 +575,7 @@ def _neo_row(neo: dict, lang: str = DEFAULT_LANG) -> dict:
         approach_label = t("neo.approach", lang, date=approach_date[:10])
     hazardous = bool(neo.get("is_potentially_hazardous_asteroid"))
     return {
+        "id": neo.get("id") or neo.get("neo_reference_id"),
         "name": neo.get("name", "—"),
         "approach": approach_label,
         "diameter_min": d_min,
@@ -563,6 +617,15 @@ def _neo_raw(lang: str = DEFAULT_LANG) -> dict:
             flat.append(_neo_row(neo, lang))
     flat.sort(key=lambda r: r["distance_ld"] if r["distance_ld"] is not None else 999)
     items = flat[:8]
+    # Fetch orbital elements for the shown asteroids concurrently (best-effort).
+    # The page degrades gracefully without them — the existing LD radar + cards
+    # still render; only the heliocentric orbit map is omitted.
+    ids = [r.get("id") for r in items]
+    if ids:
+        with ThreadPoolExecutor(max_workers=min(8, len(ids))) as ex:
+            orbits = dict(zip(ids, ex.map(_neo_orbit, ids)))
+        for r in items:
+            r["orbit"] = orbits.get(r.get("id"))
     return {
         "items": items,
         "total": len(flat),

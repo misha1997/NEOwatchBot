@@ -8,11 +8,16 @@ import { getNeo } from "../lib/api";
 import StatMini from "../components/primitives/StatMini";
 import SectionHead from "../components/primitives/SectionHead";
 import NeoOrbit from "../components/asteroids/NeoOrbit";
+import NeoOrbitMap from "../components/asteroids/NeoOrbitMap";
 import AsterCard from "../components/asteroids/AsterCard";
 
 export default function Asteroids() {
   const { t } = useTranslation();
-  useEffect(() => { document.title = t("title.asteroids"); }, [t]);
+  useEffect(() => {
+    document.title = t("title.asteroids");
+    document.body.classList.add("p-asteroids");
+    return () => document.body.classList.remove("p-asteroids");
+  }, [t]);
   const { lang } = useLang();
   const { data } = useApi(() => getNeo(lang), { deps: [lang] });
 
@@ -55,6 +60,13 @@ export default function Asteroids() {
             <div className="legend-row"><span className="legend-swatch" style={{ background: "var(--coral)" }} /> {t("asteroids.legend.hazard")}</div>
             <div className="legend-row"><span className="legend-swatch" style={{ background: "var(--teal)", opacity: 0.6 }} /> {t("asteroids.legend.moon")}</div>
           </div>
+        </div>
+      </section>
+
+      <section className="section" id="orbits">
+        <div className="wrap">
+          <SectionHead eyebrow={t("asteroids.s2.eyebrow")} title={t("asteroids.s2.title")} />
+          <NeoOrbitMap items={items} />
         </div>
       </section>
 

@@ -11,6 +11,7 @@ import { fmtNum, fmtInt } from "../lib/format";
 import SectionHead from "../components/primitives/SectionHead";
 import FeatureRow from "../components/primitives/FeatureRow";
 import ExoSystem from "../components/exoplanets/ExoSystem";
+import SystemSlider from "../components/exoplanets/SystemSlider";
 import ExoScatter from "../components/exoplanets/ExoScatter";
 import ExoDetail from "../components/exoplanets/ExoDetail";
 import { CardsSkeleton, ScatterSkeleton, CatalogSkeleton } from "../components/exoplanets/ExoplanetsSkeleton";
@@ -38,6 +39,9 @@ export default function Exoplanets() {
 
   // Expanded catalog row index (accordion). null = none open.
   const [openRow, setOpenRow] = useState(null);
+
+  // Selected star system for the interactive orrery (chips switch systems).
+  const [systemId, setSystemId] = useState("trappist1");
 
   // Placeholder catalog rows (used until /api/exoplanets resolves).
   const ph = t("exoplanets.catalog.ph", { returnObjects: true });
@@ -89,22 +93,34 @@ export default function Exoplanets() {
             </div>
             <p className="exo-interact-hint">{t("exoplanets.interact.hint")}</p>
           </div>
-          <ExoSystem />
+          <div className="exo-stage-col">
+            <ExoSystem systemId={systemId} />
+            <SystemSlider systemId={systemId} onSelect={setSystemId} />
+            <p className="exo-caption">{t("exoplanets.systems." + systemId + ".caption")}</p>
+          </div>
         </div>
         <div className="wrap" style={{ marginTop: 8 }}>
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-            <div className="legend-row">
+          <div className="exo-legend">
+            <span className="legend-row">
+              <span className="legend-swatch" style={{ background: "var(--teal)" }} />
+              {t("exoplanets.legend.habitable")}
+            </span>
+            <span className="legend-row">
+              <span className="legend-swatch" style={{ background: "var(--gold)" }} />
+              {t("exoplanets.legend.edge")}
+            </span>
+            <span className="legend-row">
+              <span className="legend-swatch" style={{ background: "var(--coral)" }} />
+              {t("exoplanets.legend.hot")}
+            </span>
+            <span className="legend-row">
+              <span className="legend-swatch" style={{ background: "#6f8bb0" }} />
+              {t("exoplanets.legend.cold")}
+            </span>
+            <span className="legend-row">
               <span className="legend-swatch" style={{ background: "var(--teal)", opacity: 0.5 }} />
               {t("exoplanets.diagram.hzLabel")}
-            </div>
-            <div className="legend-row">
-              <span className="legend-swatch" style={{ background: "var(--teal)" }} />
-              TOI-700 d
-            </div>
-            <div className="legend-row">
-              <span className="legend-swatch" style={{ background: "var(--gold)" }} />
-              TOI-700 e
-            </div>
+            </span>
           </div>
         </div>
       </section>

@@ -200,7 +200,7 @@ nav.links a.active {
   top: 100%;
   left: 0;
   min-width: 180px;
-  margin-top: 6px;
+  /* margin-top: 6px; */
   display: none;
   flex-direction: column;
   gap: 1px;
@@ -2090,10 +2090,104 @@ footer a:hover {
   max-width: 760px
 }
 
+/* Heliocentric asteroid-orbit map: square 520×520 viewBox. A real top-down
+   orbit map needs a square canvas (stretching to full width at a fixed short
+   height would distort the Sun/orbits or crop them), so it is rendered as a
+   compact 220px-tall square centred in the card — pan/zoom-able to inspect
+   detail. */
+.orbit-map-stage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative
+}
+
+.orbit-map-box {
+  position: relative;
+  height: 320px;
+  width: 100%
+}
+
+.orbit-map-box svg#orbit-map {
+  height: 320px;
+  width: 100%;
+  display: block
+}
+
+/* Smaller labels for the asteroid orbit map (kept separate from .comet-label
+   so the comets page diagram is unaffected). */
+.neo-label {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  fill: var(--text-dim)
+}
+
+/* Zoom controls — absolute, top-right of the map box. */
+.orbit-zoom {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 2
+}
+
+.orbit-zoom button {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1;
+  min-width: 28px;
+  padding: 6px 8px;
+  color: var(--text-dim);
+  background: rgba(10, 12, 20, .55);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: .15s;
+  backdrop-filter: blur(4px)
+}
+
+.orbit-zoom button:hover {
+  color: var(--text);
+  background: rgba(237, 238, 245, .08)
+}
+
+.orbit-note {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.45
+}
+
 .orbit-ring {
   fill: none;
   stroke: var(--grid-line);
   stroke-width: 1
+}
+
+/* Heliocentric asteroid orbit map (asteroids page, second diagram) */
+.neo-ellipse {
+  fill: none;
+  stroke-width: 1;
+  stroke-opacity: .55;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke
+}
+
+.neo-now-dot {
+  stroke: var(--bg);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke
+}
+
+.neo-item {
+  transition: opacity .25s
+}
+
+.neo-item.is-hidden {
+  opacity: 0;
+  pointer-events: none
 }
 
 .orbit-ring.helio {
@@ -3013,11 +3107,119 @@ h1.page-title {
   stroke-width: 1
 }
 
-/* Interactive: clickable planet dots in the TOI-700 diagram */
+/* Interactive: clickable planet dots in the orrery */
 .exo-dot-btn { cursor: pointer; outline: none; }
-.exo-dot-btn .obj-dot { transition: r .15s ease, fill-opacity .15s ease; }
+.exo-dot-btn .obj-dot { transition: filter .15s ease; }
 .exo-dot-btn:hover .obj-dot { filter: drop-shadow(0 0 6px currentColor); }
 .exo-dot-btn.selected .obj-dot { fill-opacity: 1; }
+
+/* Right column: orrery stage + system slider + caption stacked, filling the
+   full width of its hero-grid cell. min-width:0 lets the grid track shrink it
+   to its fr share (otherwise the non-wrapping slider chips' ~800px min-content
+   forces the column wide and breaks the 1.05/.95 grid ratio). */
+.exo-stage-col {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+/* System selector slider (active centered, edge arrows, swipe) */
+.exo-slider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  width: 100%;
+}
+
+.exo-slider-track {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  cursor: grab;
+  padding: 2px;
+  mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+}
+
+.exo-slider-track:active { cursor: grabbing; }
+
+.exo-slider-track::-webkit-scrollbar { display: none; }
+
+.exo-slider-track .exo-chip {
+  scroll-snap-align: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.exo-arrow {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color .15s ease, color .15s ease;
+}
+
+.exo-arrow:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.exo-chip {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease, background .15s ease;
+}
+
+.exo-chip:hover {
+  border-color: var(--gold);
+  color: var(--text);
+}
+
+.exo-chip.active {
+  background: rgba(0, 229, 184, .12);
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.exo-caption {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin: 10px 0 0;
+  max-width: 620px;
+  line-height: 1.45;
+}
+
+.exo-legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+}
 
 /* Inline hint under the hero stats */
 .exo-interact-hint {
@@ -3031,8 +3233,6 @@ h1.page-title {
 
 /* Detail panel (expanded catalog row) */
 .exo-detail {
-  border: 1px solid var(--border);
-  border-radius: 16px;
   background: var(--panel);
   padding: 16px;
   margin-top: 16px;
@@ -3229,7 +3429,8 @@ table.exo-table tr.exo-row:focus-visible td {
   fill: none;
   stroke: var(--border);
   stroke-width: 1;
-  stroke-dasharray: 2 3
+  stroke-dasharray: 2 3;
+  vector-effect: non-scaling-stroke
 }
 
 .comet-label {
@@ -3376,7 +3577,8 @@ table.exo-table tr.exo-row:focus-visible td {
 }
 
 @media(max-width:900px) {
-  .p-comets .orbit-toolbar {
+  .p-comets .orbit-toolbar,
+  .p-asteroids .orbit-toolbar {
     align-items: flex-start
   }
 }

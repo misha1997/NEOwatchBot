@@ -696,6 +696,24 @@
       "eyebrow": "Details",
       "title": "Each object up close"
     },
+    "s2": {
+      "eyebrow": "Orbits",
+      "title": "Asteroids orbiting the Sun"
+    },
+    "orbitMap": {
+      "title": "Near-Earth asteroid orbits",
+      "head": "Near-Earth asteroids",
+      "asOf": "as of {{date}}",
+      "zoom": "Zoom",
+      "reset": "Reset",
+      "sun": "Sun",
+      "earth": "Earth (1 AU)",
+      "mars": "Mars",
+      "au": "AU",
+      "now": "now",
+      "noOrbit": "Orbital elements temporarily unavailable",
+      "speed": "Body positions as of now, computed from NASA orbital elements"
+    },
     "ph": {
       "approach": "Approach {{date}}",
       "d1": "Jul 6",
@@ -956,6 +974,53 @@
         "cold": "Too cold for liquid water without a dense atmosphere.",
         "unknown": "No temperature data — habitability is undetermined."
       }
+    },
+    "systems": {
+      "label": "Star system:",
+      "prev": "Previous system",
+      "next": "Next system",
+      "trappist1": {
+        "name": "TRAPPIST-1",
+        "caption": "Seven Earth-sized planets around a cool red dwarf; three in the habitable zone. 39 ly."
+      },
+      "toi700": {
+        "name": "TOI-700",
+        "caption": "Four planets found by TESS; TOI-700 d is potentially habitable. 101 ly."
+      },
+      "kepler1649": {
+        "name": "Kepler-1649",
+        "caption": "Two planets in the habitable zone — one of the most Earth-like systems known. 301 ly."
+      },
+      "proxima": {
+        "name": "Proxima Centauri",
+        "caption": "The nearest star system; Proxima b is a habitability candidate. 4.2 ly."
+      },
+      "kepler186": {
+        "name": "Kepler-186",
+        "caption": "Five planets; Kepler-186 f was the first Earth-sized planet found in the habitable zone. 564 ly."
+      },
+      "k218": {
+        "name": "K2-18",
+        "caption": "A mini-Neptune in the habitable zone: water vapor was found in K2-18 b's atmosphere. 124 ly."
+      },
+      "peg51": {
+        "name": "51 Pegasi",
+        "caption": "First planet found around a Sun-like star (1995) — hot Jupiter 51 Peg b in 4.2 days. 51 ly."
+      },
+      "gj1214": {
+        "name": "GJ 1214",
+        "caption": "The best-studied mini-Neptune: GJ 1214 b with a hydrogen-helium atmosphere. 48 ly."
+      },
+      "solar": {
+        "name": "Sun",
+        "caption": "Our Solar System — a scale reference, Mercury to Neptune."
+      }
+    },
+    "legend": {
+      "habitable": "Habitable",
+      "edge": "Edge",
+      "hot": "Hot",
+      "cold": "Cold"
     }
   },
   "deep": {
