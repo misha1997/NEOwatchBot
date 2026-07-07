@@ -65,7 +65,7 @@
     "made": "Made for those who look up 🌌"
   },
   "title": {
-    "home": "OrbitLight — sky now",
+    "home": "OrbitLight — space live: ISS, asteroids, meteors, launches",
     "iss": "ISS live — OrbitLight",
     "satellites": "Satellites on map — OrbitLight",
     "weather": "Space weather — OrbitLight",
@@ -83,7 +83,7 @@
   },
   "seo": {
     "desc": {
-      "home": "OrbitLight — sky now: ISS, asteroids, meteors, space weather and rocket launches live.",
+      "home": "Space live in English: track the ISS, near-Earth asteroids, meteor showers, space weather and rocket launches — all on OrbitLight.",
       "iss": "ISS live: ground-track map, visible passes over your city, current crew and expedition.",
       "satellites": "Satellites on a real-time map: Starlink, ISS, weather and amateur orbits you can track.",
       "weather": "Space weather live: Kp index, solar wind, Bz, X-ray flux, aurora forecast and OVATION map.",
@@ -243,7 +243,7 @@
     "hero": {
       "eyebrow": "Updated in real time",
       "title": "The sky is more interesting<br />when you look <span class=\"accent\">not alone</span>",
-      "sub": "ISS, asteroids, rocket launches, aurora, meteors and the NASA photo of the day — all space events in a convenient visual format.",
+      "sub": "ISS, asteroids, meteors, space weather and rocket launches — the whole sky live in one place.",
       "skyNow": "Sky now →",
       "telegram": "Open in Telegram ↗"
     },
