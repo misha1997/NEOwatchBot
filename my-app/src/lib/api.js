@@ -34,6 +34,7 @@ export const getWeatherSeries = () => fetchJSON(API + "/weather/series");
 export const getLaunches = () => fetchJSON(API + "/launches");
 export const getIssCrew = (lang) => fetchJSON(API + "/iss/crew" + withLang("", lang));
 export const getMars = () => fetchJSON(API + "/mars");
+export const getApod = (lang) => fetchJSON(API + "/apod" + withLang("", lang));
 export const getDebris = () => fetchJSON(API + "/debris");
 export const getGrb = (limit = 12) => fetchJSON(API + "/grb?limit=" + limit);
 export const getVoyager = () => fetchJSON(API + "/voyager");

@@ -550,6 +550,8 @@ TRANSLATIONS = {
         'planets.name.saturn': 'Сатурн',
         'planets.name.uranus': 'Уран',
         'planets.name.neptune': 'Нептун',
+        'planets.name.sun': 'Сонце',
+        'planets.name.moon': 'Місяць',
 
         # --- Mars rover photos ---
         'rovers.title': '📷 <b>Фото з Марса — {rover}</b>\n\n',
@@ -1157,6 +1159,8 @@ TRANSLATIONS = {
         'planets.name.saturn': 'Saturn',
         'planets.name.uranus': 'Uranus',
         'planets.name.neptune': 'Neptune',
+        'planets.name.sun': 'Sun',
+        'planets.name.moon': 'Moon',
 
         # --- Mars rover photos ---
         'rovers.title': '📷 <b>Photos from Mars — {rover}</b>\n\n',

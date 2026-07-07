@@ -798,6 +798,24 @@ h1.hero-title .accent {
   font-weight: 500
 }
 
+.dome-glyph {
+  font-size: 15px;
+  filter: drop-shadow(0 0 4px rgba(217, 230, 242, .45))
+}
+
+.dome-sat {
+  fill: var(--text-dim);
+  fill-opacity: .5;
+  filter: drop-shadow(0 0 3px rgba(79, 209, 197, .35))
+}
+
+.dome-sat-label {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  fill: var(--text-dim);
+  fill-opacity: .6
+}
+
 /* ---------- section headings ---------- */
 .section {
   padding: 56px 0
@@ -866,6 +884,103 @@ h2.section-title {
 .card:hover {
   border-color: rgba(232, 185, 77, .3);
   transform: translateY(-2px)
+}
+
+/* APOD — Astronomy Picture of the Day block on the homepage. */
+.apod-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+  padding: 22px;
+  overflow: hidden
+}
+
+.apod-media {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  min-height: 220px
+}
+
+.apod-media a { display: block; height: 100% }
+
+.apod-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .4s
+}
+
+.apod-media a:hover img { transform: scale(1.03) }
+
+.apod-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(10, 12, 20, .6);
+  color: var(--gold);
+  font-size: 16px;
+  padding-left: 3px
+}
+
+.apod-text { display: flex; flex-direction: column; min-width: 0 }
+
+.apod-date {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: .02em
+}
+
+.apod-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  margin: 6px 0 10px;
+  line-height: 1.25
+}
+
+.apod-expl {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  margin: 0;
+  flex: 1;
+  overflow: hidden
+}
+
+.apod-credit {
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: .8
+}
+
+.apod-link {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--gold);
+  text-decoration: none
+}
+
+.apod-link:hover { text-decoration: underline }
+
+@media(max-width:760px) {
+  .apod-card { grid-template-columns: 1fr }
+  .apod-media { min-height: 200px; max-height: 320px }
 }
 
 .card .k {

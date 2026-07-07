@@ -38,12 +38,14 @@ from services.debris import SpaceDebrisAPI
 from services.grb_alerts import GRBAlertAPI
 from services.comets import CometAPI
 from services.exoplanets import ExoplanetAPI
+from services.nasa_api import NasaAPI
 from services.iss_crew import (
     ISSCrewAPI, _country_name as crew_country, _position_name as crew_position,
     _flag_emoji as crew_flag,
 )
 from services.voyager import _PROBES as VOYAGER_PROBES, AU_KM, C_KM_S
 from utils.i18n import DEFAULT_LANG, t, compass_dir, pick
+from utils.translator import Translator
 from config import (
     DEFAULT_LAT, DEFAULT_LON,
     NASA_NEO_URL, NASA_API_KEY,
@@ -784,7 +786,37 @@ def _planets_raw(lat: float, lon: float, lang: str = DEFAULT_LANG) -> dict:
         })
     # visible first, then by altitude descending
     items.sort(key=lambda x: (not x["visible"], -x["alt"]))
-    return {"items": items}
+
+    out = {"items": items}
+
+    # Sun & Moon as separate top-level fields (not in `items`, so the
+    # /sky planets table is unchanged) — consumed by the homepage sky-dome.
+    try:
+        sm = PlanetsAPI.compute_sun_moon(lat, lon)
+    except Exception as e:
+        logger.error("sun/moon compute: %s", e)
+        sm = None
+    if sm:
+        sun, moon = sm["sun"], sm["moon"]
+        out["sun"] = {
+            "name_key": "sun",
+            "name": t("planets.name.sun", lang),
+            "emoji": "☀️",
+            "alt": int(round(float(sun["alt"]), 0)),
+            "az": round(float(sun["az"]), 1),
+            "visible": bool(sun["alt"] > 0.0),
+        }
+        out["moon"] = {
+            "name_key": "moon",
+            "name": t("planets.name.moon", lang),
+            "emoji": "🌙",
+            "alt": int(round(float(moon["alt"]), 0)),
+            "az": round(float(moon["az"]), 1),
+            "visible": bool(moon["alt"] > 0.0),
+            "phase": round(float(moon["phase"]), 3),
+            "illum": round(float(moon["illum"]), 2),
+        }
+    return out
 
 
 async def get_planets(lat: float, lon: float, lang: str = DEFAULT_LANG) -> dict:
@@ -1259,6 +1291,60 @@ def _mars_raw() -> dict:
 
 async def get_mars() -> dict:
     return await asyncio.to_thread(get_or_fetch, "mars", MARS_TTL, _mars_raw)
+
+
+# ---------------------------------------------------------------------------
+# APOD — NASA Astronomy Picture of the Day (photo + title + explanation)
+# ---------------------------------------------------------------------------
+
+APOD_TTL = 3600  # APOD changes once a day; refresh gently
+
+
+def _apod_raw(lang: str = DEFAULT_LANG) -> dict:
+    """Fetch today's APOD via the bot's NasaAPI and translate the explanation.
+
+    Returns title/date/explanation plus the best image URL (or video thumbnail).
+    Fail-soft: returns ``{available: False}`` if NASA is unreachable so the home
+    page can quietly omit the block instead of erroring.
+    """
+    try:
+        data = NasaAPI.get_apod()
+    except Exception as e:
+        logger.error("apod fetch: %s", e)
+        return {"available": False}
+    if not data or not data.get("url") and not data.get("hdurl") and not data.get("thumbnail"):
+        return {"available": False}
+
+    explanation = data.get("explanation", "") or ""
+    if lang == "en":
+        expl = explanation
+    else:
+        try:
+            expl = Translator.translate(explanation, "en", "uk") or explanation
+        except Exception:
+            expl = explanation
+
+    media_type = data.get("media_type", "image")
+    # Prefer the HD image; for video APODs there is only a thumbnail.
+    if media_type == "video":
+        image = data.get("thumbnail") or data.get("url")
+    else:
+        image = data.get("hdurl") or data.get("url")
+
+    return {
+        "available": True,
+        "title": data.get("title", ""),
+        "date": data.get("date", ""),
+        "explanation": expl,
+        "image": image,
+        "media_type": media_type,
+        "video_url": data.get("url") if media_type == "video" else None,
+        "credit": data.get("copyright") or "",
+    }
+
+
+async def get_apod(lang: str = DEFAULT_LANG) -> dict:
+    return await asyncio.to_thread(get_or_fetch, f"apod:{lang}", APOD_TTL, lambda: _apod_raw(lang))
 
 
 # ---------------------------------------------------------------------------

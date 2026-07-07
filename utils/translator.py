@@ -1,4 +1,5 @@
 """Translator using DeepL API with in-memory cache"""
+import json
 import requests
 import logging
 from typing import List
@@ -50,7 +51,11 @@ def _translate(texts: List[str], source: str = "EN", target: str = "UK") -> List
             timeout=15,
         )
         response.raise_for_status()
-        data = response.json()
+        # DeepL always returns UTF-8 JSON. Parse the raw bytes directly rather
+        # than `response.json()`, which on some platforms (Windows without a
+        # UTF-8 locale) mis-detects the encoding and turns Cyrillic into
+        # mojibake (e.g. "Не" → "Р"Рµ").
+        data = json.loads(response.content)
 
         translations = data.get("translations", [])
         for idx, trans in zip(indices, translations):

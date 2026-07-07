@@ -408,6 +408,11 @@
       "link": "Detailed forecast →",
       "sub": "Approximate for latitude {{lat}}° {{ns}}. Times in UTC+3."
     },
+    "apod": {
+      "eyebrow": "NASA Picture of the Day",
+      "title": "Astronomy Picture of the Day",
+      "source": "Source: NASA APOD"
+    },
     "weather": {
       "eyebrow": "Space weather",
       "title": "Aurora conditions right now",

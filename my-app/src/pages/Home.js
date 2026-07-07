@@ -10,6 +10,7 @@ import FeatureCard from "../components/primitives/FeatureCard";
 import LocationPill from "../components/LocationPill";
 import SkyDome from "../components/SkyDome";
 import SkyEvents from "../components/home/SkyEvents";
+import ApodCard from "../components/home/ApodCard";
 import WeatherCards from "../components/home/WeatherCards";
 import IssPassCards from "../components/home/IssPassCards";
 import LaunchesTable from "../components/launches/LaunchesTable";
@@ -39,6 +40,8 @@ export default function Home() {
         </div>
       </section>
 
+      <ApodCard />
+
       <section className="section" id="tonight">
         <div className="wrap">
           <SectionHead eyebrow={t("home.tonight.eyebrow")} title={t("home.tonight.title", { city })}
@@ -54,7 +57,7 @@ export default function Home() {
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <SectionHead eyebrow={t("home.weather.eyebrow")} title={t("home.weather.title")}
-            linkHref="#" linkLabel={t("home.weather.link")} />
+            linkHref="https://www.spaceweather.gov" linkLabel={t("home.weather.link")} />
           <WeatherCards />
         </div>
       </section>

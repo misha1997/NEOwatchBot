@@ -136,6 +136,12 @@ async def mars():
     return await data.get_mars()
 
 
+@router.get("/apod")
+async def apod(lang: str = LANG_Q):
+    """NASA Astronomy Picture of the Day: image, title, translated explanation."""
+    return await data.get_apod(lang)
+
+
 @router.get("/debris")
 async def debris():
     """Curated space-debris statistics (ESA Space Environment Report)."""

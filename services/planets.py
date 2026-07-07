@@ -167,6 +167,46 @@ class PlanetsAPI:
         return out
 
     @staticmethod
+    def compute_sun_moon(lat, lon):
+        """Topocentric alt/az for the Sun and Moon + the Moon's phase.
+
+        Returns ``{"sun": {alt, az}, "moon": {alt, az, phase, illum}}`` where
+        ``phase`` is 0..1 (0 = new, 0.5 = full, 1 = new) and ``illum`` is the
+        illuminated fraction 0..1. Phase is derived from the Sun–Moon
+        ecliptic-longitude difference as seen from Earth (0° = new, 180° =
+        full). Inclination/topocentric parallax is ignored for the phase,
+        which is plenty accurate for a glyph. Raises on hard failure; the
+        caller wraps in try/except.
+        """
+        eph, ts, wgs84, cm, latin = _get_skyfield()
+        t = ts.now()
+        earth, sun, moon = eph[399], eph[10], eph[301]
+        observer = earth + wgs84.latlon(lat, lon)
+
+        app_s = observer.at(t).observe(sun).apparent()
+        alt_s, az_s, _ = app_s.altaz()
+        app_m = observer.at(t).observe(moon).apparent()
+        alt_m, az_m, _ = app_m.altaz()
+
+        # Sun–Moon ecliptic longitude difference as seen from Earth.
+        e = earth.at(t)
+        lam_s = e.observe(sun).apparent().ecliptic_latlon()[1].degrees
+        lam_m = e.observe(moon).apparent().ecliptic_latlon()[1].degrees
+        dlam = (lam_m - lam_s) % 360.0
+        phase = dlam / 360.0
+        illum = (1.0 - math.cos(math.radians(dlam))) / 2.0
+
+        return {
+            "sun": {"alt": alt_s.degrees, "az": az_s.degrees},
+            "moon": {
+                "alt": alt_m.degrees,
+                "az": az_m.degrees,
+                "phase": phase,
+                "illum": illum,
+            },
+        }
+
+    @staticmethod
     def get_visible(lat, lon, lang=DEFAULT_LANG):
         """Format the visible-planets message for the user."""
         try:
