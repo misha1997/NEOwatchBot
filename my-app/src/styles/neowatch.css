@@ -919,6 +919,45 @@ h2.section-title {
 
 .apod-media a:hover img { transform: scale(1.03) }
 
+/* Click-to-load video thumbnail: a real <button> covering the media slot. */
+.apod-play-btn {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: #000;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent
+}
+
+.apod-play-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .4s
+}
+
+.apod-play-btn:hover img { transform: scale(1.03) }
+
+/* Embedded player (YouTube <iframe> / native <video>) fills the media slot. */
+.apod-player {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  display: block;
+  border: 0;
+  background: #000
+}
+
+.apod-player:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px
+}
+
 .apod-play {
   position: absolute;
   top: 50%;

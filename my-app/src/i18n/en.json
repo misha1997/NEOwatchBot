@@ -411,7 +411,10 @@
     "apod": {
       "eyebrow": "NASA Picture of the Day",
       "title": "Astronomy Picture of the Day",
-      "source": "Source: NASA APOD"
+      "source": "Source: NASA APOD",
+      "play": "Play video",
+      "noVideoSupport": "Your browser does not support video playback.",
+      "openVideo": "Open video"
     },
     "weather": {
       "eyebrow": "Space weather",

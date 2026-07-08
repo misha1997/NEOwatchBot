@@ -1,42 +1,118 @@
 // Astronomy Picture of the Day block for the homepage (under the hero).
 // Loads /api/apod (NASA APOD, with the explanation translated to the site
-// language). Renders the image (or video thumbnail linking to the APOD video)
-// beside the title + explanation. Hides itself entirely when APOD is unavailable
-// or still loading, so the homepage never shows an empty frame.
+// language). For image APODs, shows the photo (links to full-res). For video
+// APODs, shows the thumbnail with a play badge; clicking it loads a real
+// embedded player inline — a YouTube <iframe> (privacy-enhanced nocookie) or a
+// native <video> element for direct media files — instead of bouncing the user
+// to an external site. Hides itself entirely when APOD is unavailable or still
+// loading, so the homepage never shows an empty frame.
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLang } from "../../context/LanguageContext";
 import { useApi } from "../../hooks/useApi";
 import { getApod } from "../../lib/api";
 import SectionHead from "../primitives/SectionHead";
 
+// Turn a NASA APOD video URL into something we can embed inline.
+// Returns one of:
+//   { kind: "file",   src } — direct media file → native <video>
+//   { kind: "iframe", src } — YouTube/Vimeo → embedded <iframe>
+//   { kind: "link",   src } — anything else → fall back to opening externally
+function videoEmbed(url) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    // Direct media file: serve it through a native <video> element.
+    if (/\.(mp4|webm|ogv|ogg|mov|m4v)(\?|#|$)/i.test(u.pathname)) {
+      return { kind: "file", src: url };
+    }
+    const host = u.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") {
+      return { kind: "iframe", src: `https://www.youtube-nocookie.com/embed/${u.pathname.slice(1)}` };
+    }
+    if (host === "youtube.com" || host === "youtube-nocookie.com") {
+      const v = u.searchParams.get("v");
+      if (u.pathname === "/watch" && v) {
+        return { kind: "iframe", src: `https://www.youtube-nocookie.com/embed/${v}` };
+      }
+      if (u.pathname.startsWith("/embed/")) {
+        return { kind: "iframe", src: `https://www.youtube-nocookie.com${u.pathname}` };
+      }
+    }
+    if (host === "vimeo.com" || host === "player.vimeo.com") {
+      const id = u.pathname.split("/").filter(Boolean).pop();
+      if (id) return { kind: "iframe", src: `https://player.vimeo.com/video/${id}` };
+    }
+    return { kind: "link", src: url };
+  } catch {
+    return { kind: "link", src: url };
+  }
+}
+
+// Append an autoplay param to an embed URL, minding any existing query string.
+function withAutoplay(src) {
+  if (!src) return src;
+  return src.includes("?") ? `${src}&autoplay=1` : `${src}?autoplay=1`;
+}
+
 export default function ApodCard() {
   const { t } = useTranslation();
   const { lang } = useLang();
   const { data } = useApi(() => getApod(lang), { deps: [lang] });
+  // Lazy-load the player only after the user clicks the thumbnail, so the
+  // homepage never pulls a third-party iframe until asked to.
+  const [playing, setPlaying] = useState(false);
 
   if (!data || !data.available) return null;
   const isVideo = data.media_type === "video";
   const date = data.date ? new Date(`${data.date}T00:00:00Z`).toLocaleDateString(
     lang === "en" ? "en-GB" : "uk-UA", { day: "numeric", month: "long", year: "numeric" },
   ) : "";
+  const embed = isVideo ? videoEmbed(data.video_url) : null;
+  const embeddable = embed && (embed.kind === "file" || embed.kind === "iframe");
+
+  const media = isVideo ? (
+    embeddable && playing ? (
+      embed.kind === "file" ? (
+        <video className="apod-player" src={embed.src} controls autoPlay playsInline
+          title={data.title}>
+          {t("home.apod.noVideoSupport")}
+          <a href={embed.src} target="_blank" rel="noopener noreferrer">
+            {t("home.apod.openVideo")} ↗
+          </a>
+        </video>
+      ) : (
+        <iframe className="apod-player" src={withAutoplay(embed.src)}
+          title={data.title} loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
+      )
+    ) : embeddable ? (
+      <button type="button" className="apod-play-btn"
+        onClick={() => setPlaying(true)}
+        aria-label={t("home.apod.play")}>
+        <img src={data.image} alt={data.title} loading="lazy" />
+        <span className="apod-play" aria-hidden="true">▶</span>
+      </button>
+    ) : (
+      // Unrecognized video host — fall back to opening externally.
+      <a href={data.video_url || data.image} target="_blank" rel="noopener noreferrer">
+        <img src={data.image} alt={data.title} loading="lazy" />
+        <span className="apod-play" aria-hidden="true">▶</span>
+      </a>
+    )
+  ) : (
+    <a href={data.image} target="_blank" rel="noopener noreferrer">
+      <img src={data.image} alt={data.title} loading="lazy" />
+    </a>
+  );
 
   return (
     <section className="section apod-section" style={{ paddingTop: 0 }}>
       <div className="wrap">
         <SectionHead eyebrow={t("home.apod.eyebrow")} title={t("home.apod.title")} />
         <div className="apod-card">
-          <div className="apod-media">
-            {isVideo ? (
-              <a href={data.video_url || data.image} target="_blank" rel="noopener noreferrer">
-                <img src={data.image} alt={data.title} loading="lazy" />
-                <span className="apod-play" aria-hidden="true">▶</span>
-              </a>
-            ) : (
-              <a href={data.image} target="_blank" rel="noopener noreferrer">
-                <img src={data.image} alt={data.title} loading="lazy" />
-              </a>
-            )}
-          </div>
+          <div className="apod-media">{media}</div>
           <div className="apod-text">
             <div className="apod-date">{date}</div>
             <h3 className="apod-title">{data.title}</h3>

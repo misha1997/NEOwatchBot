@@ -411,7 +411,10 @@
     "apod": {
       "eyebrow": "Фото дня NASA",
       "title": "Астрономічне фото дня",
-      "source": "Джерело: APOD NASA"
+      "source": "Джерело: APOD NASA",
+      "play": "Відтворити відео",
+      "noVideoSupport": "Ваш браузер не підтримує відтворення відео.",
+      "openVideo": "Відкрити відео"
     },
     "weather": {
       "eyebrow": "Космічна погода",
