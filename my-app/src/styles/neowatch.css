@@ -943,6 +943,30 @@ h2.section-title {
 
 .apod-play-btn:hover img { transform: scale(1.03) }
 
+/* Video preview thumbnails fill the media slot like a regular APOD image. */
+.apod-thumb-img,
+.apod-thumb-frame {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .4s
+}
+
+.apod-play-btn:hover .apod-thumb-img,
+.apod-play-btn:hover .apod-thumb-frame { transform: scale(1.03) }
+
+/* Neutral placeholder when no still can be derived (rare; raw file w/o frame). */
+.apod-thumb-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: #000;
+  color: var(--gold);
+  font-size: 22px
+}
+
 /* Embedded player (YouTube <iframe> / native <video>) fills the media slot. */
 .apod-player {
   width: 100%;

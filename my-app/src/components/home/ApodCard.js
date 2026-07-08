@@ -1,17 +1,21 @@
 // Astronomy Picture of the Day block for the homepage (under the hero).
 // Loads /api/apod (NASA APOD, with the explanation translated to the site
 // language). For image APODs, shows the photo (links to full-res). For video
-// APODs, shows the thumbnail with a play badge; clicking it loads a real
+// APODs, shows a thumbnail with a play badge; clicking it loads a real
 // embedded player inline — a YouTube <iframe> (privacy-enhanced nocookie) or a
 // native <video> element for direct media files — instead of bouncing the user
-// to an external site. Hides itself entirely when APOD is unavailable or still
-// loading, so the homepage never shows an empty frame.
+// to an external site. NASA does not always ship a thumbnail_url for videos, so
+// the preview is derived from the video URL itself (YouTube's public stills, or
+// the first frame of a raw <video>). Hides itself entirely when APOD is
+// unavailable or still loading, so the homepage never shows an empty frame.
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLang } from "../../context/LanguageContext";
 import { useApi } from "../../hooks/useApi";
 import { getApod } from "../../lib/api";
 import SectionHead from "../primitives/SectionHead";
+
+const LOOKS_LIKE_IMAGE = (s) => !!s && /^https?:\/\/.+\.(jpg|jpeg|png|webp|gif|avif)(\?|#|$)/i.test(s);
 
 // Turn a NASA APOD video URL into something we can embed inline.
 // Returns one of:
@@ -22,7 +26,6 @@ function videoEmbed(url) {
   if (!url) return null;
   try {
     const u = new URL(url);
-    // Direct media file: serve it through a native <video> element.
     if (/\.(mp4|webm|ogv|ogg|mov|m4v)(\?|#|$)/i.test(u.pathname)) {
       return { kind: "file", src: url };
     }
@@ -49,6 +52,48 @@ function videoEmbed(url) {
   }
 }
 
+function youtubeId(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") return u.pathname.slice(1).split("/")[0];
+    if (host === "youtube.com" || host === "youtube-nocookie.com") {
+      return u.searchParams.get("v") || (u.pathname.match(/\/embed\/([^/?#]+)/) || [])[1];
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+// Candidate poster images for a video APOD, best-first. NASA's thumbnail_url is
+// used when present and actually points at an image; otherwise we fall back to
+// YouTube's public stills (maxres → sd → hq). PosterImg walks the list and
+// drops a candidate on load error, so a missing maxres never shows a broken img.
+function posterCandidates(videoUrl, apiImage) {
+  const list = [];
+  if (LOOKS_LIKE_IMAGE(apiImage)) list.push(apiImage);
+  const id = youtubeId(videoUrl);
+  if (id) {
+    list.push(`https://i.ytimg.com/vi/${id}/maxresdefault.jpg`);
+    list.push(`https://i.ytimg.com/vi/${id}/sddefault.jpg`);
+    list.push(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`);
+  }
+  return list;
+}
+
+// <img> that tries a list of candidate srcs, advancing on error. Renders a
+// neutral placeholder if every candidate fails (e.g. raw .mp4 with no still).
+function PosterImg({ candidates, alt, className }) {
+  const [idx, setIdx] = useState(0);
+  const src = candidates[idx];
+  if (!src) {
+    return <div className="apod-thumb-fallback" aria-hidden="true"><span>▶</span></div>;
+  }
+  return (
+    <img className={className} src={src} alt={alt} loading="lazy"
+      onError={() => setIdx((i) => i + 1)} />
+  );
+}
+
 // Append an autoplay param to an embed URL, minding any existing query string.
 function withAutoplay(src) {
   if (!src) return src;
@@ -70,12 +115,13 @@ export default function ApodCard() {
   ) : "";
   const embed = isVideo ? videoEmbed(data.video_url) : null;
   const embeddable = embed && (embed.kind === "file" || embed.kind === "iframe");
+  const poster = isVideo ? posterCandidates(data.video_url, data.image) : [];
 
   const media = isVideo ? (
     embeddable && playing ? (
       embed.kind === "file" ? (
-        <video className="apod-player" src={embed.src} controls autoPlay playsInline
-          title={data.title}>
+        <video className="apod-player" src={`${embed.src}#t=0.5`}
+          poster={poster[0]} controls autoPlay muted playsInline title={data.title}>
           {t("home.apod.noVideoSupport")}
           <a href={embed.src} target="_blank" rel="noopener noreferrer">
             {t("home.apod.openVideo")} ↗
@@ -91,13 +137,19 @@ export default function ApodCard() {
       <button type="button" className="apod-play-btn"
         onClick={() => setPlaying(true)}
         aria-label={t("home.apod.play")}>
-        <img src={data.image} alt={data.title} loading="lazy" />
+        {embed.kind === "file" ? (
+          // Render the first frame of a raw video file as its own preview.
+          <video className="apod-thumb-frame" src={`${embed.src}#t=0.5`}
+            poster={poster[0]} preload="metadata" muted playsInline tabIndex={-1} />
+        ) : (
+          <PosterImg candidates={poster} alt={data.title} className="apod-thumb-img" />
+        )}
         <span className="apod-play" aria-hidden="true">▶</span>
       </button>
     ) : (
       // Unrecognized video host — fall back to opening externally.
       <a href={data.video_url || data.image} target="_blank" rel="noopener noreferrer">
-        <img src={data.image} alt={data.title} loading="lazy" />
+        <PosterImg candidates={poster.length ? poster : [data.image].filter(Boolean)} alt={data.title} />
         <span className="apod-play" aria-hidden="true">▶</span>
       </a>
     )
