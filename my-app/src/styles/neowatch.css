@@ -833,6 +833,180 @@ h1.hero-title .accent {
   margin-top: 1px
 }
 
+/* ---------- feedback modal ---------- */
+.fb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(9, 10, 20, .7);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 20px 20px;
+  animation: lp-fade .2s ease;
+}
+
+.fb-card {
+  width: min(480px, 92vw);
+  background: linear-gradient(180deg, rgba(20, 22, 42, .96), rgba(14, 16, 32, .96));
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .55), 0 0 0 1px rgba(232, 185, 77, .06);
+  animation: lp-pop .26s cubic-bezier(.2, .8, .2, 1);
+  overflow: hidden
+}
+
+.fb-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border)
+}
+
+.fb-ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(232, 185, 77, .12);
+  color: var(--gold);
+  border: 1px solid rgba(232, 185, 77, .25);
+  font-size: 15px
+}
+
+.fb-titles { flex: 1; min-width: 0 }
+
+.fb-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: .01em
+}
+
+.fb-sub {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 2px
+}
+
+.fb-close {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  transition: .18s
+}
+
+.fb-close:hover {
+  color: var(--text);
+  border-color: rgba(237, 238, 245, .25);
+  background: rgba(237, 238, 245, .05)
+}
+
+.fb-form {
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px
+}
+
+.fb-field { display: flex; flex-direction: column; gap: 6px }
+
+.fb-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-dim)
+}
+
+.fb-field input,
+.fb-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: rgba(237, 238, 245, .04);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  transition: .18s;
+  resize: vertical
+}
+
+.fb-field input::placeholder,
+.fb-field textarea::placeholder {
+  color: var(--text-dim)
+}
+
+.fb-field input:focus,
+.fb-field textarea:focus {
+  outline: none;
+  border-color: rgba(232, 185, 77, .45);
+  background: rgba(237, 238, 245, .06);
+  box-shadow: 0 0 0 3px rgba(232, 185, 77, .10)
+}
+
+.fb-err {
+  color: var(--coral);
+  font-size: 13px;
+  margin: -2px 0 0
+}
+
+.fb-submit {
+  justify-content: center;
+  width: 100%;
+  margin-top: 2px
+}
+
+.fb-submit:disabled {
+  opacity: .6;
+  cursor: progress
+}
+
+.fb-success {
+  padding: 36px 24px 30px;
+  text-align: center
+}
+
+.fb-ok {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  color: var(--teal);
+  background: rgba(79, 209, 197, .12);
+  border: 1px solid rgba(79, 209, 197, .35)
+}
+
+.fb-success p {
+  color: var(--text);
+  font-size: 15px;
+  margin-bottom: 20px
+}
+
+.fb-done {
+  justify-content: center
+}
+
 /* ---------- sky dome (signature element) ---------- */
 .dome-wrap {
   position: relative;
@@ -2114,6 +2288,17 @@ footer a {
 
 footer a:hover {
   color: var(--text)
+}
+
+/* Feedback button in the footer's first column — opens the feedback modal.
+   .btn.ghost gives the base button look; this just sets spacing. */
+.foot-feedback {
+  display: inline-flex;
+  margin: 18px 0 0;
+  font-size: 13px;
+  color: var(--text);
+  border-color: var(--border);
+  cursor: pointer
 }
 
 .foot-bottom {

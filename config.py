@@ -15,6 +15,12 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 GEOAPIFY_KEY = os.getenv('GEOAPIFY_KEY', '')
 DEEPL_API_KEY = os.getenv('DEEPL_API_KEY')
 
+# Feedback form (footer "Зворотній зв'язок" → modal → POST /api/feedback).
+# The bot forwards each submission to this Telegram chat (the owner's account).
+# The recipient must have started @NEOwatchBot first — a bot can only message
+# users who initiated a chat. Without BOT_TOKEN the endpoint returns 503.
+FEEDBACK_CHAT_ID = int(os.getenv('FEEDBACK_CHAT_ID', ''))
+
 # NASA API
 NASA_NEO_URL = "https://api.nasa.gov/neo/rest/v1/feed"
 NASA_APOD_URL = "https://api.nasa.gov/planetary/apod"

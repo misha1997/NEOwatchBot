@@ -62,5 +62,24 @@ export const getTle = (group, limit = 300, lang) =>
   fetchJSON(API + "/tle?group=" + group + "&limit=" + limit + (lang ? "&lang=" + lang : ""));
 export const getTleGroups = (lang) => fetchJSON(API + "/tle/groups" + withLang("", lang));
 
+// Feedback form (footer modal). Returns {ok:true} on success; on failure
+// throws with .status so the modal can map 503 → "service unavailable" etc.
+export async function sendFeedback({ name, email, message }) {
+  const r = await fetch(API + "/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, message }),
+  });
+  let data = null;
+  try { data = await r.json(); } catch (_) { /* empty body */ }
+  if (!r.ok) {
+    const err = new Error("feedback " + r.status);
+    err.status = r.status;
+    err.error = data && data.error;
+    throw err;
+  }
+  return data || { ok: true };
+}
+
 // Pass fetchJSON through for ad-hoc use.
 export { fetchJSON };

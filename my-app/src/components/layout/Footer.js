@@ -1,10 +1,13 @@
 // Site footer (index.html footer). Links are mostly internal routes.
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BOT_URL } from "../../lib/constants";
+import FeedbackModal from "../FeedbackModal";
 
 export default function Footer() {
   const { t } = useTranslation();
+  const [fbOpen, setFbOpen] = useState(false);
   return (
     <footer>
       <div className="wrap">
@@ -17,6 +20,9 @@ export default function Footer() {
             <p style={{ color: "var(--text-dim)", fontSize: 13.5, maxWidth: 280 }}>
               {t("footer.intro")}
             </p>
+            <button className="btn ghost foot-feedback" onClick={() => setFbOpen(true)}>
+              ✉ {t("footer.feedback")}
+            </button>
           </div>
           <div>
             <h5>{t("footer.colSky")}</h5>
@@ -40,6 +46,7 @@ export default function Footer() {
           <span>{t("footer.made")}</span>
         </div>
       </div>
+      <FeedbackModal open={fbOpen} onClose={() => setFbOpen(false)} />
     </footer>
   );
 }

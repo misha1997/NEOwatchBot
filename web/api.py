@@ -10,9 +10,12 @@ from __future__ import annotations
 import logging
 
 from fastapi import APIRouter, Query, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 from config import DEFAULT_LAT, DEFAULT_LON
 from web import data
+from web.feedback import FeedbackNotConfigured, send_feedback_telegram
 
 logger = logging.getLogger(__name__)
 
@@ -208,3 +211,40 @@ async def tle(
 async def tle_groups(lang: str = LANG_Q):
     """Registry of available satellite groups for the map UI."""
     return data.tle_groups(lang)
+
+
+class FeedbackPayload(BaseModel):
+    name: str = Field("", max_length=120)
+    email: str = Field("", max_length=200)
+    message: str = Field(..., min_length=1, max_length=5000)
+
+
+@router.post("/feedback")
+async def feedback(payload: FeedbackPayload):
+    """Site feedback form → forwarded to the owner's Telegram chat via the bot.
+
+    Returns 503 when the bot isn't configured (no BOT_TOKEN → modal shows
+    "service unavailable"), 422 on invalid input, 500 on a send failure. The
+    endpoint never raises into a 5xx stack trace — failures are logged and
+    returned as JSON.
+    """
+    # Light email sanity check (no external email-validator dependency). A
+    # malformed address is just rejected; the message doesn't go out.
+    email = payload.email.strip()
+    if email and ("@" not in email or " " in email or len(email) < 3):
+        return JSONResponse({"ok": False, "error": "bad_email"}, status_code=422)
+    try:
+        await send_feedback_telegram(payload.name, email, payload.message)
+    except FeedbackNotConfigured:
+        logger.warning("Feedback submitted but BOT_TOKEN not configured")
+        return JSONResponse(
+            {"ok": False, "error": "unavailable"},
+            status_code=503,
+        )
+    except Exception as exc:  # noqa: BLE001 — send errors must not 500-stack
+        logger.error("Feedback send failed: %s", exc)
+        return JSONResponse(
+            {"ok": False, "error": "send_failed"},
+            status_code=500,
+        )
+    return {"ok": True}
