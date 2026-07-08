@@ -1,7 +1,7 @@
 // SPA routes — one per legacy HTML page. Lazy-loaded so the heavy Leaflet /
 // Chart.js / satellite.js bundles only download on the pages that need them.
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
 import { LocationProvider } from "./context/LocationContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { PickerProvider } from "./components/LocationPickerModal";
@@ -28,9 +28,24 @@ function Loading() {
   return <div style={{ height: "60vh" }} />;
 }
 
+// GA4 pageview on every SPA route change. The gtag() snippet in
+// public/index.html fires the initial pageview; this sends the rest so
+// client-side navigations (e.g. / -> /iss) are tracked too.
+function RouteTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    if (typeof window.gtag !== "function") return;
+    window.gtag("event", "page_view", {
+      page_path: location.pathname + location.search + location.hash,
+    });
+  }, [location.pathname, location.search, location.hash]);
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <RouteTracker />
       <LanguageProvider>
       <LocationProvider>
         <PickerProvider>

@@ -19,6 +19,16 @@
     <link rel="mask-icon" href="%PUBLIC_URL%/favicon.svg" color="#0a0b1a" />
     <link rel="manifest" href="%PUBLIC_URL%/site.webmanifest" />
 
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-KLMW1HCT15"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-KLMW1HCT15');
+    </script>
+
     <!-- Per-route SEO head. Default = homepage (dev/fallback). The FastAPI
          _spa catch-all rewrites this block per requested path + ?lang= so
          non-JS crawlers see the right title/description/canonical/OG/JSON-LD.
