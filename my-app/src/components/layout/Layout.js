@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Header from "./Header";
 import Footer from "./Footer";
 import Starfield from "../Starfield";
+import CookieBanner from "../CookieBanner";
 import { useSeo } from "../../hooks/useSeo";
 
 export default function Layout() {
@@ -21,6 +22,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <Footer />
+      <CookieBanner />
     </>
   );
 }
