@@ -21,6 +21,7 @@ const Deep = lazy(() => import("./pages/Deep"));
 const Voyager = lazy(() => import("./pages/Voyager"));
 const Comets = lazy(() => import("./pages/Comets"));
 const Exoplanets = lazy(() => import("./pages/Exoplanets"));
+const Constellations = lazy(() => import("./pages/Constellations"));
 // RtlSdr / Community pages are kept on disk but currently unlinked — their
 // routes are disabled. Re-add the lazy imports + <Route>s below to restore.
 
@@ -65,6 +66,7 @@ export default function App() {
                 <Route path="/voyager" element={<Voyager />} />
                 <Route path="/comets" element={<Comets />} />
                 <Route path="/exoplanets" element={<Exoplanets />} />
+                <Route path="/constellations" element={<Constellations />} />
                 {/* RtlSdr (/rtl-sdr) and Community (/community) routes disabled —
                     pages kept on disk but unlinked. Re-enable above to restore. */}
                 <Route path="*" element={<NotFound />} />

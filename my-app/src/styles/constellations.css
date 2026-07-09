@@ -1,0 +1,316 @@
+/* ---------- constellations: interactive map ---------- */
+.constellation-map-wrap {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  overflow: hidden;
+  position: relative;
+  background: radial-gradient(ellipse at 50% 28%, #10142e 0%, #05060d 72%);
+  user-select: none;
+}
+.constellation-map-wrap svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Constellation lines and stars */
+.const-line {
+  stroke: rgba(237, 238, 245, 0.12);
+  stroke-width: 1.0;
+  transition: stroke 0.2s, stroke-width 0.2s, filter 0.2s;
+  fill: none;
+}
+.const-star {
+  fill: rgba(237, 238, 245, 0.45);
+  transition: fill 0.2s, r 0.2s, filter 0.2s;
+  cursor: pointer;
+}
+.const-star.bright {
+  fill: #fff;
+  animation: nwPulseStar 2.6s ease-in-out infinite;
+}
+.const-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+.const-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--text-dim);
+  text-anchor: middle;
+  letter-spacing: 0.03em;
+  transition: fill 0.2s, font-weight 0.2s;
+  pointer-events: none;
+}
+
+/* Background stars */
+.bg-star {
+  fill: #fff;
+  transition: opacity 0.2s;
+}
+.bg-star.twinkle {
+  animation: nwTwinkle 3.4s ease-in-out infinite;
+}
+
+@keyframes nwTwinkle {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.95; }
+}
+@keyframes nwPulseStar {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.9); }
+}
+
+/* Interactive hover and active states on constellations */
+.const-group {
+  cursor: pointer;
+}
+.const-group:hover .const-line {
+  stroke: rgba(232, 185, 77, 0.65);
+  stroke-width: 1.4;
+  filter: drop-shadow(0 0 3px rgba(232, 185, 77, 0.55));
+}
+.const-group:hover .const-star {
+  fill: var(--gold);
+  filter: drop-shadow(0 0 3px rgba(232, 185, 77, 0.7));
+}
+.const-group:hover .const-label {
+  fill: var(--gold);
+}
+
+.const-group.active .const-line {
+  stroke: var(--teal);
+  stroke-width: 1.8;
+  filter: drop-shadow(0 0 3px rgba(79, 209, 197, 0.6));
+}
+.const-group.active .const-star {
+  fill: var(--teal);
+  filter: drop-shadow(0 0 3px rgba(79, 209, 197, 0.7));
+}
+.const-group.active .const-star.bright {
+  fill: #fff;
+}
+.const-group.active .const-label {
+  fill: var(--teal);
+  font-weight: 600;
+}
+
+/* Season highlight */
+.const-group.in-season .const-star {
+  fill: #FFC873;
+}
+.const-group.in-season .const-line {
+  stroke: rgba(232, 185, 77, 0.45);
+}
+.const-pill .seasonbadge {
+  display: none;
+  margin-left: 6px;
+  color: var(--gold);
+}
+.const-pill.in-season .seasonbadge {
+  display: inline;
+}
+
+/* Grid & Axes */
+.sky-axis {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--text-dim);
+  opacity: 0.5;
+}
+.sky-grid-line {
+  stroke: var(--border);
+  stroke-width: 0.8;
+  stroke-opacity: 0.4;
+}
+
+/* Floating hover tooltip */
+.const-tooltip {
+  position: fixed;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  background: var(--panel-solid);
+  border: 1px solid rgba(232, 185, 77, 0.3);
+  border-radius: 10px;
+  padding: 12px 15px;
+  max-width: 260px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.const-tooltip.show {
+  opacity: 1;
+}
+.const-tooltip .tt-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--text);
+}
+.const-tooltip .tt-sub {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--gold);
+  margin-top: 3px;
+}
+.const-tooltip .tt-myth {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  margin-top: 7px;
+  line-height: 1.5;
+}
+
+/* Geolocation / Sky Tonight Panel */
+.geo-panel {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+  padding: 22px;
+  margin-bottom: 22px;
+}
+.geo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.geo-status {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin-top: 12px;
+  min-height: 18px;
+}
+.geo-status.ok {
+  color: var(--teal);
+}
+.geo-status.err {
+  color: var(--coral);
+}
+
+/* Constellation picker pills */
+.const-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+.const-pill {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  background: transparent;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.const-pill:hover {
+  color: var(--text);
+  border-color: rgba(237, 238, 245, 0.25);
+}
+.const-pill.active {
+  color: var(--teal);
+  border-color: rgba(79, 209, 197, 0.4);
+  background: rgba(79, 209, 197, 0.08);
+}
+
+/* Info Panel */
+.const-info-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+  padding: 24px;
+  min-height: 260px;
+}
+.const-info-card .lat {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.const-info-card h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  margin-top: 10px;
+}
+.const-info-card .myth {
+  font-size: 13.5px;
+  color: var(--text-dim);
+  margin-top: 14px;
+  line-height: 1.7;
+}
+.const-info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.const-info-row:last-of-type {
+  border-bottom: none;
+}
+.const-info-row span:last-child {
+  font-family: var(--font-mono);
+  color: var(--gold);
+}
+
+/* Quiz Section */
+.quiz-shape {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(237, 238, 245, 0.02);
+  padding: 18px;
+  max-width: 340px;
+}
+.quiz-shape svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.quiz-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+.quiz-btn {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: rgba(237, 238, 245, 0.03);
+  cursor: pointer;
+  transition: 0.2s;
+}
+.quiz-btn:hover {
+  background: rgba(237, 238, 245, 0.06);
+}
+.quiz-btn.correct {
+  border-color: rgba(79, 209, 197, 0.5);
+  background: rgba(79, 209, 197, 0.14);
+  color: var(--teal);
+}
+.quiz-btn.wrong {
+  border-color: rgba(255, 107, 74, 0.5);
+  background: rgba(255, 107, 74, 0.12);
+  color: var(--coral);
+}
+.quiz-feedback {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin-top: 12px;
+  min-height: 18px;
+}
+
+@media(max-width:900px) {
+  .quiz-choices {
+    grid-template-columns: 1fr;
+  }
+}

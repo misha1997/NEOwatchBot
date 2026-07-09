@@ -10,6 +10,7 @@ export const NAV_GROUPS = [
   { to: "/", labelKey: "nav.home", end: true },
   { labelKey: "nav.sky_group", items: [
     { to: "/sky", labelKey: "nav.sky" },
+    { to: "/constellations", labelKey: "nav.constellations" },
     { to: "/meteors", labelKey: "nav.meteors" },
     { to: "/events", labelKey: "nav.events" },
   ]},

@@ -15,11 +15,8 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 GEOAPIFY_KEY = os.getenv('GEOAPIFY_KEY', '')
 DEEPL_API_KEY = os.getenv('DEEPL_API_KEY')
 
-# Feedback form (footer "Зворотній зв'язок" → modal → POST /api/feedback).
-# The bot forwards each submission to this Telegram chat (the owner's account).
-# The recipient must have started @NEOwatchBot first — a bot can only message
-# users who initiated a chat. Without BOT_TOKEN the endpoint returns 503.
-FEEDBACK_CHAT_ID = int(os.getenv('FEEDBACK_CHAT_ID', ''))
+_chat_id_val = os.getenv('FEEDBACK_CHAT_ID', '')
+FEEDBACK_CHAT_ID = int(_chat_id_val) if (_chat_id_val.isdigit() or (_chat_id_val.startswith('-') and _chat_id_val[1:].isdigit())) else None
 
 # NASA API
 NASA_NEO_URL = "https://api.nasa.gov/neo/rest/v1/feed"
@@ -29,9 +26,9 @@ NASA_APOD_URL = "https://api.nasa.gov/planetary/apod"
 N2YO_BASE_URL = "https://api.n2yo.com/rest/v1/satellite"
 
 # Default location (Kyiv, Ukraine)
-DEFAULT_LAT = float(os.getenv('DEFAULT_LAT', ''))
-DEFAULT_LON = float(os.getenv('DEFAULT_LON', ''))
-DEFAULT_ALT = int(os.getenv('DEFAULT_ALT', ''))
+DEFAULT_LAT = float(os.getenv('DEFAULT_LAT', '50.4501'))
+DEFAULT_LON = float(os.getenv('DEFAULT_LON', '30.5234'))
+DEFAULT_ALT = int(os.getenv('DEFAULT_ALT', '0'))
 
 # Database Configuration
 DB_HOST = os.getenv('DB_HOST', 'localhost')

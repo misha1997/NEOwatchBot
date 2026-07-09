@@ -40,11 +40,11 @@ def _trunc(s: str, n: int) -> str:
 async def send_feedback_telegram(name: str, email: str, message: str) -> None:
     """Forward a feedback submission to FEEDBACK_CHAT_ID via the bot.
 
-    Raises :class:`FeedbackNotConfigured` if ``BOT_TOKEN`` is unset.
+    Raises :class:`FeedbackNotConfigured` if ``BOT_TOKEN`` or ``FEEDBACK_CHAT_ID`` is unset.
     """
     token = os.getenv("BOT_TOKEN")
-    if not token:
-        raise FeedbackNotConfigured("BOT_TOKEN not set")
+    if not token or not FEEDBACK_CHAT_ID:
+        raise FeedbackNotConfigured("BOT_TOKEN or FEEDBACK_CHAT_ID not set")
 
     name = _trunc(name, _MAX_NAME)
     email = _trunc(email, _MAX_EMAIL)

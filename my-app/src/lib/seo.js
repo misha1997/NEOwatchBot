@@ -10,6 +10,7 @@ export const ROUTES = {
   satellites: "satellites",
   weather: "weather",
   sky: "sky",
+  constellations: "constellations",
   meteors: "meteors",
   asteroids: "asteroids",
   events: "events",
