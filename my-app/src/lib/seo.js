@@ -11,6 +11,7 @@ export const ROUTES = {
   weather: "weather",
   sky: "sky",
   constellations: "constellations",
+  mast: "mast",
   meteors: "meteors",
   asteroids: "asteroids",
   events: "events",

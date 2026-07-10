@@ -23,6 +23,7 @@ export const NAV_GROUPS = [
     { to: "/asteroids", labelKey: "nav.asteroids" },
     { to: "/comets", labelKey: "nav.comets" },
     { to: "/exoplanets", labelKey: "nav.exoplanets" },
+    { to: "/mast", labelKey: "nav.mast" },
     { to: "/deep", labelKey: "nav.deep" },
     { to: "/voyager", labelKey: "nav.voyager" },
   ]},

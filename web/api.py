@@ -248,3 +248,15 @@ async def feedback(payload: FeedbackPayload):
             status_code=500,
         )
     return {"ok": True}
+
+
+@router.get("/mast/lightcurve")
+async def mast_lightcurve(target: str = Query(..., min_length=1, description="Target name or TIC ID")):
+    """TESS/Kepler lightcurve for a star."""
+    return await data.get_mast_lightcurve(target)
+
+
+@router.get("/mast/hubble-jwst")
+async def mast_hubble_jwst():
+    """Recent science observations from HST/JWST."""
+    return await data.get_mast_hubble_jwst()

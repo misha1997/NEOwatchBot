@@ -231,6 +231,7 @@ class ExoplanetAPI:
             "featured": featured,
             "scatter": scatter,
             "catalog": catalog,
+            "candidates": candidates,
             "updated": date.today().isoformat(),
             "source": "NASA Exoplanet Archive",
             "source_url": "https://exoplanetarchive.ipac.caltech.edu/",

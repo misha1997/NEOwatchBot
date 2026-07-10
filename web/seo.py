@@ -60,6 +60,7 @@ ROUTES: list[tuple[str, str]] = [
     ("weather", "weather"),
     ("sky", "sky"),
     ("constellations", "constellations"),
+    ("mast", "mast"),
     ("meteors", "meteors"),
     ("asteroids", "asteroids"),
     ("events", "events"),

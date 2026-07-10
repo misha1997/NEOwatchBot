@@ -1411,3 +1411,24 @@ def _exoplanets_raw() -> dict:
 
 async def get_exoplanets() -> dict:
     return await asyncio.to_thread(get_or_fetch, "exoplanets", EXO_TTL, _exoplanets_raw)
+
+
+# ---------------------------------------------------------------------------
+# MAST (Kepler/TESS archives)
+# ---------------------------------------------------------------------------
+
+def _mast_lightcurve_raw(target: str) -> dict:
+    from services.mast import MastService
+    res = MastService.query_star_lightcurve(target)
+    return res or {}
+
+async def get_mast_lightcurve(target: str) -> dict:
+    key = f"mast_lc:{target.strip().upper()}"
+    return await asyncio.to_thread(get_or_fetch, key, 86400, lambda: _mast_lightcurve_raw(target))
+
+def _mast_hubble_jwst_raw() -> list:
+    from services.mast import MastService
+    return MastService.get_hubble_jwst_recent_obs()
+
+async def get_mast_hubble_jwst() -> list:
+    return await asyncio.to_thread(get_or_fetch, "mast_hj", 43200, _mast_hubble_jwst_raw)

@@ -62,6 +62,11 @@ export const getTle = (group, limit = 300, lang) =>
   fetchJSON(API + "/tle?group=" + group + "&limit=" + limit + (lang ? "&lang=" + lang : ""));
 export const getTleGroups = (lang) => fetchJSON(API + "/tle/groups" + withLang("", lang));
 
+// MAST Archive endpoints
+export const getMastLightcurve = (target) =>
+  fetchJSON(API + "/mast/lightcurve?target=" + encodeURIComponent(target));
+export const getMastHubbleJwst = () => fetchJSON(API + "/mast/hubble-jwst");
+
 // Feedback form (footer modal). Returns {ok:true} on success; on failure
 // throws with .status so the modal can map 503 → "service unavailable" etc.
 export async function sendFeedback({ name, email, message }) {
