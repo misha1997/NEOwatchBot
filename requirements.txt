@@ -8,3 +8,5 @@ mysql-connector-python
 skyfield
 fastapi
 uvicorn[standard]
+lightkurve
+astroquery
