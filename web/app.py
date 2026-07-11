@@ -32,6 +32,15 @@ from web.seo import build_robots_txt, build_sitemap_xml, render_html
 
 logger = logging.getLogger(__name__)
 
+# Make scheduler/service INFO logs visible in the journal. Uvicorn's default
+# root logger level can be WARNING, which silently hides the scheduler's
+# "Checking…/No subscribers/Sent …/Scheduler started" progress lines — leaving
+# us blind to why notifications don't go out. Force root (and its handlers) to
+# INFO so these reach stdout/journal alongside uvicorn's own logs.
+logging.getLogger().setLevel(logging.INFO)
+for _h in logging.getLogger().handlers:
+    _h.setLevel(logging.INFO)
+
 # React SPA build (production). The SPA is the only served frontend; build it
 # first with `npm run build` in my-app/ before starting the server.
 REACT_BUILD_DIR = Path(__file__).resolve().parent.parent / "my-app" / "build"

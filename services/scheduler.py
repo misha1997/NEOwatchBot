@@ -91,11 +91,25 @@ class NotificationScheduler:
                     media_type = data.get('media_type', 'image')
 
                     if media_type == 'video':
-                        # Send video
-                        await self.bot.send_video(
+                        # APOD videos are YouTube embeds — send_video rejects
+                        # those ("Wrong type of the web page content"). Send
+                        # the thumbnail as a photo and link the video below.
+                        thumb = formatted.get('image')
+                        if thumb:
+                            await self.bot.send_photo(
+                                chat_id=chat_id,
+                                photo=thumb,
+                                caption=formatted['caption'][:1024],
+                                parse_mode=ParseMode.HTML
+                            )
+                        video_url = formatted.get('video_url') or ''
+                        link_line = (
+                            f"\n🎬 <a href='{video_url}'>{t('apod.watch_video', lang)}</a>\n"
+                            if video_url else ''
+                        )
+                        await self.bot.send_message(
                             chat_id=chat_id,
-                            video=formatted['image'],
-                            caption=formatted['caption'][:1024],  # Telegram limit
+                            text=formatted['text'] + link_line,
                             parse_mode=ParseMode.HTML
                         )
                     else:
@@ -107,12 +121,12 @@ class NotificationScheduler:
                             parse_mode=ParseMode.HTML
                         )
 
-                    # Send description as separate message
-                    await self.bot.send_message(
-                        chat_id=chat_id,
-                        text=formatted['text'],
-                        parse_mode=ParseMode.HTML
-                    )
+                        # Send description as separate message
+                        await self.bot.send_message(
+                            chat_id=chat_id,
+                            text=formatted['text'],
+                            parse_mode=ParseMode.HTML
+                        )
 
                     # Update last sent date
                     update_last_apod_date(user['user_id'], apod_date)

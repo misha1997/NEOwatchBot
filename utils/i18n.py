@@ -218,6 +218,7 @@ TRANSLATIONS = {
         'neo.api_error': '❌ Не вдалося отримати дані про астероїди',
         'apod.full_apod': '🌌 <b>{title}</b>\n📅 {date}\n\n{explanation}\n\n🌐 apod.nasa.gov',
         'apod.caption': '🌌 <b>Фото дня від NASA</b>\n\n📅 {date}\n📷 {title}\n\n<i>Повний опис нижче ↓</i>',
+        'apod.watch_video': 'Дивитися відео',
 
         # --- Compass / hemispheres ---
         'compass.N': 'північ',
@@ -827,6 +828,7 @@ TRANSLATIONS = {
         'neo.api_error': '❌ Could not retrieve asteroid data',
         'apod.full_apod': '🌌 <b>{title}</b>\n📅 {date}\n\n{explanation}\n\n🌐 apod.nasa.gov',
         'apod.caption': '🌌 <b>NASA Photo of the day</b>\n\n📅 {date}\n📷 {title}\n\n<i>Full description below ↓</i>',
+        'apod.watch_video': 'Watch the video',
 
         # --- Compass / hemispheres ---
         'compass.N': 'north',
