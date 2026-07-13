@@ -143,6 +143,53 @@ class NasaAPI:
             return None
 
     @staticmethod
+    def get_apod_archive(start_date: str, end_date: str):
+        """Fetch a date range of APOD entries (NASA APOD supports ``start_date``
+        + ``end_date``; with a range the API returns a JSON array).
+
+        Each entry mirrors ``get_apod`` plus ``thumbnail`` and the raw
+        ``copyright`` field. Returns ``[]`` on any error so the site can render
+        an empty archive instead of crashing.
+        """
+        try:
+            params = {
+                'api_key': NASA_API_KEY,
+                'start_date': start_date,
+                'end_date': end_date,
+                'thumbs': 'True',
+            }
+            logger.info(f"Fetching APOD archive {start_date}..{end_date}")
+            response = requests.get(NASA_APOD_URL, params=params, timeout=15)
+            if response.status_code != 200:
+                logger.error(f"APOD archive API error: {response.status_code} - {response.text[:200]}")
+                return []
+            data = response.json()
+            if not isinstance(data, list):
+                # Single-day response is a dict — normalise to a one-item list.
+                data = [data] if isinstance(data, dict) else []
+            out = []
+            for d in data:
+                if not isinstance(d, dict):
+                    continue
+                media_type = d.get('media_type', 'image')
+                out.append({
+                    'title': d.get('title', ''),
+                    'date': d.get('date', ''),
+                    'explanation': d.get('explanation', '') or '',
+                    'url': d.get('url', ''),
+                    'hdurl': d.get('hdurl', '') or d.get('url', ''),
+                    'media_type': media_type,
+                    'thumbnail': d.get('thumbnail_url', '') or '',
+                    'copyright': d.get('copyright', '') or '',
+                })
+            # Most-recent first (NASA returns oldest→newest).
+            out.sort(key=lambda x: x['date'], reverse=True)
+            return out
+        except Exception as e:
+            logger.error(f"APOD archive API error: {e}")
+            return []
+
+    @staticmethod
     def format_apod(data, lang=DEFAULT_LANG):
         """Format APOD for Telegram (returns photo + text separately for long captions)"""
         title = data['title']

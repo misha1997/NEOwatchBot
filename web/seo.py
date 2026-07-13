@@ -69,6 +69,7 @@ ROUTES: list[tuple[str, str]] = [
     ("voyager", "voyager"),
     ("comets", "comets"),
     ("exoplanets", "exoplanets"),
+    ("gallery", "gallery"),
     # /rtl-sdr and /community pages are kept on disk but currently unlinked
     # (routes disabled in App.js). They resolve to the 404 head here and are
     # omitted from the sitemap. Re-add to restore indexing.

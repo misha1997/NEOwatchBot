@@ -145,6 +145,38 @@ async def apod(lang: str = LANG_Q):
     return await data.get_apod(lang)
 
 
+@router.get("/apod/archive")
+async def apod_archive(
+    start: str | None = Query(None, description="Start date YYYY-MM-DD (default: 30 days ago)"),
+    end: str | None = Query(None, description="End date YYYY-MM-DD (default: today)"),
+    lang: str = LANG_Q,
+):
+    """A date range of NASA APOD entries for the photo/video gallery page.
+
+    Defaults to the last 30 days; the span is capped at 60 days to keep the
+    NASA request light. Returns ``[]`` if NASA is unreachable.
+    """
+    from datetime import date, timedelta
+
+    today = date.today()
+    # NASA publishes a day's APOD during that day (US time); requesting today
+    # often 400s ("Date must be between Jun 16, 1995 and <yesterday>"). Default
+    # the window to end yesterday so the out-of-the-box query always resolves.
+    end_d = date.fromisoformat(end) if end else (today - timedelta(days=1))
+    # Clamp an explicit future end to today (NASA rejects anything past "now").
+    if end_d > today:
+        end_d = today
+    start_d = date.fromisoformat(start) if start else (end_d - timedelta(days=29))
+    # Enforce ordering + a 60-day ceiling so a bad query can't pull a huge range.
+    if start_d > end_d:
+        start_d, end_d = end_d, start_d
+    if (end_d - start_d).days > 60:
+        start_d = end_d - timedelta(days=60)
+    return await data.get_apod_archive(
+        start_d.isoformat(), end_d.isoformat(), lang
+    )
+
+
 @router.get("/debris")
 async def debris():
     """Curated space-debris statistics (ESA Space Environment Report)."""

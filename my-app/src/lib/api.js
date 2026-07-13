@@ -35,6 +35,16 @@ export const getLaunches = () => fetchJSON(API + "/launches");
 export const getIssCrew = (lang) => fetchJSON(API + "/iss/crew" + withLang("", lang));
 export const getMars = () => fetchJSON(API + "/mars");
 export const getApod = (lang) => fetchJSON(API + "/apod" + withLang("", lang));
+// APOD archive — a date range of NASA pictures/videos for the gallery page.
+// `start`/`end` are "YYYY-MM-DD"; omit for the last 30 days. Span capped at 60d server-side.
+export const getApodArchive = (start, end, lang) => {
+  const p = new URLSearchParams();
+  if (start) p.set("start", start);
+  if (end) p.set("end", end);
+  if (lang) p.set("lang", lang);
+  const qs = p.toString();
+  return fetchJSON(API + "/apod/archive" + (qs ? "?" + qs : ""));
+};
 export const getDebris = () => fetchJSON(API + "/debris");
 export const getGrb = (limit = 12) => fetchJSON(API + "/grb?limit=" + limit);
 export const getVoyager = () => fetchJSON(API + "/voyager");

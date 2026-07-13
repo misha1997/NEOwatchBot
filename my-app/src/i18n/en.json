@@ -92,7 +92,8 @@
     "sunradio_group": "Sun & radio",
     "weather": "Space weather",
     "rtl": "Radio",
-    "community": "Community"
+    "community": "Community",
+    "gallery": "Photo archive"
   },
   "header": {
     "tagline": "LIGHT FROM ORBIT",
@@ -160,6 +161,7 @@
     "exoplanets": "Exoplanets (TESS) — OrbitLight",
     "rtl": "Radio astronomy — OrbitLight",
     "community": "Community — OrbitLight",
+    "gallery": "NASA photo archive — OrbitLight",
     "404": "Not found — OrbitLight"
   },
   "seo": {
@@ -181,6 +183,7 @@
       "exoplanets": "Exoplanets: the latest TESS discoveries, sizes and orbits of planets around other stars, and the habitable zone.",
       "rtl": "Radio astronomy: meteor pings, Jupiter and solar spectra received on an SDR receiver.",
       "community": "OrbitLight community: forum, photo gallery, observation diaries and local groups.",
+      "gallery": "NASA photo archive: the Astronomy Picture of the Day by date — Hubble, James Webb, probes and rover imagery with translated descriptions.",
       "404": "Page not found — return to the OrbitLight home page to see the sky now."
     }
   },
@@ -1248,6 +1251,23 @@
         "v2_now": "Over 139 AU from the Sun, sending interstellar data from the southern direction."
       }
     }
+  },
+  "gallery": {
+    "title": "Photo",
+    "titleAccent": "archive",
+    "desc": "NASA's Astronomy Picture of the Day — one for every day. Hubble and James Webb imagery, probes and rovers, from distant galaxies to our own sky. Click a photo to see the details.",
+    "loading": "Loading the NASA archive…",
+    "loadingMore": "Loading…",
+    "loadOlder": "Load older ↓",
+    "error": "Couldn't load the archive. Try again later.",
+    "empty": "The archive is temporarily unavailable. Try again later.",
+    "video": "Video",
+    "photo": "Photo",
+    "prev": "Previous",
+    "next": "Next",
+    "close": "Close",
+    "openVideo": "Open video",
+    "source": "Source: NASA APOD"
   },
   "rtl": {
     "hero": {

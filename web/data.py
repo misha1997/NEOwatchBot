@@ -1348,6 +1348,69 @@ async def get_apod(lang: str = DEFAULT_LANG) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# APOD archive — a date range of NASA Astronomy Pictures of the Day, for the
+# site's photo/video gallery page. Each entry is the per-day APOD (image or
+# video) with a translated explanation.
+# ---------------------------------------------------------------------------
+
+APOD_ARCHIVE_TTL = 6 * 3600  # past days never change; refresh gently
+
+
+def _apod_archive_raw(start: str, end: str, lang: str = DEFAULT_LANG) -> list:
+    """Fetch ``[start, end]`` APOD entries and translate each explanation.
+
+    Returns a list of dicts (most-recent first):
+    ``{date, title, explanation, image, thumb, media_type, video_url, credit}``.
+    ``image`` is the best available (HD for image APODs) — used by the lightbox;
+    ``thumb`` is the lightweight standard-res ``url`` — used by the grid so a
+    page of 12 tiles isn't tens of MB of HD imagery. Fail-soft: ``[]`` if NASA
+    is unreachable.
+    """
+    entries = NasaAPI.get_apod_archive(start, end)
+    if not entries:
+        return []
+
+    out = []
+    for e in entries:
+        explanation = e.get("explanation", "") or ""
+        if lang == "en":
+            expl = explanation
+        else:
+            try:
+                expl = Translator.translate(explanation, "en", "uk") or explanation
+            except Exception:
+                expl = explanation
+
+        media_type = e.get("media_type", "image")
+        if media_type == "video":
+            image = e.get("thumbnail") or e.get("url")
+            thumb = image
+        else:
+            # HD for the lightbox, standard `url` (~1280px, ~200–500 KB) for the grid.
+            image = e.get("hdurl") or e.get("url")
+            thumb = e.get("url") or image
+
+        out.append({
+            "date": e.get("date", ""),
+            "title": e.get("title", ""),
+            "explanation": expl,
+            "image": image,
+            "thumb": thumb,
+            "media_type": media_type,
+            "video_url": e.get("url") if media_type == "video" else None,
+            "credit": e.get("copyright") or "",
+        })
+    return out
+
+
+async def get_apod_archive(start: str, end: str, lang: str = DEFAULT_LANG) -> list:
+    key = f"apod_archive:{start}:{end}:{lang}"
+    return await asyncio.to_thread(
+        get_or_fetch, key, APOD_ARCHIVE_TTL, lambda: _apod_archive_raw(start, end, lang)
+    )
+
+
+# ---------------------------------------------------------------------------
 # Space debris (curated ESA figures)
 # ---------------------------------------------------------------------------
 

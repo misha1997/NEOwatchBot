@@ -1,0 +1,1228 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Космічне радіо наживо — NEOwatch</title>
+<meta name="description" content="Слухай радіоефір космосу: сплески Сонця, голос МКС, аматорські супутники та лінію нейтрального водню — п'ять живих джерел в одному місці.">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --bg:#090A14;
+  --bg-alt:#0D0F1C;
+  --panel:#12142790;
+  --panel-solid:#12142a;
+  --grid-line:rgba(232,185,77,.16);
+  --gold:#E8B94D;
+  --gold-dim:#8A6E30;
+  --teal:#4FD1C5;
+  --coral:#FF6B4A;
+  --text:#EDEEF5;
+  --text-dim:#8B90AC;
+  --border:rgba(237,238,245,.09);
+  --font-display:'Unbounded',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  line-height:1.55;
+  overflow-x:hidden;
+  position:relative;
+}
+#starfield{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.75}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+img{max-width:100%;display:block}
+
+/* ---------- header ---------- */
+header.site{
+  position:sticky;top:0;z-index:50;
+  background:linear-gradient(to bottom, rgba(9,10,20,.92), rgba(9,10,20,.7));
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:600;font-size:18px;letter-spacing:.02em}
+.logo .mark{width:11px;height:11px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px 2px var(--gold)}
+.logo small{display:block;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.18em;color:var(--text-dim);font-weight:400;margin-top:2px}
+nav.links{display:flex;gap:6px;align-items:center}
+nav.links a{
+  font-size:13.5px;color:var(--text-dim);padding:9px 14px;border-radius:8px;
+  transition:.2s;font-weight:500;
+}
+nav.links a:hover{color:var(--text);background:rgba(237,238,245,.05)}
+nav.links a.active{color:var(--gold);background:rgba(232,185,77,.08)}
+.cta-btn{
+  font-family:var(--font-mono);font-size:12.5px;font-weight:500;color:var(--bg)!important;
+  background:linear-gradient(135deg,var(--gold),#f3d788);
+  padding:9px 16px;border-radius:8px;margin-left:8px;letter-spacing:.02em;
+  box-shadow:0 0 0 rgba(232,185,77,0);transition:.25s;
+}
+.cta-btn:hover{box-shadow:0 4px 20px rgba(232,185,77,.35);transform:translateY(-1px)}
+.burger{display:none;background:none;border:0;color:var(--text);font-size:22px}
+
+/* ---------- eyebrow / labels ---------- */
+.eyebrow{
+  font-family:var(--font-mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--teal);display:flex;align-items:center;gap:8px;margin-bottom:14px;
+}
+.eyebrow::before{content:'';width:16px;height:1px;background:var(--teal)}
+.eyebrow.gold{color:var(--gold)}
+.eyebrow.gold::before{background:var(--gold)}
+
+/* ---------- hero ---------- */
+.hero{padding:64px 0 40px;position:relative}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+h1.hero-title{
+  font-family:var(--font-display);font-weight:800;font-size:clamp(34px,4.6vw,58px);
+  line-height:1.05;letter-spacing:-.01em;
+}
+h1.hero-title .accent{color:var(--gold)}
+.hero-sub{color:var(--text-dim);font-size:16.5px;max-width:480px;margin-top:18px}
+.hero-actions{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+.btn{
+  font-family:var(--font-mono);font-size:13px;padding:12px 20px;border-radius:9px;
+  border:1px solid var(--border);transition:.2s;letter-spacing:.02em;font-weight:500;
+}
+.btn.primary{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+.btn.primary:hover{box-shadow:0 6px 24px rgba(232,185,77,.3);transform:translateY(-1px)}
+.btn.ghost{color:var(--text);background:rgba(237,238,245,.03)}
+.btn.ghost:hover{background:rgba(237,238,245,.07);border-color:rgba(237,238,245,.2)}
+
+/* ---------- sky dome (signature element) ---------- */
+.dome-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+.dome-wrap svg{width:100%;max-width:460px;height:auto}
+.dome-ring{fill:none;stroke:var(--grid-line);stroke-width:1}
+.dome-radial{stroke:var(--grid-line);stroke-width:1}
+.dome-label{font-family:var(--font-mono);font-size:9.5px;fill:var(--text-dim);letter-spacing:.06em}
+.dome-cardinal{font-family:var(--font-mono);font-size:11px;fill:var(--gold);font-weight:500}
+.obj-dot{filter:drop-shadow(0 0 6px currentColor)}
+.obj-label{font-family:var(--font-mono);font-size:9.5px;font-weight:500}
+
+/* ---------- section headings ---------- */
+.section{padding:56px 0}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:28px;flex-wrap:wrap}
+h2.section-title{font-family:var(--font-display);font-weight:600;font-size:clamp(22px,2.6vw,30px)}
+.section-link{font-family:var(--font-mono);font-size:12.5px;color:var(--teal);white-space:nowrap}
+.section-link:hover{text-decoration:underline}
+
+/* ---------- cards / dashboard ---------- */
+.grid{display:grid;gap:16px}
+.grid.cols-4{grid-template-columns:repeat(4,1fr)}
+.grid.cols-3{grid-template-columns:repeat(3,1fr)}
+.grid.cols-2{grid-template-columns:repeat(2,1fr)}
+.card{
+  background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;
+  position:relative;overflow:hidden;transition:.25s;
+}
+.card:hover{border-color:rgba(232,185,77,.3);transform:translateY(-2px)}
+.card .k{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);display:flex;align-items:center;justify-content:space-between}
+.card .v{font-family:var(--font-mono);font-weight:500;font-size:28px;margin-top:10px;color:var(--text)}
+.card .v .unit{font-size:14px;color:var(--text-dim);margin-left:4px}
+.card .foot{font-size:12.5px;color:var(--text-dim);margin-top:8px}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot.live{background:var(--teal);box-shadow:0 0 8px var(--teal);animation:pulse 2s infinite}
+.dot.warn{background:var(--coral);box-shadow:0 0 8px var(--coral)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ---------- feature rows ---------- */
+.feat-row{
+  display:grid;grid-template-columns:220px 1fr auto;gap:22px;align-items:center;
+  padding:18px 22px;border:1px solid var(--border);border-radius:12px;background:var(--panel);
+  margin-bottom:10px;
+}
+.feat-row .tag{font-family:var(--font-mono);font-size:11px;color:var(--gold);letter-spacing:.08em}
+.feat-row h4{font-family:var(--font-body);font-weight:600;font-size:15.5px;margin-top:4px}
+.feat-row p{color:var(--text-dim);font-size:13.5px}
+.feat-row .num{font-family:var(--font-mono);color:var(--text-dim);font-size:13px;justify-self:end}
+
+/* ---------- table (passes/launches) ---------- */
+table.data{width:100%;border-collapse:collapse}
+table.data th{
+  text-align:left;font-family:var(--font-mono);font-size:11px;color:var(--text-dim);
+  text-transform:uppercase;letter-spacing:.1em;padding:10px 14px;border-bottom:1px solid var(--border);
+}
+table.data td{padding:14px;border-bottom:1px solid var(--border);font-size:14px}
+table.data tr:hover td{background:rgba(237,238,245,.02)}
+.pill{
+  font-family:var(--font-mono);font-size:11px;padding:4px 9px;border-radius:20px;
+  border:1px solid var(--border);color:var(--text-dim);
+}
+.pill.gold{color:var(--gold);border-color:rgba(232,185,77,.3);background:rgba(232,185,77,.06)}
+.pill.teal{color:var(--teal);border-color:rgba(79,209,197,.3);background:rgba(79,209,197,.06)}
+
+/* ---------- gallery ---------- */
+.gal{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.gal .ph{aspect-ratio:4/5;border-radius:12px;position:relative;overflow:hidden;border:1px solid var(--border)}
+.gal .ph .grad{position:absolute;inset:0}
+.gal .ph .info{position:absolute;left:0;right:0;bottom:0;padding:12px;font-size:12px;background:linear-gradient(to top,rgba(0,0,0,.75),transparent)}
+.gal .ph .info b{font-size:12.5px;display:block}
+.gal .ph .info span{font-family:var(--font-mono);font-size:10.5px;color:var(--text-dim)}
+
+/* ---------- forum categories ---------- */
+.cat-list{display:flex;flex-direction:column;gap:2px}
+.cat{
+  display:grid;grid-template-columns:44px 1fr 120px 90px;gap:16px;align-items:center;
+  padding:18px;border-bottom:1px solid var(--border);
+}
+.cat:hover{background:rgba(237,238,245,.02)}
+.cat .ic{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(232,185,77,.08);border:1px solid rgba(232,185,77,.2)}
+.cat h4{font-size:15px;font-weight:600}
+.cat p{font-size:12.5px;color:var(--text-dim);margin-top:2px}
+.cat .stat{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);text-align:center}
+.cat .stat b{display:block;color:var(--text);font-size:15px;font-weight:500}
+.cat .last{font-size:12px;color:var(--text-dim);text-align:right}
+
+/* ---------- badges / leaderboard ---------- */
+.lb{display:flex;flex-direction:column;gap:0}
+.lb-row{display:grid;grid-template-columns:28px 40px 1fr auto;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid var(--border)}
+.lb-row .rank{font-family:var(--font-mono);color:var(--text-dim);font-size:13px}
+.lb-row .av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--gold))}
+.lb-row .name{font-size:13.5px;font-weight:500}
+.lb-row .pts{font-family:var(--font-mono);font-size:13px;color:var(--gold)}
+
+/* ---------- diary entries ---------- */
+.diary{border:1px solid var(--border);border-radius:14px;padding:20px;background:var(--panel);margin-bottom:12px}
+.diary .meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.diary .user{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:500}
+.diary .user .av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--coral))}
+.diary .when{font-family:var(--font-mono);font-size:11px;color:var(--text-dim)}
+.diary p{font-size:14px;color:var(--text-dim)}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--border);padding:44px 0 30px;margin-top:60px;position:relative;z-index:1}
+.foot-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:32px}
+footer h5{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px}
+footer a{display:block;font-size:13.5px;color:var(--text-dim);margin-bottom:9px}
+footer a:hover{color:var(--text)}
+.foot-bottom{margin-top:36px;padding-top:20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim);flex-wrap:wrap;gap:8px}
+
+/* ---------- misc ---------- */
+.mono{font-family:var(--font-mono)}
+.section-sub{color:var(--text-dim);font-size:14.5px;max-width:560px;margin-bottom:26px}
+.divider{height:1px;background:var(--border);margin:8px 0}
+
+/* ---------- voyager orbital map ---------- */
+.orbit-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+.orbit-wrap svg{width:100%;height:auto}
+.orbit-ring{fill:none;stroke:var(--grid-line);stroke-width:1}
+.orbit-ring.helio{stroke:var(--coral);stroke-opacity:.35;stroke-dasharray:3 5}
+.orbit-label{font-family:var(--font-mono);font-size:8.5px;fill:var(--text-dim);letter-spacing:.04em}
+.v1-path{stroke:var(--gold);stroke-width:1.6;fill:none}
+.v2-path{stroke:var(--teal);stroke-width:1.6;fill:none}
+.v-dot{filter:drop-shadow(0 0 5px currentColor)}
+.v-tag{font-family:var(--font-mono);font-size:9px;font-weight:500}
+.legend-row{display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-size:12px;color:var(--text-dim)}
+.legend-swatch{width:14px;height:3px;border-radius:2px}
+
+/* ---------- power / progress bar ---------- */
+.pbar{height:8px;border-radius:5px;background:rgba(237,238,245,.08);overflow:hidden;margin-top:10px}
+.pbar > div{height:100%;border-radius:5px}
+
+/* ---------- compare table cell emphasis ---------- */
+table.data td.hl{color:var(--gold);font-family:var(--font-mono)}
+table.data td.hl2{color:var(--teal);font-family:var(--font-mono)}
+
+/* ---------- constellations: interactive map ---------- */
+.constellation-map-wrap{
+  border:1px solid var(--border);border-radius:16px;padding:20px;overflow:hidden;position:relative;
+  background:radial-gradient(ellipse at 50% 28%, #10142e 0%, #05060d 72%);
+}
+.constellation-map-wrap svg{width:100%;height:auto;display:block}
+.const-line{stroke:rgba(237,238,245,.28);stroke-width:1.2;transition:stroke .25s,filter .25s}
+.const-star{fill:rgba(237,238,245,.65);transition:fill .25s,filter .25s;cursor:pointer}
+.const-star.bright{fill:#fff;animation:nwPulseStar 2.6s ease-in-out infinite}
+.const-hit{fill:transparent;cursor:pointer}
+.const-label{font-family:var(--font-mono);font-size:10.5px;fill:var(--text-dim);text-anchor:middle;letter-spacing:.03em;transition:fill .25s;pointer-events:none}
+.constellation{cursor:pointer}
+.constellation:hover .const-line{stroke:rgba(232,185,77,.65);filter:drop-shadow(0 0 3px rgba(232,185,77,.55))}
+.constellation:hover .const-star{fill:var(--gold);filter:drop-shadow(0 0 3px rgba(232,185,77,.7))}
+.constellation:hover .const-label{fill:var(--gold)}
+.constellation.active .const-line{stroke:var(--teal);stroke-width:1.6;filter:drop-shadow(0 0 3px rgba(79,209,197,.6))}
+.constellation.active .const-star{fill:var(--teal);filter:drop-shadow(0 0 3px rgba(79,209,197,.7))}
+.constellation.active .const-star.bright{fill:#fff}
+.constellation.active .const-label{fill:var(--teal);font-weight:600}
+.constellation.in-season .const-star{fill:#FFC873}
+.constellation.in-season .const-line{stroke:rgba(232,185,77,.4)}
+.const-pill .seasonbadge{display:none;margin-left:6px;color:var(--gold)}
+.const-pill.in-season .seasonbadge{display:inline}
+.bg-star{fill:#fff;animation:nwTwinkle 3.4s ease-in-out infinite}
+@keyframes nwTwinkle{0%,100%{opacity:.15}50%{opacity:.9}}
+@keyframes nwPulseStar{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* ---------- floating hover tooltip ---------- */
+.const-tooltip{
+  position:fixed;z-index:80;pointer-events:none;opacity:0;transition:opacity .15s;
+  background:var(--panel-solid);border:1px solid rgba(232,185,77,.3);border-radius:10px;
+  padding:12px 15px;max-width:240px;box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+.const-tooltip .tt-name{font-family:var(--font-display);font-weight:600;font-size:13.5px;color:var(--text)}
+.const-tooltip .tt-sub{font-family:var(--font-mono);font-size:10.5px;color:var(--gold);margin-top:3px}
+.const-tooltip .tt-mag{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:2px}
+.const-tooltip .tt-myth{font-size:11.5px;color:var(--text-dim);margin-top:7px;line-height:1.5}
+.const-tooltip.show{opacity:1}
+.sky-axis{font-family:var(--font-mono);font-size:10px;fill:var(--text-dim)}
+
+/* ---------- geolocation / "sky tonight" panel ---------- */
+.geo-panel{border:1px solid var(--border);border-radius:16px;background:var(--panel);padding:22px;margin-bottom:22px}
+.geo-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.geo-status{font-family:var(--font-mono);font-size:12.5px;color:var(--text-dim);margin-top:12px;min-height:18px}
+.geo-status.ok{color:var(--teal)}
+.geo-status.err{color:var(--coral)}
+
+/* ---------- constellation picker pills ---------- */
+.const-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.const-pill{
+  font-family:var(--font-mono);font-size:12px;padding:8px 14px;border-radius:20px;
+  border:1px solid var(--border);color:var(--text-dim);background:transparent;cursor:pointer;transition:.2s;
+}
+.const-pill:hover{color:var(--text);border-color:rgba(237,238,245,.25)}
+.const-pill.active{color:var(--teal);border-color:rgba(79,209,197,.4);background:rgba(79,209,197,.08)}
+
+/* ---------- info panel ---------- */
+.const-info-card{border:1px solid var(--border);border-radius:16px;background:var(--panel);padding:24px;min-height:260px}
+.const-info-card .lat{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);margin-top:2px}
+.const-info-card h3{font-family:var(--font-display);font-weight:700;font-size:22px;margin-top:10px}
+.const-info-card .myth{font-size:13.5px;color:var(--text-dim);margin-top:14px;line-height:1.7}
+.const-info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.const-info-row:last-of-type{border-bottom:none}
+.const-info-row span:last-child{font-family:var(--font-mono);color:var(--gold)}
+
+/* ---------- quiz ---------- */
+.quiz-shape{border:1px solid var(--border);border-radius:14px;background:rgba(237,238,245,.02);padding:18px;max-width:340px}
+.quiz-shape svg{width:100%;height:auto;display:block}
+.quiz-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.quiz-btn{
+  font-family:var(--font-mono);font-size:13px;padding:12px 16px;border-radius:10px;
+  border:1px solid var(--border);color:var(--text);background:rgba(237,238,245,.03);cursor:pointer;transition:.2s;
+}
+.quiz-btn:hover{background:rgba(237,238,245,.06)}
+.quiz-btn.correct{border-color:rgba(79,209,197,.5);background:rgba(79,209,197,.14);color:var(--teal)}
+.quiz-btn.wrong{border-color:rgba(255,107,74,.5);background:rgba(255,107,74,.12);color:var(--coral)}
+.quiz-feedback{font-family:var(--font-mono);font-size:12.5px;color:var(--text-dim);margin-top:12px;min-height:18px}
+
+@media(max-width:900px){
+  .quiz-choices{grid-template-columns:1fr}
+}
+
+/* ---------- photo archive grid ---------- */
+.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.photo-card{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:rgba(237,238,245,.02);cursor:pointer;transition:.2s}
+.photo-card:hover{border-color:rgba(232,185,77,.3);transform:translateY(-2px)}
+.photo-card .ph{aspect-ratio:4/3;position:relative}
+.photo-card .ph .cat{position:absolute;top:10px;left:10px;font-family:var(--font-mono);font-size:10px;color:var(--gold);background:rgba(9,10,20,.6);border:1px solid rgba(232,185,77,.3);padding:3px 8px;border-radius:20px}
+.photo-card .cap{padding:12px 14px}
+.photo-card h4{font-size:13.5px;font-weight:600;line-height:1.3}
+.photo-card .d{font-family:var(--font-mono);font-size:10.5px;color:var(--text-dim);margin-top:5px}
+
+/* ---------- photo modal / lightbox ---------- */
+.photo-modal{
+  position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
+  background:rgba(5,6,13,.88);backdrop-filter:blur(6px);padding:24px;
+}
+.photo-modal.open{display:flex}
+.photo-modal-inner{
+  display:flex;max-width:1080px;width:100%;max-height:86vh;background:var(--panel-solid);
+  border:1px solid var(--border);border-radius:16px;overflow:hidden;
+}
+.photo-modal-img{flex:1.3;position:relative;min-height:320px}
+.photo-modal-info{flex:1;padding:30px;overflow-y:auto;display:flex;flex-direction:column}
+.photo-modal-info .cat{font-family:var(--font-mono);font-size:11px;color:var(--gold);letter-spacing:.1em;text-transform:uppercase}
+.photo-modal-info h3{font-family:var(--font-display);font-weight:700;font-size:22px;margin-top:10px;line-height:1.25}
+.photo-modal-info .d{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);margin-top:8px}
+.photo-modal-info p{font-size:14px;color:var(--text-dim);margin-top:18px;line-height:1.7}
+.photo-modal-close{
+  position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;
+  background:rgba(9,10,20,.6);border:1px solid var(--border);color:var(--text);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;z-index:2;
+}
+.photo-modal-close:hover{background:rgba(9,10,20,.85)}
+.photo-modal-nav{
+  position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;
+  background:rgba(9,10,20,.55);border:1px solid var(--border);color:var(--text);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;
+}
+.photo-modal-nav.prev{left:14px}
+.photo-modal-nav.next{right:14px}
+.photo-modal-nav:hover{background:rgba(9,10,20,.85)}
+
+@media(max-width:900px){
+  .photo-grid{grid-template-columns:repeat(2,1fr)}
+  .photo-modal-inner{flex-direction:column;max-height:92vh}
+  .photo-modal-img{min-height:220px}
+}
+
+/* ---------- pagination ---------- */
+.pagination{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:32px}
+.pg-btn{
+  min-width:38px;height:38px;padding:0 12px;border-radius:10px;border:1px solid var(--border);
+  background:rgba(237,238,245,.02);color:var(--text-dim);font-family:var(--font-mono);font-size:13px;
+  cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;
+}
+.pg-btn:hover{background:rgba(237,238,245,.06);color:var(--text)}
+.pg-btn.active{color:var(--bg);background:var(--gold);border-color:var(--gold);font-weight:600}
+.pg-btn.arrow{font-size:15px}
+.pg-btn[disabled]{opacity:.35;cursor:default;pointer-events:none}
+.pg-dots{color:var(--text-dim);font-family:var(--font-mono);font-size:13px;padding:0 4px}
+
+/* ---------- news page ---------- */
+.news-featured{
+  border:1px solid rgba(232,185,77,.28);border-radius:16px;background:var(--panel);
+  padding:26px;margin-top:26px;
+}
+.news-featured .cat-tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.news-featured h2{font-family:var(--font-display);font-weight:700;font-size:clamp(20px,2.6vw,27px);margin-top:12px;line-height:1.3}
+.news-featured .meta{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);margin-top:10px}
+.news-featured p{color:var(--text-dim);font-size:14.5px;margin-top:14px;line-height:1.7;max-width:760px}
+.news-cat-filters{display:flex;gap:8px;flex-wrap:wrap;margin:26px 0 4px}
+.news-list{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.news-card{
+  border:1px solid var(--border);border-radius:14px;background:rgba(237,238,245,.02);
+  padding:20px 22px;transition:.2s;
+}
+.news-card:hover{border-color:rgba(232,185,77,.28)}
+.news-card .top-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.news-card h4{font-family:var(--font-body);font-weight:600;font-size:15.5px;margin-top:8px;line-height:1.4}
+.news-card p{font-size:13.5px;color:var(--text-dim);margin-top:8px;line-height:1.6}
+.news-card .bottom-row{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim)}
+.news-card .bottom-row a{color:var(--teal)}
+.cat-pill{font-family:var(--font-mono);font-size:10.5px;padding:3px 9px;border-radius:20px;letter-spacing:.04em}
+.cat-pill.launches{color:var(--gold);background:rgba(232,185,77,.1);border:1px solid rgba(232,185,77,.3)}
+.cat-pill.missions{color:var(--teal);background:rgba(79,209,197,.1);border:1px solid rgba(79,209,197,.3)}
+.cat-pill.discoveries{color:#B98FE8;background:rgba(185,143,232,.1);border:1px solid rgba(185,143,232,.3)}
+.cat-pill.tech{color:var(--text-dim);background:rgba(237,238,245,.05);border:1px solid var(--border)}
+
+.news-search{max-width:440px;margin-top:22px}
+.news-search input{
+  width:100%;background:rgba(237,238,245,.04);border:1px solid var(--border);border-radius:9px;
+  padding:11px 14px;color:var(--text);font-family:var(--font-mono);font-size:13px;
+}
+.news-search input::placeholder{color:var(--text-dim)}
+.news-search input:focus{outline:none;border-color:rgba(232,185,77,.4)}
+.kw-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.kw-row .lbl{font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim);margin-right:2px}
+.kw-chip{
+  font-family:var(--font-mono);font-size:11.5px;padding:6px 12px;border-radius:20px;
+  border:1px solid var(--border);color:var(--text-dim);cursor:pointer;background:transparent;transition:.2s;
+}
+.kw-chip:hover{color:var(--gold);border-color:rgba(232,185,77,.35)}
+.news-count{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);margin-top:18px}
+.news-count b{color:var(--text)}
+
+.view-toggle{display:flex;gap:6px}
+.vt-btn{
+  font-family:var(--font-mono);font-size:12px;padding:8px 14px;border-radius:9px;
+  border:1px solid var(--border);color:var(--text-dim);background:rgba(237,238,245,.02);cursor:pointer;transition:.2s;
+}
+.vt-btn:hover{color:var(--text)}
+.vt-btn.active{color:var(--bg);background:var(--gold);border-color:var(--gold);font-weight:600}
+
+.news-list.view-rows{display:flex;flex-direction:column;gap:12px}
+.news-list.view-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:stretch}
+.news-list.view-cards .news-card{display:flex;flex-direction:column;height:100%}
+.news-list.view-cards .news-card p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.news-list.view-cards .news-card .bottom-row{margin-top:auto;padding-top:12px;flex-wrap:wrap;gap:6px}
+@media(max-width:900px){
+  .news-list.view-cards{grid-template-columns:1fr}
+}
+
+/* ---------- Mars planet + moons animation ---------- */
+.mars-orbit-ring{fill:none;stroke:var(--grid-line);stroke-width:1;stroke-dasharray:3 4}
+.mars-moon-label{font-family:var(--font-mono);font-size:9.5px;fill:var(--text-dim)}
+.mars-weather-icon{color:var(--gold)}
+
+/* ---------- rover route map ---------- */
+.route-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+.route-wrap svg{width:100%;height:auto}
+.route-path{fill:none;stroke:var(--gold);stroke-width:1.6;stroke-dasharray:5 4;opacity:.6}
+.route-label{font-family:var(--font-mono);font-size:9.5px;fill:var(--text-dim)}
+.route-label.now{fill:var(--teal);font-weight:600}
+.route-sol{font-family:var(--font-mono);font-size:8.5px;fill:var(--text-dim);opacity:.8}
+
+/* ---------- dust storm tracker ---------- */
+.dust-track{position:relative;height:34px;border-radius:8px;overflow:hidden;display:flex}
+.dust-seg{height:100%}
+.dust-marker{position:absolute;top:-8px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center}
+.dust-marker .flag{width:2px;height:50px;background:var(--text)}
+.dust-marker .lbl{font-family:var(--font-mono);font-size:10px;color:var(--text);white-space:nowrap;margin-bottom:2px;background:var(--panel-solid);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
+.dust-axis{display:flex;justify-content:space-between;margin-top:8px;font-family:var(--font-mono);font-size:10px;color:var(--text-dim)}
+
+/* ---------- pressure altitude scale ---------- */
+.pressure-wrap{display:flex;gap:18px;align-items:stretch;height:380px;margin-top:22px}
+.pressure-bar{width:56px;border-radius:10px;position:relative;background:linear-gradient(to top,#0a3d5c,#4FD1C5 55%,#cfeeea)}
+.pressure-marks{flex:1;position:relative;height:100%}
+.pmark{position:absolute;left:0;right:0;display:flex;align-items:center;gap:10px}
+.pmark .ln{flex:1;height:1px;background:var(--border)}
+.pmark .txt{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);white-space:nowrap}
+.pmark.hl .txt{color:var(--gold);font-weight:600}
+.pmark.hl .ln{background:rgba(232,185,77,.5)}
+
+/* ---------- moon phase mini ---------- */
+.moon-phase-mini{width:54px;height:54px;border-radius:50%;position:relative;flex-shrink:0}
+
+/* ---------- mission status dashboard ---------- */
+.mission-row{display:flex;align-items:center;gap:14px;padding:13px 4px;border-bottom:1px solid var(--border)}
+.mission-row:last-child{border-bottom:none}
+.mission-row .nm{font-weight:600;font-size:13.5px;flex:1}
+.mission-row .ag{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);width:90px}
+.mission-row .yr{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);width:56px}
+.mission-row .st{font-family:var(--font-mono);font-size:11px;width:110px;text-align:right}
+.mission-row .st.active{color:var(--teal)}
+.mission-row .st.retired{color:var(--text-dim)}
+@media(max-width:700px){
+  .mission-row .ag{display:none}
+  .pressure-wrap{flex-direction:column;height:auto}
+  .pressure-bar{width:100%;height:70px;background:linear-gradient(to right,#0a3d5c,#4FD1C5 55%,#cfeeea)}
+  .pressure-marks{height:260px}
+}
+
+/* ---------- radio live page ---------- */
+.radio-list{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.radio-row{
+  display:flex;flex-direction:column;padding:22px;border:1px solid var(--border);
+  border-radius:16px;background:rgba(237,238,245,.02);transition:.2s;
+}
+.radio-row:hover{border-color:rgba(232,185,77,.28);background:rgba(237,238,245,.035)}
+.radio-row.playing{border-color:rgba(232,185,77,.4);background:rgba(232,185,77,.06)}
+.radio-row .head-row{display:flex;align-items:center;gap:14px}
+.radio-row .ic{width:44px;height:44px;border-radius:12px;background:rgba(232,185,77,.08);border:1px solid rgba(232,185,77,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.radio-row .info{flex:1;min-width:0}
+.radio-row h4{font-size:15px;font-weight:600}
+.radio-row .status{font-size:12.5px;color:var(--text-dim);margin-top:4px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.radio-row .sub{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:3px}
+.radio-row .bottom-row{display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:12px}
+.radio-play-circle{
+  width:46px;height:46px;border-radius:50%;border:1px solid var(--border);background:rgba(237,238,245,.03);
+  color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;flex-shrink:0;font-size:15px;
+}
+.radio-play-circle:hover{border-color:rgba(232,185,77,.4);color:var(--gold)}
+.radio-play-circle.playing{background:var(--gold);border-color:var(--gold);color:var(--bg)}
+
+.now-playing{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--panel-solid);
+  border-top:1px solid var(--border);padding:14px 24px;display:none;align-items:center;gap:16px;
+  backdrop-filter:blur(10px);
+}
+.now-playing.show{display:flex}
+.eq-bars{display:flex;align-items:flex-end;gap:2px;height:20px;flex-shrink:0}
+.eq-bars span{width:3px;background:var(--gold);border-radius:1px;animation:nwEq .9s ease-in-out infinite}
+@keyframes nwEq{0%,100%{height:4px}50%{height:18px}}
+.now-playing .np-info{flex:1;min-width:0}
+.now-playing .np-title{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.now-playing .np-sub{font-family:var(--font-mono);font-size:11px;color:var(--text-dim)}
+.np-stop{
+  width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:rgba(237,238,245,.04);
+  color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+}
+.np-stop:hover{background:rgba(255,107,74,.12);border-color:rgba(255,107,74,.3);color:var(--coral)}
+
+@media(max-width:800px){
+  .radio-list{grid-template-columns:1fr}
+}
+
+/* ---------- radio: live signal bars + listener count ---------- */
+.signal-bars{display:flex;align-items:flex-end;gap:2px;height:16px;margin-top:10px}
+.signal-bars span{width:3px;background:rgba(232,185,77,.55);border-radius:1px;animation:nwSig 1.1s ease-in-out infinite}
+@keyframes nwSig{0%,100%{height:3px}50%{height:15px}}
+.listener-count{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:8px}
+.listener-count b{color:var(--teal)}
+.iss-countdown{font-family:var(--font-mono);color:var(--teal);font-weight:600}
+.iss-countdown.soon{color:var(--coral)}
+
+/* ---------- event feed ---------- */
+.feed-live-badge{
+  display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;
+  color:var(--coral);margin-left:10px;
+}
+.feed-live-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--coral);animation:pulse 1.4s infinite}
+.event-feed{
+  display:flex;flex-direction:column-reverse;gap:8px;max-height:340px;overflow-y:auto;
+  border:1px solid var(--border);border-radius:16px;padding:14px;
+  background:radial-gradient(ellipse at top, rgba(232,185,77,.05), transparent 60%), rgba(237,238,245,.015);
+}
+.event-item{
+  display:flex;gap:12px;align-items:flex-start;padding:11px 13px;border-radius:11px;
+  background:rgba(237,238,245,.025);border-left:3px solid var(--ev-color, var(--gold));
+  animation:nwEventIn .4s ease;
+}
+.event-item:hover{background:rgba(237,238,245,.05)}
+.event-item .avatar{
+  width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:14px;background:rgba(232,185,77,.12);flex-shrink:0;
+}
+.event-item .body{flex:1;min-width:0}
+.event-item .row1{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.event-item .src{font-weight:600;font-size:12.5px;color:var(--ev-color, var(--gold))}
+.event-item .t{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);opacity:.7;flex-shrink:0;white-space:nowrap}
+.event-item .msg{font-size:12.5px;color:var(--text-dim);margin-top:3px;line-height:1.4}
+@keyframes nwEventIn{
+  from{opacity:0;transform:translateY(-6px) scale(.98)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+.event-feed::-webkit-scrollbar{width:6px}
+.event-feed::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.star-search{display:flex;gap:10px;margin-top:22px;max-width:420px;flex-wrap:wrap}
+.star-search input{
+  flex:1;min-width:180px;background:rgba(237,238,245,.04);border:1px solid var(--border);border-radius:9px;
+  padding:11px 14px;color:var(--text);font-family:var(--font-mono);font-size:13px;
+}
+.star-search input::placeholder{color:var(--text-dim)}
+.star-search input:focus{outline:none;border-color:rgba(232,185,77,.4)}
+
+/* ---------- light curve chart ---------- */
+.lc-wrap{padding:16px 4px;overflow:hidden}
+.lc-wrap svg{width:100%;height:auto;display:block}
+.lc-axis{font-family:var(--font-mono);font-size:9.5px;fill:var(--text-dim)}
+
+/* ---------- transit gallery cards ---------- */
+.transit-card{border:1px solid var(--border);border-radius:14px;background:rgba(237,238,245,.02);padding:16px}
+.transit-card h4{font-family:var(--font-display);font-weight:600;font-size:14.5px}
+.transit-card .spark{margin:10px 0 4px}
+.transit-card .stats{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:8px}
+
+/* ---------- FFI gallery tile ---------- */
+.ffi-tile{aspect-ratio:1/1;border-radius:12px;border:1px solid var(--border);position:relative;overflow:hidden}
+.ffi-tile .info{position:absolute;left:0;right:0;bottom:0;padding:10px 12px;font-family:var(--font-mono);font-size:11px;color:var(--text-dim);background:linear-gradient(to top,rgba(0,0,0,.8),transparent)}
+
+/* ---------- observation rows (Hubble/JWST) ---------- */
+.obs-row{display:grid;grid-template-columns:90px 1fr 130px 120px 100px;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)}
+.obs-row .inst{font-family:var(--font-mono);font-size:11px;color:var(--gold);border:1px solid rgba(232,185,77,.3);background:rgba(232,185,77,.08);border-radius:6px;padding:3px 8px;text-align:center}
+.obs-row .target{font-weight:600;font-size:13.5px}
+.obs-row .coord{font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim)}
+.obs-row .date{font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim)}
+@media(max-width:800px){
+  .obs-row{grid-template-columns:70px 1fr;}
+  .obs-row .coord,.obs-row .date{display:none}
+}
+.exo-wrap{padding:16px;overflow:hidden}
+.exo-wrap svg{width:100%;height:auto;display:block}
+.exo-orbit{fill:none;stroke:var(--grid-line);stroke-width:1;stroke-dasharray:3 4}
+.exo-label{font-family:var(--font-mono);font-size:9.5px;fill:var(--text-dim)}
+.exo-label.strong{fill:var(--gold);font-weight:500}
+
+/* ---------- exoplanet scatter chart ---------- */
+.exo-scatter-wrap{border:1px solid var(--border);border-radius:16px;background:var(--panel);padding:20px;overflow:hidden}
+.exo-scatter-wrap svg{width:100%;height:auto;display:block}
+.exo-axis{font-family:var(--font-mono);font-size:9.5px;fill:var(--text-dim)}
+.exo-gridline{stroke:var(--border);stroke-width:1}
+.comet-wrap{border:1px solid var(--border);border-radius:16px;background:var(--panel);padding:16px;overflow:hidden}
+.comet-wrap svg{width:100%;height:auto;display:block}
+.comet-ellipse{fill:none;stroke:var(--grid-line);stroke-width:1;stroke-dasharray:3 4}
+.comet-scale-ring{fill:none;stroke:var(--border);stroke-width:1;stroke-dasharray:2 3}
+.comet-label{font-family:var(--font-mono);font-size:9.5px;fill:var(--text-dim)}
+.comet-label.strong{fill:var(--gold)}
+
+/* ---------- brightness chart ---------- */
+.brightness-wrap{border:1px solid var(--border);border-radius:16px;background:var(--panel);padding:20px;overflow:hidden}
+.brightness-wrap svg{width:100%;height:auto;display:block}
+.mag-axis{font-family:var(--font-mono);font-size:9.5px;fill:var(--text-dim)}
+.mag-threshold{stroke:var(--text-dim);stroke-opacity:.35;stroke-dasharray:4 4}
+.mag-now{stroke:var(--coral);stroke-opacity:.5;stroke-dasharray:2 3}
+
+/* ---------- comet highlight ---------- */
+.comet-highlight{border:1px solid rgba(232,185,77,.28);border-radius:16px;background:var(--panel);padding:24px;margin-top:26px}
+.spectro-wrap{border:1px solid var(--border);border-radius:14px;background:#06070d;padding:16px;overflow:hidden}
+.spectro-wrap svg{width:100%;height:auto;display:block}
+.spectro-axis{font-family:var(--font-mono);font-size:9px;fill:var(--text-dim)}
+.spectro-burst-label{font-family:var(--font-mono);font-size:9.5px;font-weight:500}
+
+/* ---------- RTL-SDR: forward-scatter ping trace ---------- */
+.ping-wrap{border:1px solid var(--border);border-radius:14px;background:#06070d;padding:16px;overflow:hidden}
+.ping-wrap svg{width:100%;height:auto;display:block}
+.ping-axis{font-family:var(--font-mono);font-size:9px;fill:var(--text-dim)}
+.ping-tag{font-family:var(--font-mono);font-size:9.5px;fill:var(--gold);font-weight:500}
+.ping-threshold{stroke:var(--coral);stroke-opacity:.4;stroke-dasharray:4 4}
+
+/* ---------- equipment / howto ---------- */
+.gear-row{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:16px 0;border-bottom:1px solid var(--border)}
+.gear-row:last-child{border-bottom:none}
+.gear-row .g{font-family:var(--font-mono);font-size:12px;color:var(--gold)}
+.gear-row p{font-size:13.5px;color:var(--text-dim)}
+.gear-row strong{color:var(--text);font-weight:600}
+
+@media(max-width:700px){
+  .gear-row{grid-template-columns:1fr}
+}
+.kp-scale{display:flex;gap:3px;margin-top:14px}
+.kp-scale .seg{flex:1;height:26px;border-radius:5px;background:rgba(237,238,245,.06);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:10px;color:var(--text-dim);position:relative}
+.kp-scale .seg.active{outline:2px solid var(--gold);color:var(--text);font-weight:600}
+
+/* ---------- rover tabs (reuses .filter-pill) ---------- */
+.rover-photo{aspect-ratio:4/3;border-radius:12px;border:1px solid var(--border);position:relative;overflow:hidden}
+.rover-photo .info{position:absolute;left:0;right:0;bottom:0;padding:10px 12px;font-size:11.5px;background:linear-gradient(to top,rgba(0,0,0,.8),transparent);font-family:var(--font-mono);color:var(--text-dim)}
+
+/* ---------- education / course ---------- */
+.course-mod{display:flex;align-items:center;gap:16px;padding:16px 18px;border:1px solid var(--border);border-radius:12px;background:rgba(237,238,245,.02);margin-bottom:8px}
+.course-mod .num{font-family:var(--font-mono);font-size:13px;color:var(--text-dim);width:26px}
+.course-mod .num.done{color:var(--teal)}
+.course-mod h4{font-size:14.5px;font-weight:600}
+.course-mod p{font-size:12.5px;color:var(--text-dim);margin-top:2px}
+.course-mod .status{margin-left:auto;font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim);white-space:nowrap}
+
+/* ---------- profile ---------- */
+.profile-head{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.avatar-lg{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--teal));flex-shrink:0}
+.badge-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.badge-chip{
+  display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:20px;
+  padding:7px 13px;font-size:12.5px;background:rgba(237,238,245,.02);
+}
+.badge-chip .ic{font-size:15px}
+.equip-row{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);font-size:13.5px}
+.equip-row span:last-child{color:var(--text-dim);font-family:var(--font-mono);font-size:12.5px}
+
+/* ---------- API page ---------- */
+.code-block{
+  background:#0a0b14;border:1px solid var(--border);border-radius:12px;padding:18px 20px;
+  font-family:var(--font-mono);font-size:12.5px;color:var(--teal);overflow-x:auto;line-height:1.7;white-space:pre;
+}
+.code-block.plain{background:none;border:none;padding:18px 0}
+.endpoint-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
+.endpoint-row .method{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--teal);background:rgba(79,209,197,.1);border:1px solid rgba(79,209,197,.3);padding:3px 9px;border-radius:6px;min-width:44px;text-align:center}
+.endpoint-row .path{font-family:var(--font-mono);font-size:13px}
+.endpoint-row .desc{color:var(--text-dim);font-size:12.5px;margin-left:auto;text-align:right}
+
+@media(max-width:700px){
+  .endpoint-row{flex-wrap:wrap}
+  .endpoint-row .desc{margin-left:0;text-align:left;width:100%}
+}
+.stat-mini-wrap{max-width:560px;margin:26px auto 0}
+.stat-mini{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.stat-mini .box{border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;background:rgba(237,238,245,.02)}
+.stat-mini .box.danger{border-color:rgba(255,107,74,.35);background:rgba(255,107,74,.07)}
+.stat-mini .box .n{font-family:var(--font-mono);font-size:28px;font-weight:600}
+.stat-mini .box.danger .n{color:var(--coral)}
+.stat-mini .box .l{font-size:12.5px;color:var(--text-dim);margin-top:4px}
+
+/* ---------- asteroid cards grid ---------- */
+.aster-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+.aster-card{border:1px solid var(--border);border-radius:16px;background:rgba(237,238,245,.02);padding:20px}
+.aster-card .top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.aster-card h3{font-family:var(--font-display);font-weight:600;font-size:16px;line-height:1.3}
+.aster-card .approach{font-size:12.5px;color:var(--text-dim);margin-top:4px}
+.dl-row{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:11px}
+.dl-row svg{color:var(--text-dim);flex-shrink:0}
+.dl-row .lbl{color:var(--text-dim)}
+.dl-row .val{margin-left:auto;font-family:var(--font-mono);font-size:12.5px}
+.dist-bar{margin-top:16px}
+.dist-bar .labels{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-bottom:6px}
+.dist-bar .track{position:relative;height:6px;border-radius:4px;background:rgba(237,238,245,.08)}
+.dist-bar .dot{position:absolute;top:50%;width:11px;height:11px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--bg)}
+.dist-bar .dot.teal{background:var(--teal)}
+.dist-bar .dot.coral{background:var(--coral)}
+
+@media(max-width:900px){
+  .stat-mini{grid-template-columns:1fr 1fr}
+  .aster-grid{grid-template-columns:1fr}
+}
+@media(min-width:900px) and (max-width:1150px){
+  .aster-grid{grid-template-columns:repeat(2,1fr)}
+}
+.page-head{padding:48px 0 8px}
+.icon-badge{
+  display:inline-flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:11px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--gold);
+  background:rgba(232,185,77,.07);border:1px solid rgba(232,185,77,.2);
+  padding:5px 12px;border-radius:20px;margin-bottom:14px;
+}
+h1.page-title{font-family:var(--font-display);font-weight:800;font-size:clamp(28px,3.6vw,42px);letter-spacing:-.01em}
+.page-desc{color:var(--text-dim);font-size:15px;max-width:520px;margin-top:10px}
+
+/* ---------- next-launch highlight ---------- */
+.next-launch{
+  border:1px solid rgba(232,185,77,.28);border-radius:16px;
+  background:var(--panel);margin-top:26px;padding:24px;
+}
+.badge-live{
+  display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;
+  font-weight:500;color:var(--gold);background:rgba(232,185,77,.1);padding:5px 12px;border-radius:20px;
+}
+.badge-live .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite}
+.next-launch-grid{display:flex;flex-direction:column;gap:20px;margin-top:16px}
+.next-launch h2{font-family:var(--font-display);font-weight:700;font-size:clamp(20px,2.6vw,26px)}
+.icon-line{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);margin-top:8px}
+.icon-line svg{color:var(--text-dim);flex-shrink:0}
+.launch-datetime{font-family:var(--font-mono);font-size:13px;color:var(--text-dim);margin-top:4px}
+
+/* ---------- countdown clock (one consistent size everywhere) ---------- */
+.clock{display:flex;gap:8px;flex-wrap:wrap}
+.clock .seg{
+  background:rgba(237,238,245,.04);border:1px solid var(--border);border-radius:10px;
+  padding:8px 12px;text-align:center;min-width:54px;
+}
+.clock .seg .n{font-family:var(--font-mono);font-size:17px;font-weight:500;color:var(--text);line-height:1}
+.clock .seg .u{font-family:var(--font-mono);font-size:8.5px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-top:4px;display:block}
+
+/* ---------- launch list cards ---------- */
+.launch-list{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.launch-card{
+  display:flex;flex-direction:column;gap:14px;border:1px solid var(--border);border-radius:16px;
+  background:rgba(237,238,245,.02);padding:18px 20px;
+}
+.launch-card:hover{background:rgba(237,238,245,.035)}
+.launch-card .title-row{display:flex;flex-wrap:wrap;align-items:center;gap:9px}
+.launch-card h3{font-family:var(--font-body);font-weight:600;font-size:15.5px}
+.launch-card .meta-icons{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px}
+.launch-card .meta-icons span{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-dim)}
+.launch-card .meta-icons svg{color:var(--text-dim);flex-shrink:0}
+.launch-card .dt{font-family:var(--font-mono);font-size:12.5px;color:var(--teal);margin-top:8px}
+.launch-card .side{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.pill.coral{color:var(--coral);border-color:rgba(255,107,74,.35);background:rgba(255,107,74,.08)}
+.btn-remind{
+  display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);
+  background:transparent;padding:7px 13px;border-radius:9px;
+  font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim);transition:.2s;
+}
+.btn-remind svg{color:var(--text-dim)}
+.btn-remind:hover{background:rgba(237,238,245,.05);color:var(--text)}
+
+@media(min-width:800px){
+  .next-launch-grid{flex-direction:row;align-items:flex-end;justify-content:space-between}
+  .launch-card{flex-direction:row;align-items:center;justify-content:space-between}
+  .launch-card .side{align-items:flex-end}
+}
+.clock .seg{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:16px 20px;text-align:center;min-width:78px;
+}
+.clock .seg .n{font-family:var(--font-mono);font-size:32px;font-weight:500;color:var(--gold);line-height:1}
+.clock .seg .u{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;margin-top:6px;display:block}
+
+/* ---------- notification sequence stepper ---------- */
+.seq{position:relative;padding-left:28px}
+.seq::before{content:'';position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--border)}
+.seq-step{position:relative;padding:0 0 26px 20px}
+.seq-step:last-child{padding-bottom:0}
+.seq-step::before{
+  content:'';position:absolute;left:-28px;top:2px;width:11px;height:11px;border-radius:50%;
+  background:var(--bg);border:2px solid var(--gold);
+}
+.seq-step.done::before{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.seq-step .t{font-family:var(--font-mono);font-size:11px;color:var(--gold);letter-spacing:.06em}
+.seq-step h4{font-size:14.5px;font-weight:600;margin-top:3px}
+.seq-step p{font-size:13px;color:var(--text-dim);margin-top:2px}
+
+/* ---------- launch list rows ---------- */
+.launch-row{
+  display:grid;grid-template-columns:64px 1fr 150px 130px 100px;gap:18px;align-items:center;
+  padding:20px;border:1px solid var(--border);border-radius:14px;background:var(--panel);margin-bottom:10px;
+  transition:.2s;
+}
+.launch-row:hover{border-color:rgba(232,185,77,.3);transform:translateY(-1px)}
+.launch-row .flag{font-size:26px;text-align:center}
+.launch-row h4{font-size:15px;font-weight:600}
+.launch-row .meta{font-size:12.5px;color:var(--text-dim);margin-top:3px}
+.launch-row .when{font-family:var(--font-mono);font-size:13px;text-align:right}
+.launch-row .when .d{color:var(--text-dim);font-size:11px}
+.launch-row .tminus{font-family:var(--font-mono);font-size:12.5px;color:var(--gold);text-align:right}
+
+/* ---------- filter pills ---------- */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:26px}
+.filter-pill{
+  font-family:var(--font-mono);font-size:12px;padding:8px 15px;border-radius:20px;
+  border:1px solid var(--border);color:var(--text-dim);cursor:default;
+}
+.filter-pill.on{color:var(--gold);border-color:rgba(232,185,77,.35);background:rgba(232,185,77,.08)}
+.filter-pill[data-season]{cursor:pointer;transition:.2s}
+.filter-pill[data-season]:hover{color:var(--text)}
+
+/* ---------- provider bar stats ---------- */
+.barstat{display:flex;flex-direction:column;gap:14px}
+.barstat-row{display:grid;grid-template-columns:130px 1fr 50px;align-items:center;gap:12px}
+.barstat-row .lbl{font-size:13px}
+.barstat-row .track{height:8px;border-radius:5px;background:rgba(237,238,245,.07);overflow:hidden}
+.barstat-row .track > div{height:100%;border-radius:5px}
+.barstat-row .cnt{font-family:var(--font-mono);font-size:12.5px;color:var(--text-dim);text-align:right}
+
+@media(max-width:900px){
+  .hero-grid{grid-template-columns:1fr}
+  .dome-wrap{order:-1}
+  .orbit-wrap{order:-1}
+  .launch-row{grid-template-columns:40px 1fr auto;}
+  .launch-row .meta2, .launch-row .tminus{display:none}
+  .grid.cols-4{grid-template-columns:repeat(2,1fr)}
+  .grid.cols-3{grid-template-columns:repeat(2,1fr)}
+  .gal{grid-template-columns:repeat(2,1fr)}
+  .foot-grid{grid-template-columns:1fr 1fr}
+  nav.links{display:none}
+  .cat{grid-template-columns:36px 1fr;}
+  .cat .stat,.cat .last{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+
+<header class="site">
+  <div class="wrap nav">
+    <a href="index.html" class="logo">
+      <span class="mark"></span>
+      <span>NEOwatch<small>СВІТЛО З ОРБІТИ</small></span>
+    </a>
+    <nav class="links">
+      <a href="index.html">Небо зараз</a>
+<a href="iss.html">МКС</a>
+<a href="asteroids.html">Астероїди</a>
+<a href="mars.html">Марс</a>
+<a href="sky.html">Спостерігачу</a>
+<a href="constellations.html">Сузір'я</a>
+<a href="launches.html">Запуски</a>
+<a href="voyager.html">Дальній космос</a>
+<a href="community.html">Спільнота</a>
+      <a href="https://t.me/NEOwatchBot" class="cta-btn">Відкрити бота ↗</a>
+    </nav>
+    <button class="burger">☰</button>
+  </div>
+</header>
+
+
+<section class="page-head">
+  <div class="wrap">
+    <span class="icon-badge">📻 Наживо (ілюстративний прототип)</span>
+    <h1 class="page-title">Космічне радіо</h1>
+    <p class="page-desc">Ефір, який завжди триває навколо нас: голос Сонця, сигнали з орбіти й радіоехо Чумацького Шляху. Обери станцію й натисни «Слухати».</p>
+  </div>
+</section>
+
+<section class="section" style="padding-top:8px">
+  <div class="wrap">
+    <div class="radio-list">
+      <div class="radio-row" id="row0">
+      <div class="head-row">
+        <div class="ic">☀️</div>
+        <div class="info">
+          <h4>Сонце</h4>
+          <div class="status"><span class="dot live"></span>Зараз активність висока</div>
+          <div class="sub">Радіосплески · e-Callisto</div>
+        </div>
+      </div>
+      <div class="signal-bars"><span style="animation-delay:0.00s"></span><span style="animation-delay:0.11s"></span><span style="animation-delay:0.22s"></span><span style="animation-delay:0.33s"></span><span style="animation-delay:0.44s"></span><span style="animation-delay:0.55s"></span><span style="animation-delay:0.66s"></span></div>
+      <div class="bottom-row">
+        <div class="listener-count">🎧 <b id="listeners0">214</b> слухачів зараз</div>
+        <button class="radio-play-circle" id="btn0" onclick="nwPlayStation('Сонце','Радіосплески · e-Callisto',this,0)">▶</button>
+      </div>
+    </div>
+<div class="radio-row" id="row1">
+      <div class="head-row">
+        <div class="ic">🛰️</div>
+        <div class="info">
+          <h4>МКС</h4>
+          <div class="status"><span class="dot live"></span>Через <span class="iss-countdown" id="issCountdown">4:00</span> над горизонтом</div>
+          <div class="sub">ARISS · 145.800 МГц ЧМ</div>
+        </div>
+      </div>
+      <div class="signal-bars"><span style="animation-delay:0.11s"></span><span style="animation-delay:0.22s"></span><span style="animation-delay:0.33s"></span><span style="animation-delay:0.44s"></span><span style="animation-delay:0.55s"></span><span style="animation-delay:0.66s"></span><span style="animation-delay:0.77s"></span></div>
+      <div class="bottom-row">
+        <div class="listener-count">🎧 <b id="listeners1">587</b> слухачів зараз</div>
+        <button class="radio-play-circle" id="btn1" onclick="nwPlayStation('МКС','ARISS · 145.800 МГц ЧМ',this,1)">▶</button>
+      </div>
+    </div>
+<div class="radio-row" id="row2">
+      <div class="head-row">
+        <div class="ic">📡</div>
+        <div class="info">
+          <h4>Аматорський супутник SO-50</h4>
+          <div class="status"><span class="dot live"></span>Зараз проходить над Європою</div>
+          <div class="sub">FM-ретранслятор · 436.795 МГц</div>
+        </div>
+      </div>
+      <div class="signal-bars"><span style="animation-delay:0.22s"></span><span style="animation-delay:0.33s"></span><span style="animation-delay:0.44s"></span><span style="animation-delay:0.55s"></span><span style="animation-delay:0.66s"></span><span style="animation-delay:0.77s"></span><span style="animation-delay:0.88s"></span></div>
+      <div class="bottom-row">
+        <div class="listener-count">🎧 <b id="listeners2">96</b> слухачів зараз</div>
+        <button class="radio-play-circle" id="btn2" onclick="nwPlayStation('Аматорський супутник SO-50','FM-ретранслятор · 436.795 МГц',this,2)">▶</button>
+      </div>
+    </div>
+<div class="radio-row" id="row3">
+      <div class="head-row">
+        <div class="ic">🔭</div>
+        <div class="info">
+          <h4>Радіотелескоп</h4>
+          <div class="status"><span class="dot live"></span>Частота 1420 МГц</div>
+          <div class="sub">Лінія нейтрального водню</div>
+        </div>
+      </div>
+      <div class="signal-bars"><span style="animation-delay:0.33s"></span><span style="animation-delay:0.44s"></span><span style="animation-delay:0.55s"></span><span style="animation-delay:0.66s"></span><span style="animation-delay:0.77s"></span><span style="animation-delay:0.88s"></span><span style="animation-delay:0.99s"></span></div>
+      <div class="bottom-row">
+        <div class="listener-count">🎧 <b id="listeners3">142</b> слухачів зараз</div>
+        <button class="radio-play-circle" id="btn3" onclick="nwPlayStation('Радіотелескоп','Лінія нейтрального водню',this,3)">▶</button>
+      </div>
+    </div>
+<div class="radio-row" id="row4">
+      <div class="head-row">
+        <div class="ic">📈</div>
+        <div class="info">
+          <h4>e-Callisto</h4>
+          <div class="status"><span class="dot live"></span>Радіоспектр Сонця</div>
+          <div class="sub">Мережа 190+ станцій по світу</div>
+        </div>
+      </div>
+      <div class="signal-bars"><span style="animation-delay:0.44s"></span><span style="animation-delay:0.55s"></span><span style="animation-delay:0.66s"></span><span style="animation-delay:0.77s"></span><span style="animation-delay:0.88s"></span><span style="animation-delay:0.99s"></span><span style="animation-delay:0.00s"></span></div>
+      <div class="bottom-row">
+        <div class="listener-count">🎧 <b id="listeners4">71</b> слухачів зараз</div>
+        <button class="radio-play-circle" id="btn4" onclick="nwPlayStation('e-Callisto','Мережа 190+ станцій по світу',this,4)">▶</button>
+      </div>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="feed">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Наживо</div>
+        <h2 class="section-title">Стрічка подій ефіру<span class="feed-live-badge"><span class="dot"></span>оновлюється</span></h2>
+      </div>
+    </div>
+    <div class="event-feed" id="eventFeed"></div>
+  </div>
+</section>
+
+<section class="section" id="about">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Що саме ти чуєш</div>
+        <h2 class="section-title">П'ять джерел ефіру</h2>
+      </div>
+    </div>
+    <div class="feat-row">
+      <div class="tag">☀️ Сонце</div>
+      <div><h4>Радіосплески через мережу e-Callisto</h4><p>Понад 190 радіоспектрометрів по всьому світу безперервно записують радіовипромінювання Сонця — сплески пов'язані зі спалахами й викидами корональної маси.</p></div>
+      <div class="num">відкриті дані</div>
+    </div>
+    <div class="feat-row">
+      <div class="tag">🛰️ МКС · 145.800 МГц</div>
+      <div><h4>ARISS — аматорське радіо на борту станції</h4><p>Космонавти іноді виходять в ефір голосом або передають SSTV-зображення на цій частоті — приймається звичайним ЧМ-приймачем під час прольоту станції.</p></div>
+      <div class="num">голосовий ЧМ</div>
+    </div>
+    <div class="feat-row">
+      <div class="tag">📡 SO-50</div>
+      <div><h4>Любительський супутник-ретранслятор</h4><p>Невеликий супутник із FM-ретранслятором на борту — аматори радіо передають через нього голос один одному під час прольоту над своїм регіоном.</p></div>
+      <div class="num">uplink 145.850 · downlink 436.795 МГц</div>
+    </div>
+    <div class="feat-row">
+      <div class="tag">🔭 1420 МГц</div>
+      <div><h4>Лінія нейтрального водню</h4><p>Ключова частота радіоастрономії — саме за випромінюванням атомарного водню на цій довжині хвилі побудовані карти спіральної структури нашої Галактики.</p></div>
+      <div class="num">21-сантиметрова лінія</div>
+    </div>
+    <div class="feat-row">
+      <div class="tag">📈 e-Callisto</div>
+      <div><h4>Глобальна мережа сонячних спектрометрів</h4><p>Проєкт, започаткований у Швейцарії — станції в десятках країн цілодобово записують радіоспектр Сонця і публікують дані у відкритому доступі.</p></div>
+      <div class="num">190+ станцій</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Хочеш слухати сам</div>
+        <h2 class="section-title">Своя приймальна станція</h2>
+      </div>
+    </div>
+    <div class="feat-row">
+      <div class="tag">RTL-SDR</div>
+      <div><h4>Той самий приймач приймає все це наживо</h4><p>Радіовсплески Юпітера, метеори через forward-scatter, а тепер і ці джерела — все можливо прийняти власним RTL-SDR і простою антеною.</p></div>
+      <div class="num">див. rtl-sdr.html</div>
+    </div>
+    <div class="hero-actions" style="margin-top:20px">
+      <a href="rtl-sdr.html" class="btn primary">Дізнатись більше про RTL-SDR ↗</a>
+      <a href="community.html" class="btn ghost">Форум радіоастрономії</a>
+    </div>
+  </div>
+</section>
+
+<div class="now-playing" id="nowPlaying">
+  <div class="eq-bars">
+    <span style="animation-delay:0s"></span>
+    <span style="animation-delay:.15s"></span>
+    <span style="animation-delay:.3s"></span>
+    <span style="animation-delay:.1s"></span>
+    <span style="animation-delay:.25s"></span>
+  </div>
+  <div class="np-info">
+    <div class="np-title" id="npTitle">—</div>
+    <div class="np-sub" id="npSub">—</div>
+  </div>
+  <button class="np-stop" onclick="nwStopPlaying()">✕</button>
+</div>
+
+<script>
+var nwCurrentBtn = null;
+var nwCurrentRow = null;
+
+function nwPlayStation(name, sub, btn, idx){
+  var row = document.getElementById('row' + idx);
+  if(nwCurrentBtn === btn){
+    nwStopPlaying();
+    return;
+  }
+  if(nwCurrentBtn){ nwCurrentBtn.classList.remove('playing'); nwCurrentBtn.textContent = '▶'; }
+  if(nwCurrentRow){ nwCurrentRow.classList.remove('playing'); }
+  nwCurrentBtn = btn;
+  nwCurrentRow = row;
+  btn.classList.add('playing');
+  btn.textContent = '❚❚';
+  row.classList.add('playing');
+  document.getElementById('npTitle').textContent = name;
+  document.getElementById('npSub').textContent = sub;
+  document.getElementById('nowPlaying').classList.add('show');
+}
+
+function nwStopPlaying(){
+  if(nwCurrentBtn){ nwCurrentBtn.classList.remove('playing'); nwCurrentBtn.textContent = '▶'; }
+  if(nwCurrentRow){ nwCurrentRow.classList.remove('playing'); }
+  nwCurrentBtn = null;
+  nwCurrentRow = null;
+  document.getElementById('nowPlaying').classList.remove('show');
+}
+
+/* --- live ISS pass countdown --- */
+var nwIssSeconds = 240;
+function nwTickIss(){
+  nwIssSeconds--;
+  if(nwIssSeconds < 0) nwIssSeconds = 8*60 + Math.floor(Math.random()*7*60);
+  var m = Math.floor(nwIssSeconds/60), s = nwIssSeconds%60;
+  var el = document.getElementById('issCountdown');
+  if(el){
+    el.textContent = m + ':' + (s<10?'0':'') + s;
+    el.classList.toggle('soon', nwIssSeconds <= 30);
+  }
+}
+setInterval(nwTickIss, 1000);
+
+/* --- listener count gentle drift --- */
+function nwDriftListeners(){
+  document.querySelectorAll('[id^="listeners"]').forEach(function(el){
+    var v = parseInt(el.textContent, 10);
+    var delta = Math.floor(Math.random()*7) - 3;
+    v = Math.max(12, v + delta);
+    el.textContent = v;
+  });
+}
+setInterval(nwDriftListeners, 3500);
+
+/* --- live event feed --- */
+var nwEventPool = [
+  ['☀️', 'Сонце', '#E8B94D', 'Зафіксовано радіосплеск, клас C2.4'],
+  ['☀️', 'Сонце', '#E8B94D', 'Рівень фонового шуму піднявся на 3 дБ'],
+  ['🛰️', 'МКС', '#4FD1C5', 'Екіпаж вийшов на голосовий зв\'язок із наземною станцією'],
+  ['🛰️', 'МКС', '#4FD1C5', 'Передача SSTV-зображення розпочалась'],
+  ['📡', 'SO-50', '#B98FE8', 'Зафіксовано QSO між двома аматорськими станціями'],
+  ['📡', 'SO-50', '#B98FE8', 'Супутник наближається до максимальної елевації'],
+  ['🔭', '1420 МГц', '#4FD1C5', 'Зафіксовано пік випромінювання в напрямку сузір\'я Лебедя'],
+  ['📈', 'e-Callisto', '#E8B94D', 'Станція в Гумболдті (Швейцарія) оновила спектрограму'],
+  ['📈', 'e-Callisto', '#E8B94D', 'Станція в Малайзії приєдналась до синхронного запису'],
+];
+function nwAddEvent(){
+  var pick = nwEventPool[Math.floor(Math.random()*nwEventPool.length)];
+  var now = new Date();
+  var t = (now.getHours()<10?'0':'')+now.getHours()+':'+(now.getMinutes()<10?'0':'')+now.getMinutes()+':'+(now.getSeconds()<10?'0':'')+now.getSeconds();
+  var feed = document.getElementById('eventFeed');
+  var item = document.createElement('div');
+  item.className = 'event-item';
+  item.style.setProperty('--ev-color', pick[2]);
+  item.innerHTML = '<div class="avatar">'+pick[0]+'</div>'
+    + '<div class="body">'
+    + '<div class="row1"><span class="src">'+pick[1]+'</span><span class="t">'+t+'</span></div>'
+    + '<div class="msg">'+pick[3]+'</div>'
+    + '</div>';
+  feed.appendChild(item);
+  while(feed.children.length > 14) feed.removeChild(feed.firstChild);
+}
+for(var _i=0; _i<5; _i++) nwAddEvent();
+setInterval(nwAddEvent, 5000);
+</script>
+
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="logo" style="margin-bottom:12px"><span class="mark"></span><span>NEOwatch<small>СВІТЛО З ОРБІТИ</small></span></div>
+        <p style="color:var(--text-dim);font-size:13.5px;max-width:280px">Український гід у космос: МКС, астероїди, запуски, аврора та зоряне небо — над твоїм містом, у боті й на сайті.</p>
+      </div>
+      <div>
+        <h5>Небо</h5>
+        <a href="iss.html">МКС та супутники</a>
+        <a href="asteroids.html">Астероїди (NEO)</a>
+        <a href="sky.html">Небо для спостерігача</a>
+        <a href="weather.html">Космічна погода</a>
+        <a href="launches.html">Ракетні запуски</a>
+        <a href="mars.html">Фото з Марса</a>
+        <a href="apod.html">Фото дня (APOD)</a>
+        <a href="gallery.html">Фотоархів NASA</a>
+        <a href="news.html">Космічні новини</a>
+        <a href="comets.html">Комети</a>
+        <a href="exoplanets.html">Екзопланети (TESS)</a>
+        <a href="mast.html">MAST: криві блиску</a>
+        <a href="rtl-sdr.html">Радіоастрономія (RTL-SDR)</a>
+        <a href="radio-live.html">Космічне радіо наживо</a>
+      </div>
+      <div>
+        <h5>Спільнота</h5>
+        <a href="community.html">Форум</a>
+        <a href="community.html#gallery">Фотогалерея</a>
+        <a href="community.html#quiz">Вікторина</a>
+        <a href="community.html#diary">Щоденники спостережень</a>
+        <a href="profile.html">Профіль спостерігача</a>
+      </div>
+      <div>
+        <h5>Проєкт</h5>
+        <a href="about.html">Про NEOwatch</a>
+        <a href="education.html">Освіта та факти</a>
+        <a href="api.html">API для розробників</a>
+        <a href="https://t.me/NEOwatchBot">Telegram-бот</a>
+        <a href="about.html#contact">Написати нам</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 NEOwatch. Дані: NASA · NOAA SWPC · ESA · N2YO · Launch Library 2</span>
+      <span>Зроблено для тих, хто дивиться вгору 🌌</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var c=document.getElementById('starfield');
+  if(!c) return;
+  var ctx=c.getContext('2d');
+  var stars=[];
+  function resize(){c.width=innerWidth;c.height=innerHeight;}
+  resize();addEventListener('resize',resize);
+  var n=Math.min(160,Math.floor(innerWidth/9));
+  for(var i=0;i<n;i++){
+    stars.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*1.3+.2,s:Math.random()*.6+.15,p:Math.random()*Math.PI*2});
+  }
+  var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function draw(t){
+    ctx.clearRect(0,0,c.width,c.height);
+    for(var i=0;i<stars.length;i++){
+      var st=stars[i];
+      var alpha = reduced ? .5 : (Math.sin(t/1400*st.s+st.p)*.35+.55);
+      ctx.beginPath();
+      ctx.fillStyle='rgba(237,238,245,'+alpha.toFixed(2)+')';
+      ctx.arc(st.x,st.y,st.r,0,7);
+      ctx.fill();
+    }
+    if(!reduced) requestAnimationFrame(draw); else requestAnimationFrame(draw_once);
+  }
+  function draw_once(){}
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

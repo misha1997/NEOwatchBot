@@ -26,6 +26,7 @@ export const NAV_GROUPS = [
     { to: "/mast", labelKey: "nav.mast" },
     { to: "/deep", labelKey: "nav.deep" },
     { to: "/voyager", labelKey: "nav.voyager" },
+    { to: "/gallery", labelKey: "nav.gallery" },
   ]},
   // { labelKey: "nav.sunradio_group", items: [
   //   { to: "/weather", labelKey: "nav.weather" },
