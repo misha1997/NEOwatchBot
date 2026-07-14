@@ -40,6 +40,17 @@
   height: 160px;
 }
 .planet-disc { filter: drop-shadow(0 6px 24px rgba(0,0,0,.4)); }
+.planet-photo {
+  max-width: 150px;
+  max-height: 150px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 24px rgba(0,0,0,.45));
+  transition: .25s;
+}
+.planet-card:hover .planet-photo { transform: scale(1.04); }
+.planet-card.disabled:hover .planet-photo { transform: none; }
 
 .planet-card-head {
   display: flex;
@@ -120,6 +131,7 @@
 /* Mars orbit + moons (hero SVG) */
 .mars-orbit-ring { fill: none; stroke: var(--grid-line); stroke-width: 1; stroke-dasharray: 3 4; }
 .mars-moon-label { font-family: var(--font-mono); font-size: 9.5px; fill: var(--text-dim); }
+.mars-disc-img { filter: drop-shadow(0 8px 28px rgba(0,0,0,.55)); }
 
 /* ---------- Mars moons cards ---------- */
 .mars-moon-desc {

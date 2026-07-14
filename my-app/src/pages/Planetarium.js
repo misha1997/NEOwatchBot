@@ -1,40 +1,14 @@
 // Planetarium hub (/planetarium): a grid of all eight solar-system planets.
 // Mars has a dedicated page (live weather + rover photos) so its card links
 // through; the other seven aren't built yet and render as "soon" tiles. Each
-// card shows a planet disc (SVG radial gradient), a short blurb and a row of
+// card shows a planet photo (from /public/planets), a short blurb and a row of
 // key facts. Ports the visual language of templates/mars.html.
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { PLANETS, gradId } from "../lib/planets";
+import { PLANETS } from "../lib/planets";
 import { useSeo } from "../hooks/useSeo";
 import "../styles/planetarium.css";
-
-// One planet disc with an optional ring (Saturn). Gradient stops come from the
-// planet registry; `prefix` keeps SVG gradient ids unique across cards.
-function PlanetDisc({ planet, prefix, size = 150 }) {
-  const id = gradId(prefix, planet.key);
-  return (
-    <svg viewBox="0 0 160 160" width={size} height={size} className="planet-disc">
-      <defs>
-        <radialGradient id={id} cx="35%" cy="32%" r="75%">
-          <stop offset="0%" stopColor={planet.grad[0]} />
-          <stop offset="55%" stopColor={planet.grad[1]} />
-          <stop offset="100%" stopColor={planet.grad[2]} />
-        </radialGradient>
-      </defs>
-      {planet.rings && (
-        <ellipse cx="80" cy="80" rx="70" ry="14"
-          fill="none" stroke={planet.accent} strokeOpacity="0.55" strokeWidth="2" />
-      )}
-      <circle cx="80" cy="80" r="50" fill={`url(#${id})`} />
-      {planet.rings && (
-        <path d="M10 80 A70 14 0 0 0 150 80" fill="none"
-          stroke={planet.accent} strokeOpacity="0.7" strokeWidth="2" />
-      )}
-    </svg>
-  );
-}
 
 export default function Planetarium() {
   const { t } = useTranslation();
@@ -62,7 +36,13 @@ export default function Planetarium() {
               const body = (
                 <>
                   <div className="planet-disc-wrap">
-                    <PlanetDisc planet={p} prefix="hub" />
+                    <img
+                      className="planet-photo"
+                      src={p.img}
+                      alt={t(p.labelKey)}
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </div>
                   <div className="planet-card-body">
                     <div className="planet-card-head">

@@ -78,18 +78,13 @@ export default function Mars() {
           </div>
           <div className="orbit-wrap">
             <svg viewBox="0 0 480 420" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <radialGradient id="marsGrad" cx="35%" cy="32%" r="75%">
-                  <stop offset="0%" stopColor="#E8A374" />
-                  <stop offset="55%" stopColor="#C1592E" />
-                  <stop offset="100%" stopColor="#7A2E14" />
-                </radialGradient>
-              </defs>
               <circle className="mars-orbit-ring" cx="240" cy="218.4" r="100" />
               <circle className="mars-orbit-ring" cx="240" cy="218.4" r="148" />
-              <circle cx="240" cy="218.4" r="62" fill="url(#marsGrad)" />
-              <ellipse cx="232" cy="226.4" rx="26" ry="6" fill="#5C1E0C" opacity=".45" transform="rotate(-12 232 226.4)" />
-              <ellipse cx="260" cy="200.4" rx="12" ry="9" fill="#8B3A1C" opacity=".4" />
+              <image
+                href="/planets/Mars.png"
+                x="170" y="148" width="140" height="140"
+                className="mars-disc-img"
+              />
               <g>
                 <circle cx="340" cy="218.4" r="3.4" fill="#B7ADA3" />
                 <animateTransform attributeName="transform" type="rotate" from="0 240 218.4" to="360 240 218.4" dur="6s" repeatCount="indefinite" />
