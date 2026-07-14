@@ -1,10 +1,13 @@
-// Photo/video archive — NASA APOD over a date range. Ported from the static
-// templates/gallery.html mockup, but wired to the live /api/apod/archive
-// endpoint instead of the mockup's hardcoded gradient tiles.
+// Photo/video archive — NASA APOD, paginated by the backend. The current page
+// lives in the URL (?page=N) so it's shareable/bookmarkable and survives a
+// reload. Each page = PAGE_SIZE days of APODs, newest first; paging forward
+// into territory not yet mirrored is fetched live from NASA and ingested to
+// the DB in the same request (backend-driven lazy backfill).
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { useLang } from "../context/LanguageContext";
-import { getApodArchive } from "../lib/api";
+import { getApodArchivePage } from "../lib/api";
 import {
   videoEmbed,
   posterCandidates,
@@ -14,85 +17,61 @@ import {
 import "../styles/gallery.css";
 
 const PAGE_SIZE = 12;
-const WINDOW_DAYS = 30;
-// NASA APOD began 1995-06-16 — don't try to fetch beyond it.
-const APOD_OLDEST = "1995-06-16";
-
-// UTC date helpers (APOD dates are calendar days, not instants).
-const toISO = (d) => d.toISOString().slice(0, 10);
-const shift = (iso, days) => {
-  const d = new Date(iso + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return toISO(d);
-};
 
 export default function Gallery() {
   const { t } = useTranslation();
   const { lang } = useLang();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [entries, setEntries] = useState([]); // most-recent first
-  const [page, setPage] = useState(0);
+  // Page number is the source of truth in the URL (0-indexed, 0 = newest).
+  const page = Math.max(0, parseInt(searchParams.get("page") || "0", 10) || 0);
+
+  const [data, setData] = useState(null); // {items, page, page_size, total_pages, has_more}
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
-  const [exhausted, setExhausted] = useState(false);
   const [modalIndex, setModalIndex] = useState(null);
   const [playing, setPlaying] = useState(false);
 
-  // Initial load: the last WINDOW_DAYS days.
+  // Fetch the current page from the backend. The backend clamps an out-of-range
+  // page to the last one and returns the effective page in `data.page`; sync
+  // the URL to it so the active page button and the address bar agree.
   useEffect(() => {
     let alive = true;
     setLoading(true);
     setError(null);
-    // Omit start/end → backend defaults to the last 30 days ending yesterday
-    // (today's APOD isn't published yet in US time and would 400 at NASA).
-    getApodArchive(null, null, lang)
-      .then((data) => {
+    getApodArchivePage(page, PAGE_SIZE, lang)
+      .then((res) => {
         if (!alive) return;
-        const list = Array.isArray(data) ? data : [];
-        setEntries(list);
-        // NASA's earliest APOD is 1995-06-16; stop "load older" past it.
-        const oldestLoaded = list.length ? list[list.length - 1].date : null;
-        setExhausted(!oldestLoaded || oldestLoaded <= APOD_OLDEST);
+        setData(res);
+        if (res && typeof res.page === "number" && res.page !== page) {
+          setSearchParams(res.page === 0 ? {} : { page: String(res.page) }, { replace: true });
+        }
       })
-      .catch((e) => {
+      .catch(() => {
         if (alive) setError(t("gallery.error", "Не вдалося завантажити архів."));
       })
       .finally(() => alive && setLoading(false));
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang]);
+  }, [page, lang]);
 
-  // Fetch another WINDOW_DAYS window before the oldest entry already loaded.
-  const loadOlder = useCallback(async () => {
-    if (loadingMore || exhausted || entries.length === 0) return;
-    setLoadingMore(true);
-    const oldest = entries[entries.length - 1].date;
-    const end = shift(oldest, -1); // exclusive of what we already have
-    const start = shift(end, 1 - WINDOW_DAYS);
-    try {
-      const data = await getApodArchive(start, end, lang);
-      const fresh = (Array.isArray(data) ? data : [])
-        .filter((e) => e.date && e.date < oldest); // dedupe vs already-loaded
-      setEntries((prev) => [...prev, ...fresh]);
-      if (fresh.length === 0 || start <= APOD_OLDEST) setExhausted(true);
-    } catch (e) {
-      setExhausted(true);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [entries, loadingMore, exhausted, lang]);
+  // Close the lightbox whenever the page changes.
+  useEffect(() => { setModalIndex(null); }, [page]);
 
-  // Reset to page 0 if the list shrank below the current page (e.g. lang switch).
-  useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
-    if (page > totalPages - 1) setPage(0);
-  }, [entries, page]);
+  const entries = (data && Array.isArray(data.items)) ? data.items : [];
+  const totalPages = (data && data.total_pages) || 1;
+  const activePage = (data && typeof data.page === "number") ? data.page : page;
+  const hasMore = (data && data.has_more) || false;
 
-  // Lightbox keyboard nav.
+  const goPage = useCallback((p) => {
+    const n = Math.max(0, Math.min(totalPages - 1, p));
+    setSearchParams(n === 0 ? {} : { page: String(n) });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [setSearchParams, totalPages]);
+
+  // Lightbox keyboard nav (within the current page).
   useEffect(() => {
     if (modalIndex === null) return;
-    // Switching entries (nav buttons / arrows) tears down any playing video.
     setPlaying(false);
     const onKey = (e) => {
       if (e.key === "Escape") setModalIndex(null);
@@ -109,8 +88,6 @@ export default function Gallery() {
     };
   }, [modalIndex, entries.length]);
 
-  const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
-  const pageItems = entries.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
   const modal = modalIndex !== null ? entries[modalIndex] : null;
 
   const fmtDate = (iso) => {
@@ -125,11 +102,6 @@ export default function Gallery() {
     }
   };
 
-  const goPage = (p) => {
-    setPage(Math.max(0, Math.min(totalPages - 1, p)));
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   // Compact pagination: first, last, current ±1, with ellipses.
   const pageBtns = [];
   const add = (n) => pageBtns.push(n);
@@ -137,9 +109,9 @@ export default function Gallery() {
     for (let i = 0; i < totalPages; i++) add(i);
   } else {
     add(0);
-    if (page > 2) pageBtns.push("…");
-    for (let i = Math.max(1, page - 1); i <= Math.min(totalPages - 2, page + 1); i++) add(i);
-    if (page < totalPages - 3) pageBtns.push("…");
+    if (activePage > 2) pageBtns.push("…");
+    for (let i = Math.max(1, activePage - 1); i <= Math.min(totalPages - 2, activePage + 1); i++) add(i);
+    if (activePage < totalPages - 3) pageBtns.push("…");
     add(totalPages - 1);
   }
 
@@ -186,14 +158,13 @@ export default function Gallery() {
         ) : (
           <>
             <div className="photo-grid">
-              {pageItems.map((e, i) => {
-                const idx = page * PAGE_SIZE + i;
+              {entries.map((e, i) => {
                 const isVideo = e.media_type === "video";
                 return (
                   <div
                     className="photo-card"
-                    key={e.date || idx}
-                    onClick={() => setModalIndex(idx)}
+                    key={e.date || i}
+                    onClick={() => setModalIndex(i)}
                   >
                     <div className="ph">
                       {isVideo ? (() => {
@@ -242,13 +213,16 @@ export default function Gallery() {
               })}
             </div>
 
-            {/* Pagination */}
+            {/* Pagination — backend-driven, page number in the URL. The next
+                arrow stays enabled all the way to the last page (total_pages is
+                the true archive extent, not what's mirrored); the backend
+                live-fetches + ingests any page not yet in the DB. */}
             {totalPages > 1 && (
               <div className="pagination">
                 <button
                   className="pg-btn arrow"
-                  onClick={() => goPage(page - 1)}
-                  disabled={page === 0}
+                  onClick={() => goPage(activePage - 1)}
+                  disabled={activePage === 0}
                   aria-label={t("gallery.prev", "Попередня")}
                 >‹</button>
                 {pageBtns.map((n, i) =>
@@ -257,32 +231,17 @@ export default function Gallery() {
                   ) : (
                     <button
                       key={n}
-                      className={"pg-btn" + (n === page ? " active" : "")}
+                      className={"pg-btn" + (n === activePage ? " active" : "")}
                       onClick={() => goPage(n)}
                     >{n + 1}</button>
                   )
                 )}
                 <button
                   className="pg-btn arrow"
-                  onClick={() => goPage(page + 1)}
-                  disabled={page === totalPages - 1}
+                  onClick={() => goPage(activePage + 1)}
+                  disabled={!hasMore}
                   aria-label={t("gallery.next", "Наступна")}
                 >›</button>
-              </div>
-            )}
-
-            {/* Load older window */}
-            {!exhausted && (
-              <div className="gallery-loadmore">
-                <button
-                  className="btn ghost"
-                  onClick={loadOlder}
-                  disabled={loadingMore}
-                >
-                  {loadingMore
-                    ? t("gallery.loadingMore", "Завантаження…")
-                    : t("gallery.loadOlder", "Завантажити старіші ↓")}
-                </button>
               </div>
             )}
           </>

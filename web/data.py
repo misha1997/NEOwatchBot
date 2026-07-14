@@ -15,7 +15,7 @@ import logging
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 
 import requests
 
@@ -1604,6 +1604,93 @@ async def get_apod_archive(start: str, end: str, lang: str = DEFAULT_LANG) -> li
     return await asyncio.to_thread(
         get_or_fetch, key, APOD_ARCHIVE_TTL, lambda: _apod_archive_raw(start, end, lang)
     )
+
+
+# NASA APOD began 1995-06-16 — don't try to fetch beyond it.
+APOD_OLDEST = "1995-06-16"
+
+
+def _apod_archive_window(start: str, end: str, lang: str = DEFAULT_LANG) -> list:
+    """Return the *complete* ``[start, end]`` APOD window for one gallery page.
+
+    Stricter sibling of ``_apod_archive_raw``: only serves from the DB when it
+    already covers the whole window (``(end-start).days+1`` rows). If the DB is
+    missing any day (empty, partial, or DB error), live-fetches the window from
+    NASA and ingests it — the idempotent UPSERT is the "save to DB in parallel"
+    step — then returns the freshest rows. This guarantees every page renders
+    the full ``page_size`` cards instead of a partial DB slice, and that paging
+    into un-mirrored territory both shows the photos and persists them.
+    """
+    try:
+        expected = (date.fromisoformat(end) - date.fromisoformat(start)).days + 1
+    except Exception:
+        expected = 0
+    # get_apod_entries is supposed to return None on a DB error, but a dead
+    # connection raises before its own try/except — guard here so a DB outage
+    # falls back to a live NASA fetch instead of 500ing the whole page.
+    try:
+        stored = get_apod_entries(start, end)  # None = DB error, [] = empty window
+    except Exception as e:
+        logger.error("APOD DB read error: %s", e)
+        stored = None
+    if stored and expected and len(stored) >= expected:
+        return _apod_localize(stored, lang)
+    entries = NasaAPI.get_apod_archive(start, end)
+    if entries:
+        try:
+            ingest_apod_entries(entries)
+        except Exception as e:
+            logger.error("APOD live-ingest error: %s", e)
+        try:
+            stored = get_apod_entries(start, end) or []
+        except Exception:
+            stored = []
+        rows = stored if len(stored) >= len(entries) else entries
+    else:
+        rows = stored or []
+    return _apod_localize(rows, lang)
+
+
+async def get_apod_archive_page(
+    page: int, page_size: int = 12, lang: str = DEFAULT_LANG
+) -> dict:
+    """One page of the APOD archive for backend-driven pagination.
+
+    Page 0 starts at the most recent APOD (yesterday — today's isn't published
+    yet in US time) and each page steps ``page_size`` days older, down to the
+    first APOD on 1995-06-16. Returns
+    ``{items, page, page_size, total_pages, has_more}``. Windows beyond the
+    mirrored archive are live-fetched + ingested on demand (lazy backfill), so
+    paging forward into unseen territory loads the photos and persists them to
+    the DB in the same request.
+    """
+    page = max(0, int(page))
+    page_size = max(1, min(int(page_size), 24))
+    today = date.today()
+    newest = today - timedelta(days=1)  # today's APOD not available yet
+    oldest = date.fromisoformat(APOD_OLDEST)
+    total_entries = max(0, (newest - oldest).days + 1)
+    total_pages = max(1, (total_entries + page_size - 1) // page_size)
+    if page > total_pages - 1:
+        page = total_pages - 1
+    end_day = newest - timedelta(days=page * page_size)
+    start_day = end_day - timedelta(days=page_size - 1)
+    if start_day < oldest:
+        start_day = oldest
+    if end_day < oldest:
+        end_day = oldest
+    key = f"apod_archive_page:{page}:{page_size}:{lang}"
+    items = await asyncio.to_thread(
+        get_or_fetch, key, APOD_ARCHIVE_TTL,
+        lambda: _apod_archive_window(start_day.isoformat(), end_day.isoformat(), lang),
+    )
+    return {
+        "items": items,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+        "has_more": page + 1 < total_pages,
+    }
 
 
 # ---------------------------------------------------------------------------

@@ -37,12 +37,13 @@ export const getMars = () => fetchJSON(API + "/mars");
 // Latest Perseverance / Curiosity photos (Mars Vista API). {configured, perseverance[], curiosity[]}.
 export const getMarsRovers = () => fetchJSON(API + "/mars/rovers");
 export const getApod = (lang) => fetchJSON(API + "/apod" + withLang("", lang));
-// APOD archive — a date range of NASA pictures/videos for the gallery page.
-// `start`/`end` are "YYYY-MM-DD"; omit for the last 30 days. Span capped at 60d server-side.
-export const getApodArchive = (start, end, lang) => {
+// APOD archive — one page of NASA pictures/videos for the gallery page.
+// `page` is 0-indexed (page 0 = most recent). Returns
+// {items, page, page_size, total_pages, has_more}.
+export const getApodArchivePage = (page, pageSize, lang) => {
   const p = new URLSearchParams();
-  if (start) p.set("start", start);
-  if (end) p.set("end", end);
+  if (page) p.set("page", page);
+  if (pageSize) p.set("page_size", pageSize);
   if (lang) p.set("lang", lang);
   const qs = p.toString();
   return fetchJSON(API + "/apod/archive" + (qs ? "?" + qs : ""));

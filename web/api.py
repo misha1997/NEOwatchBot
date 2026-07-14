@@ -186,34 +186,20 @@ async def apod(lang: str = LANG_Q):
 
 @router.get("/apod/archive")
 async def apod_archive(
-    start: str | None = Query(None, description="Start date YYYY-MM-DD (default: 30 days ago)"),
-    end: str | None = Query(None, description="End date YYYY-MM-DD (default: today)"),
+    page: int = Query(0, ge=0, description="Page number, 0-indexed (0 = most recent)"),
+    page_size: int = Query(12, ge=1, le=24, description="Entries per page (1-24)"),
     lang: str = LANG_Q,
 ):
-    """A date range of NASA APOD entries for the photo/video gallery page.
+    """One page of NASA APOD entries for the photo/video gallery.
 
-    Defaults to the last 30 days; the span is capped at 60 days to keep the
-    NASA request light. Returns ``[]`` if NASA is unreachable.
+    Page 0 is the most recent APODs (ending yesterday — today's isn't published
+    yet in US time); each page steps ``page_size`` days older, back to the first
+    APOD on 1995-06-16. Windows beyond the mirrored archive are fetched live
+    from NASA and ingested (saved to the DB) on demand, so paging forward into
+    unseen territory loads the photos and persists them in the same request.
+    Returns ``{items, page, page_size, total_pages, has_more}``.
     """
-    from datetime import date, timedelta
-
-    today = date.today()
-    # NASA publishes a day's APOD during that day (US time); requesting today
-    # often 400s ("Date must be between Jun 16, 1995 and <yesterday>"). Default
-    # the window to end yesterday so the out-of-the-box query always resolves.
-    end_d = date.fromisoformat(end) if end else (today - timedelta(days=1))
-    # Clamp an explicit future end to today (NASA rejects anything past "now").
-    if end_d > today:
-        end_d = today
-    start_d = date.fromisoformat(start) if start else (end_d - timedelta(days=29))
-    # Enforce ordering + a 60-day ceiling so a bad query can't pull a huge range.
-    if start_d > end_d:
-        start_d, end_d = end_d, start_d
-    if (end_d - start_d).days > 60:
-        start_d = end_d - timedelta(days=60)
-    return await data.get_apod_archive(
-        start_d.isoformat(), end_d.isoformat(), lang
-    )
+    return await data.get_apod_archive_page(page, page_size, lang)
 
 
 @router.get("/debris")
