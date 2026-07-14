@@ -235,6 +235,28 @@ nav.links a.active {
   border-radius: 8px
 }
 
+/* Disabled (coming-soon) entry in a header dropdown — rendered as a span
+   (not a link) by Header.js. Defined here, not in planetarium.css, because
+   the header is on every page while planetarium.css is page-scoped. */
+.nav-link.disabled {
+  display: block;
+  font-size: 13.5px;
+  color: var(--text-dim);
+  padding: 9px 14px;
+  border-radius: 8px;
+  opacity: .55;
+  cursor: default;
+}
+.nav-link.disabled .soon {
+  font-size: 9px;
+  letter-spacing: .12em;
+  color: var(--text-dim);
+  margin-left: 6px;
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 6px;
+}
+
 .cta-btn {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -3260,6 +3282,7 @@ h1.page-title {
   border: 1px solid var(--border);
   color: var(--text-dim);
   cursor: default;
+  background: rgba(237, 238, 245, .02);
 }
 
 .filter-pill.on {

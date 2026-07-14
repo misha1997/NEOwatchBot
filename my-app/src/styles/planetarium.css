@@ -1,0 +1,376 @@
+/* Planetarium hub + Mars planet page styles.
+   Only classes NOT already in neowatch.css live here (feat-row, gal, card,
+   eyebrow, clock, stat-mini, filter-pill, page-head, pill, dl-row, divider
+   are reused from the global sheet). */
+
+/* ---------- planetarium hub ---------- */
+.planetarium-hero { padding-top: 56px; }
+
+.planet-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.planet-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  position: relative;
+  transition: .25s;
+  color: inherit;
+}
+.planet-card:hover {
+  border-color: rgba(232,185,77,.3);
+  transform: translateY(-2px);
+}
+.planet-card.disabled {
+  opacity: .62;
+  cursor: default;
+}
+.planet-card.disabled:hover { transform: none; border-color: var(--border); }
+
+.planet-disc-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+}
+.planet-disc { filter: drop-shadow(0 6px 24px rgba(0,0,0,.4)); }
+
+.planet-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.planet-card-head h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
+}
+.planet-soon, .planet-live {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 4px 9px;
+  border-radius: 20px;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+.planet-soon {
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  background: rgba(237,238,245,.03);
+}
+.planet-live {
+  color: var(--teal);
+  border: 1px solid rgba(79,209,197,.3);
+  background: rgba(79,209,197,.08);
+}
+.planet-blurb {
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.55;
+  min-height: 56px;
+}
+.planet-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.planet-facts > div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.planet-facts .fk { color: var(--text-dim); font-size: 10.5px; letter-spacing: .04em; }
+.planet-facts .fv { color: var(--text); }
+.planet-facts .fu { color: var(--text-dim); font-size: 10.5px; }
+.planet-cta {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--gold);
+  margin-top: auto;
+}
+.planet-foot-note {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-dim);
+  margin-top: 22px;
+}
+
+/* ---------- Mars hero ---------- */
+.mars-hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; }
+.mars-hero-note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 12px;
+  max-width: 420px;
+}
+
+/* Mars orbit + moons (hero SVG) */
+.mars-orbit-ring { fill: none; stroke: var(--grid-line); stroke-width: 1; stroke-dasharray: 3 4; }
+.mars-moon-label { font-family: var(--font-mono); font-size: 9.5px; fill: var(--text-dim); }
+
+/* ---------- Mars moons cards ---------- */
+.mars-moon-desc {
+  margin-top: 14px;
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+.mars-moons-note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 14px;
+}
+.moon-phase-mini { width: 54px; height: 54px; border-radius: 50%; flex-shrink: 0; }
+
+/* ---------- rover photos ---------- */
+.rover-photo {
+  aspect-ratio: 4/3;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+}
+.rover-photo .info {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  background: linear-gradient(to top, rgba(0,0,0,.8), transparent);
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+}
+/* Real photo tiles are clickable; show a hint on hover. */
+.rover-photo.clickable { cursor: zoom-in; }
+.rover-photo.clickable:hover { border-color: rgba(232,185,77,.4); }
+.rover-photo .zoom-hint {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gold);
+  background: rgba(9,10,20,.6);
+  border: 1px solid rgba(232,185,77,.3);
+  border-radius: 20px;
+  padding: 3px 8px;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.rover-photo.clickable:hover .zoom-hint { opacity: 1; }
+
+/* ---------- rover photo lightbox (mirrors .photo-modal from gallery.css) ---------- */
+.photo-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5,6,13,.88);
+  backdrop-filter: blur(6px);
+  padding: 24px;
+}
+.photo-modal.open { display: flex; }
+.photo-modal-inner {
+  display: flex;
+  max-width: 1080px;
+  width: 100%;
+  max-height: 86vh;
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.photo-modal-img {
+  flex: 1.3;
+  position: relative;
+  min-height: 320px;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #06070d;
+}
+.photo-modal-close, .photo-modal-nav {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(9,10,20,.6);
+  border: 1px solid var(--border);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+}
+.photo-modal-close {
+  top: 16px; right: 16px;
+  width: 36px; height: 36px;
+  z-index: 2;
+}
+.photo-modal-close:hover { background: rgba(9,10,20,.85); }
+.photo-modal-nav {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px; height: 38px;
+  background: rgba(9,10,20,.55);
+}
+.photo-modal-nav.prev { left: 14px; }
+.photo-modal-nav.next { right: 14px; }
+.photo-modal-nav:hover { background: rgba(9,10,20,.85); }
+.photo-modal-info {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.photo-modal-info .cat {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gold);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  grid-template-columns: 1fr;
+}
+.photo-modal-info h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  margin-top: 10px;
+  line-height: 1.25;
+}
+.photo-modal-info .d {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 8px;
+}
+.photo-modal-info p {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-top: 18px;
+  line-height: 1.7;
+}
+.photo-modal-info .dl-row { margin-top: 14px; }
+@media (max-width: 900px) {
+  .photo-modal-inner { flex-direction: column; max-height: 92vh; }
+  .photo-modal-img { min-height: 220px; }
+}
+
+/* ---------- Perseverance route map ---------- */
+.route-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+.route-wrap svg { width: 100%; height: auto; }
+.route-path { fill: none; stroke: var(--gold); stroke-width: 1.6; stroke-dasharray: 5 4; opacity: .6; }
+.route-label { font-family: var(--font-mono); font-size: 9.5px; fill: var(--text-dim); }
+.route-label.now { fill: var(--teal); font-weight: 600; }
+.route-sol { font-family: var(--font-mono); font-size: 8.5px; fill: var(--text-dim); opacity: .8; }
+.route-live {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.route-live .dot.live {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 0 4px rgba(79,209,197,.18);
+  flex-shrink: 0;
+}
+.route-live-sol {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--teal);
+}
+.route-live-lbl {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.route-note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-top: 16px;
+  max-width: 760px;
+}
+
+/* ---------- dust storm tracker ---------- */
+.dust-track { position: relative; height: 34px; border-radius: 8px; overflow: hidden; display: flex; }
+.dust-seg { height: 100%; }
+.dust-marker {
+  position: absolute; top: -8px; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center;
+}
+.dust-marker .flag { width: 2px; height: 50px; background: var(--text); }
+.dust-marker .lbl {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text);
+  white-space: nowrap; margin-bottom: 2px; background: var(--panel-solid);
+  padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);
+}
+.dust-axis {
+  display: flex; justify-content: space-between; margin-top: 8px;
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-dim);
+}
+
+/* ---------- pressure altitude scale ---------- */
+.pressure-wrap { display: flex; gap: 18px; align-items: stretch; height: 380px; margin-top: 22px; }
+.pressure-bar {
+  width: 56px; border-radius: 10px; position: relative;
+  background: linear-gradient(to top, #0a3d5c, #4FD1C5 55%, #cfeeea);
+}
+.pressure-marks { flex: 1; position: relative; height: 100%; }
+.pmark { position: absolute; left: 0; right: 0; display: flex; align-items: center; gap: 10px; }
+.pmark .ln { flex: 1; height: 1px; background: var(--border); }
+.pmark .txt { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+.pmark.hl .txt { color: var(--gold); font-weight: 600; }
+.pmark.hl .ln { background: rgba(232,185,77,.5); }
+
+/* ---------- mission status rows ---------- */
+.mission-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 4px; border-bottom: 1px solid var(--border);
+}
+.mission-row:last-child { border-bottom: none; }
+.mission-row .nm { font-weight: 600; font-size: 13.5px; flex: 1; }
+.mission-row .ag { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); width: 110px; }
+.mission-row .yr { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); width: 56px; }
+.mission-row .st { font-family: var(--font-mono); font-size: 11px; width: 130px; text-align: right; }
+.mission-row .st.active { color: var(--teal); }
+.mission-row .st.retired { color: var(--text-dim); }
+.mission-row .dot-off {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text-dim); display: inline-block; flex-shrink: 0;
+}
+.mars-missions-note {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--text-dim); margin-top: 12px;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 1100px) {
+  .planet-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 900px) {
+  .mars-hero-grid { grid-template-columns: 1fr; }
+  .mars-hero-grid .orbit-wrap { order: -1; }
+  .planet-grid { grid-template-columns: 1fr; }
+  .mission-row .ag { display: none; }
+  .pressure-wrap { flex-direction: column; height: auto; }
+  .pressure-bar { width: 100%; height: 70px; background: linear-gradient(to right, #0a3d5c, #4FD1C5 55%, #cfeeea); }
+  .pressure-marks { height: 260px; }
+}

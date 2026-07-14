@@ -155,6 +155,15 @@ _SPA_STATIC = REACT_BUILD_DIR / "static"
 if _SPA_STATIC.is_dir():
     app.mount("/static", StaticFiles(directory=_SPA_STATIC), name="react-static")
 
+# Locally-mirrored APOD images (data/apod/YYYY/MM/DD-<full|thumb>.<ext>),
+# populated by the scheduler's poll_apod_archive + the one-shot backfill.
+# Served at /apod-img/<rel> so the gallery loads cards from our own server
+# instead of hotlinking apod.nasa.gov. Created on demand; the dir may not
+# exist on a fresh deploy until the first APOD ingest runs.
+_APOD_IMG_DIR = Path(__file__).resolve().parent.parent / "data" / "apod"
+_APOD_IMG_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/apod-img", StaticFiles(directory=_APOD_IMG_DIR), name="apod-img")
+
 
 def _spa_html(full_path: str, lang: str) -> HTMLResponse:
     """Serve the SPA shell with per-route SEO meta injected server-side.

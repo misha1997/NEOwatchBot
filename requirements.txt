@@ -10,3 +10,4 @@ fastapi
 uvicorn[standard]
 lightkurve
 astroquery
+Pillow

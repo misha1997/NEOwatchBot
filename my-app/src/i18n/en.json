@@ -93,7 +93,19 @@
     "weather": "Space weather",
     "rtl": "Radio",
     "community": "Community",
-    "gallery": "Photo archive"
+    "gallery": "Photo archive",
+    "planetarium": "Planetarium",
+    "planetariumHub": "All planets",
+    "mars": "Mars",
+    "mercury": "Mercury",
+    "venus": "Venus",
+    "earth": "Earth",
+    "jupiter": "Jupiter",
+    "saturn": "Saturn",
+    "uranus": "Uranus",
+    "neptune": "Neptune",
+    "soon": "soon",
+    "news": "Space news"
   },
   "header": {
     "tagline": "LIGHT FROM ORBIT",
@@ -162,7 +174,10 @@
     "rtl": "Radio astronomy — OrbitLight",
     "community": "Community — OrbitLight",
     "gallery": "NASA photo archive — OrbitLight",
-    "404": "Not found — OrbitLight"
+    "404": "Not found — OrbitLight",
+    "planetarium": "Planetarium — OrbitLight",
+    "mars": "Mars — OrbitLight",
+    "news": "Space news — NEOwatch"
   },
   "seo": {
     "desc": {
@@ -184,7 +199,10 @@
       "rtl": "Radio astronomy: meteor pings, Jupiter and solar spectra received on an SDR receiver.",
       "community": "OrbitLight community: forum, photo gallery, observation diaries and local groups.",
       "gallery": "NASA photo archive: the Astronomy Picture of the Day by date — Hubble, James Webb, probes and rover imagery with translated descriptions.",
-      "404": "Page not found — return to the OrbitLight home page to see the sky now."
+      "404": "Page not found — return to the OrbitLight home page to see the sky now.",
+      "planetarium": "OrbitLight planetarium: every planet of the solar system — diameter, day and year length, gravity, moons and mean temperature. Mars comes with live weather and fresh rover photos.",
+      "mars": "Weather on Mars from InSight telemetry, fresh Perseverance and Curiosity rover photos, the Phobos and Deimos moons, an Earth comparison, dust storms and the history of Mars exploration.",
+      "news": "The top spaceflight stories in Ukrainian — translated and summarized coverage from SpaceflightNow, NASA, ESA and other sources."
     }
   },
   "lang": {
@@ -1480,5 +1498,293 @@
     "body": "This page doesn't exist in our galaxy. Perhaps a black hole swallowed it, or you simply drifted off course.",
     "home": "Return to Earth",
     "back": "Back"
+  },
+  "planetarium": {
+    "hero": {
+      "eyebrow": "Solar system · 8 planets",
+      "title": "The planets<br><span class='accent'>of the solar system</span>",
+      "sub": "Eight planets from Mercury to Neptune, side by side. Click Mars for live weather and fresh rover photos; pages for the other planets are on the way."
+    },
+    "soon": "Soon",
+    "liveTag": "Live",
+    "open": "Open page",
+    "footNote": "Pages for the other planets are in the works. Mars is already live with rover and InSight weather data.",
+    "facts": {
+      "dia": "Diameter",
+      "day": "Day",
+      "year": "Year",
+      "gravity": "Gravity",
+      "moons": "Moons",
+      "temp": "Temp"
+    },
+    "units": {
+      "km": "km",
+      "day": "h",
+      "year": "d",
+      "gravity": "m/s²"
+    },
+    "blurbs": {
+      "mercury": "Smallest and closest to the Sun — rocky, airless, with a 600 °C swing between day and night.",
+      "venus": "Hottest planet: a runaway greenhouse heated it to +464 °C, worse than Mercury.",
+      "earth": "The only known planet with life and liquid surface water. Our home.",
+      "mars": "The red planet, with a thin atmosphere, two moons and rovers working on it right now.",
+      "jupiter": "Largest planet: a gas giant with the Great Red Spot and over 90 moons.",
+      "saturn": "A gas giant famous for its bright rings of ice and dust.",
+      "uranus": "An ice giant that orbits \"on its side\" — its axis is tilted 98°.",
+      "neptune": "The farthest planet, deep blue, with the strongest winds in the system."
+    }
+  },
+  "mars": {
+    "hero": {
+      "eyebrow": "Fourth planet · refreshed just now",
+      "title": "Mars<br><span class='accent'>up close and live</span>",
+      "sub": "Weather from the rovers' landing site, fresh photos, real moons in orbit and everything worth knowing about our neighbouring planet.",
+      "phobos": "Phobos · 7.7 h/orbit",
+      "deimos": "Deimos · 30.3 h/orbit"
+    },
+    "stats": {
+      "distanceL": "distance to Earth (approx.)",
+      "signalL": "signal travel time",
+      "note": "Approximate values; a live ephemeris-based distance is planned."
+    },
+    "weather": {
+      "eyebrow": "Another planet",
+      "title": "Weather on Mars",
+      "sub": "Latest telemetry from the InSight (NASA) weather station on the surface of Mars — temperature, pressure and wind over the last sol (Martian day)."
+    },
+    "compare": {
+      "eyebrow": "Mars vs Earth",
+      "title": "How different it all is",
+      "param": "Parameter",
+      "p": {
+        "day": "Day length",
+        "year": "Year length",
+        "gravity": "Gravity",
+        "diameter": "Diameter",
+        "temp": "Mean temperature",
+        "atmosphere": "Atmosphere",
+        "moons": "Moons"
+      },
+      "v": {
+        "day": {
+          "mars": "24h 37m",
+          "earth": "24h 00m"
+        },
+        "year": {
+          "mars": "687 Earth days",
+          "earth": "365 days"
+        },
+        "gravity": {
+          "mars": "3.71 m/s² (38%)",
+          "earth": "9.81 m/s²"
+        },
+        "diameter": {
+          "mars": "6,779 km",
+          "earth": "12,742 km"
+        },
+        "temp": {
+          "mars": "−63 °C",
+          "earth": "+15 °C"
+        },
+        "atmosphere": {
+          "mars": "95% CO₂, very thin",
+          "earth": "78% N₂, 21% O₂"
+        },
+        "moons": {
+          "mars": "2 (Phobos, Deimos)",
+          "earth": "1 (Moon)"
+        }
+      }
+    },
+    "moons": {
+      "eyebrow": "Natural satellites",
+      "title": "Phobos and Deimos",
+      "note": "Phases are illustrative (both moons spin too fast for a phase to be a stable trait like our Moon's).",
+      "phobos": "Phobos",
+      "phobosIllum": "62% lit · waxing",
+      "phobosDesc": "The larger, closer of the two moons — only 6,000 km above the surface. It spins so fast (once every 7.7 h) that in the Martian sky it rises in the west and sets in the east twice a day. It is slowly falling toward Mars and in roughly 30–50 million years will either crash into the planet or break into a ring.",
+      "deimos": "Deimos",
+      "deimosIllum": "28% lit · waning",
+      "deimosDesc": "The smaller, farther moon, only 12.4 km across. It orbits so slowly relative to Mars' rotation that from the surface its motion across the sky is almost imperceptible — a full lap of the sky takes about two months."
+    },
+    "rovers": {
+      "eyebrow": "Live from the surface",
+      "title": "Fresh rover photos",
+      "all": "All rovers",
+      "notConfigured": "Mars Vista API key isn't configured server-side — placeholders shown. The feature works once MARS_VISTA_API_KEY is set.",
+      "solN": "sol {{n}}",
+      "noSol": "sol —",
+      "noDate": "—",
+      "placeholder": "Placeholder",
+      "jezero": "Jezero crater",
+      "sharp": "Mount Sharp",
+      "persFoot": "Searching for biosignatures",
+      "curiFoot": "Drilling rock",
+      "distPers": "Driven (Persev.)",
+      "distCuri": "Driven (Curiosity)",
+      "distFoot": "since mission start",
+      "sinceFoot": "since 2012",
+      "lightbox": {
+        "open": "Open photo: {{camera}}",
+        "hint": "View",
+        "close": "Close",
+        "prev": "Previous",
+        "next": "Next",
+        "desc": "A fresh photo from the {{rover}} rover on the surface of Mars. Source: Mars Vista API (NASA/JPL metadata).",
+        "camera": "Camera",
+        "rover": "Rover",
+        "date": "Date",
+        "openFull": "Open full-size"
+      }
+    },
+    "route": {
+      "eyebrow": "Jezero crater",
+      "title": "Perseverance route",
+      "landing": "landing · sol 0",
+      "sol": "sol {{n}}",
+      "delta": "Hawksbill Gap delta",
+      "current": "Current position",
+      "latest": "Latest shown point",
+      "liveNow": "mission ongoing · sol counter is live",
+      "note": "Schematic map: shows the documented early Perseverance traverse (sol 0 → 1402). The current sol counter is computed live from the landing date. Exact coordinates and the up-to-date path are on NASA Mars Trek; waypoint positions are refreshed manually before each release."
+    },
+    "dust": {
+      "eyebrow": "Seasonal risk",
+      "title": "Dust storms",
+      "sub": "Regional dust storms on Mars most often occur in the southern hemisphere's spring and summer. The 2018 global storm that finally killed the Opportunity rover began in exactly this period.",
+      "now": "Now · Ls 210°",
+      "ls0": "Ls 0° · NH spring",
+      "ls90": "Ls 90° · NH summer",
+      "ls180": "Ls 180° · SH spring",
+      "ls270": "Ls 270° · SH summer",
+      "risk": "Current risk",
+      "riskVal": "Elevated",
+      "riskFoot": "Regional storms possible in the coming weeks",
+      "last": "Last global storm",
+      "lastFoot": "Ls ≈ 185° · lasted several months",
+      "low": "Low-risk season",
+      "lowFoot": "Southern-hemisphere autumn and winter"
+    },
+    "pressure": {
+      "eyebrow": "How thin the atmosphere is",
+      "title": "Pressure like 35 km above Earth",
+      "sub": "Mean surface pressure on Mars is about 0.6% of Earth's — roughly what you'd feel at 35 km above Earth without a suit: the fluids in your body would start boiling within seconds.",
+      "m35": "≈35 km · Mars pressure (0.6 kPa)",
+      "armstrong": "19 km · Armstrong limit",
+      "jet": "11 km · airliner cruising altitude",
+      "sea": "0 km · Earth sea level (101.3 kPa)"
+    },
+    "timeline": {
+      "eyebrow": "Chronology",
+      "title": "History of Mars exploration",
+      "num": {
+        "firstLandings": "first landings",
+        "firstRover": "first rover",
+        "longevity": "longevity record",
+        "today": "still working today",
+        "firstFlight": "first flight off Earth",
+        "ahead": "ahead"
+      },
+      "desc": {
+        "firstLandings": "The first craft to successfully land on Mars and start returning surface images and soil analysis results.",
+        "firstRover": "The first Mars rover in history — microwave-sized, yet it proved the very concept of mobile planetary exploration.",
+        "longevity": "Twin rovers with a planned 90-day lifetime — Opportunity worked for over 14 years.",
+        "today": "A car-sized rover with a nuclear power source — still active in Gale crater.",
+        "firstFlight": "Ingenuity made the first controlled flight of an aircraft on another planet — 5 flights were planned, it flew over 70.",
+        "ahead": "A planned return of the samples collected by Perseverance to Earth, followed by the first crewed mission designs."
+      }
+    },
+    "missions": {
+      "eyebrow": "Who is \"alive\" now",
+      "title": "Status of all Mars missions",
+      "status": {
+        "active": "Active",
+        "orbit": "In orbit",
+        "done2022": "Ended 2022",
+        "lost2022": "Lost contact 2022",
+        "done2018": "Ended 2018",
+        "done2010": "Ended 2010"
+      },
+      "note": "* Ingenuity ended its flights in January 2024 after a rotor-blade damage — Perseverance continues its work"
+    },
+    "window": {
+      "eyebrow": "Related to launches",
+      "title": "Next Mars launch window",
+      "until": "Until the window opens",
+      "months": "months",
+      "days": "days",
+      "foot": "The next launch window is expected to open in early 2027.",
+      "why": "Why you can't go anytime",
+      "whyBody": "Because Earth and Mars move around the Sun at different speeds, a favourable launch window (least fuel) opens only about once every 26 months — when the planets line up the right way for a Hohmann transfer."
+    },
+    "facts": {
+      "eyebrow": "Fun facts",
+      "title": "Mars of records",
+      "olympus": "Olympus Mons",
+      "olympusFoot": "The tallest volcano in the solar system — 2.5× higher than Everest",
+      "valles": "Valles Marineris",
+      "vallesFoot": "A canyon longer than the USA — 10× the length of the Grand Canyon",
+      "meteorites": "Martian meteorites",
+      "meteoritesFoot": "Fragments of Mars found on Earth — blasted into space by ancient asteroid impacts"
+    }
+  },
+  "news": {
+    "title": "Space news",
+    "badge": "Daily digest at 10:00",
+    "desc": "The top spaceflight stories in Ukrainian — translated and summarized coverage from SpaceflightNow, NASA, ESA and other sources.",
+    "readFull": "Read more →",
+    "loading": "Loading news…",
+    "empty": "News is temporarily unavailable. Try again later.",
+    "noMatch": "Nothing found — try another query or reset the category filter.",
+    "feed": {
+      "eyebrow": "Feed",
+      "title": "All news"
+    },
+    "search": {
+      "placeholder": "Search by keyword, e.g. Starship, Voyager, JWST…"
+    },
+    "kw": {
+      "label": "🔥 Popular topics:",
+      "Starship": "Starship",
+      "JWST": "JWST",
+      "Voyager": "Voyager",
+      "Mars": "Mars",
+      "Neutron": "Neutron",
+      "Proxima": "Proxima Centauri"
+    },
+    "cat": {
+      "all": "All",
+      "launches": "Launches",
+      "missions": "Missions",
+      "discoveries": "Discoveries",
+      "tech": "Technology"
+    },
+    "view": {
+      "cards": "Cards",
+      "rows": "Rows"
+    },
+    "count": "{{n}} news found",
+    "stats": {
+      "count": "News in feed",
+      "countFoot": "over the last weeks",
+      "topCat": "Top category",
+      "topCatFoot": "{{n}} stories",
+      "lastUpdate": "Last update",
+      "lastUpdateFoot": "next digest at 10:00"
+    },
+    "article": {
+      "back": "All news",
+      "readSource": "Read at source ↗",
+      "bodyNa": "The full text is available at the source.",
+      "unavailable": "Article not found",
+      "unavailableSub": "The link may be outdated or the archive isn't populated yet.",
+      "loading": "Loading article…",
+      "readTime": "{{n}} min read",
+      "translation": "Translated by NEOwatch",
+      "share": "Share",
+      "copy": "Copy link",
+      "relatedEyebrow": "Read also",
+      "relatedTitle": "Related news"
+    }
   }
 }

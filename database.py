@@ -116,6 +116,56 @@ def init_db():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
 
+        # News article archive for the website (full articles + UK translation).
+        # Body columns are nullable — filled lazily when an article page is opened.
+        # `slug` (derived from the source URL) is the public article page key:
+        # /news/<slug>. UNIQUE so two articles can't share a slug.
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS news_articles (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                url VARCHAR(500) NOT NULL,
+                slug VARCHAR(200) NOT NULL DEFAULT '',
+                title VARCHAR(500) NOT NULL,
+                title_uk VARCHAR(500),
+                excerpt TEXT,
+                excerpt_uk TEXT,
+                body MEDIUMTEXT,
+                body_uk MEDIUMTEXT,
+                image VARCHAR(500),
+                category VARCHAR(40) NOT NULL DEFAULT 'missions',
+                category_raw VARCHAR(120),
+                source VARCHAR(120) NOT NULL DEFAULT 'SpaceflightNow',
+                published_date VARCHAR(60),
+                fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY idx_news_url (url),
+                UNIQUE KEY idx_news_slug (slug),
+                INDEX idx_news_cat (category),
+                INDEX idx_news_fetched (fetched_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
+        # APOD photo archive for the website gallery (NASA APOD, one entry/day).
+        # `date` is the PK (APOD = 1/day, idempotent UPSERT). Images are mirrored
+        # locally to data/apod/YYYY/MM/DD-<full|thumb>.<ext>; thumb_path/full_path
+        # are relative paths served via /apod-img. Video APODs keep their YouTube
+        # link in video_url and only mirror the thumbnail. explanation_uk is
+        # translated eagerly at ingest (DeepL quota-safe: ~1.5k chars/day).
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS apod_entries (
+                date DATE PRIMARY KEY,
+                title VARCHAR(500) NOT NULL,
+                explanation TEXT,
+                explanation_uk MEDIUMTEXT,
+                media_type VARCHAR(20) NOT NULL DEFAULT 'image',
+                thumb_path VARCHAR(300),
+                full_path VARCHAR(300),
+                video_url VARCHAR(500),
+                credit VARCHAR(300),
+                fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_apod_date (date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
         # Hazardous asteroids notifications tracking
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS neo_notifications (
@@ -245,6 +295,64 @@ def init_db():
                 logger.info("Added lang column to users table")
         except Error:
             pass
+
+        # Add slug column to news_articles (migration for existing installs).
+        # Order matters: add the column first, backfill empty slugs so they're
+        # all unique, THEN add the UNIQUE index (it would otherwise reject the
+        # duplicate '' defaults already in the table).
+        try:
+            cursor.execute('''
+                SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'news_articles'
+                AND COLUMN_NAME = 'slug'
+            ''')
+            if cursor.fetchone()[0] == 0:
+                cursor.execute('''
+                    ALTER TABLE news_articles
+                    ADD COLUMN slug VARCHAR(200) NOT NULL DEFAULT '' AFTER url
+                ''')
+                conn.commit()
+                logger.info("Added slug column to news_articles table")
+        except Error as e:
+            logger.warning(f"news_articles slug column migration: {e}")
+
+        # Backfill empty slugs from the source URL (best-effort, one pass).
+        try:
+            cursor.execute("SELECT id, url FROM news_articles WHERE slug = '' OR slug IS NULL")
+            rows = cursor.fetchall()
+            for row in rows:
+                slug = _news_slug_for_url(row[1], cursor)
+                if slug:
+                    cursor.execute(
+                        "UPDATE news_articles SET slug = %s WHERE id = %s",
+                        (slug, row[0])
+                    )
+            if rows:
+                conn.commit()
+                logger.info(f"Backfilled {len(rows)} news article slug(s)")
+        except Error as e:
+            logger.warning(f"news_articles slug backfill: {e}")
+
+        # Now that every row has a unique slug, add the UNIQUE index (if missing).
+        try:
+            cursor.execute('''
+                SELECT COUNT(*) FROM information_schema.STATISTICS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'news_articles'
+                AND INDEX_NAME = 'idx_news_slug'
+            ''')
+            if cursor.fetchone()[0] == 0:
+                cursor.execute('''
+                    ALTER TABLE news_articles
+                    ADD UNIQUE KEY idx_news_slug (slug)
+                ''')
+                conn.commit()
+                logger.info("Added idx_news_slug unique index")
+        except Error as e:
+            # Duplicate non-unique slugs would block this; log and continue
+            # (the site still works, the column just isn't uniqueness-constrained).
+            logger.warning(f"news_articles idx_news_slug migration: {e}")
 
         conn.commit()
         logger.info("Database initialized (MySQL)")
@@ -977,6 +1085,358 @@ def cleanup_old_news_notifications(days: int = 30):
     finally:
         cursor.close()
         conn.close()
+
+
+def _news_slug_for_url(url: str, cursor, exclude_id: Optional[int] = None) -> str:
+    """Return a unique slug for `url`, suffixing -2/-3/… on collisions.
+
+    `cursor` is used to check the news_articles table for existing slugs.
+    `exclude_id` lets the backfill UPDATE skip the row's own current slug.
+    Never raises — returns "" if the URL is empty.
+    """
+    from parsers.spaceflightnow import SpaceflightNowParser
+    base = SpaceflightNowParser.slug_from_url(url)
+    if not base:
+        return ""
+    slug = base
+    n = 1
+    while True:
+        if exclude_id is not None:
+            cursor.execute(
+                "SELECT 1 FROM news_articles WHERE slug = %s AND id != %s",
+                (slug, exclude_id)
+            )
+        else:
+            cursor.execute("SELECT 1 FROM news_articles WHERE slug = %s", (slug,))
+        if not cursor.fetchone():
+            return slug
+        n += 1
+        slug = f"{base}-{n}"
+        if n > 99:  # pathological — give up and tie-break with a hash
+            import hashlib
+            slug = f"{base}-{hashlib.md5(url.encode('utf-8')).hexdigest()[:6]}"
+            return slug
+
+
+def ingest_news_articles(articles: list) -> int:
+    """Store new SpaceflightNow articles into the website news archive.
+
+    Idempotent: skips URLs already present (UNIQUE idx_news_url + a prior
+    SELECT). Translates title+excerpt to UK in one DeepL batch (local import
+    to avoid coupling database.py -> translator at module load). The article
+    body (English, from the RSS ``content:encoded``) and hero image are taken
+    from the item dict — no per-article HTTP fetch here. ``body_uk`` is left
+    NULL and translated lazily on first article-page view (DeepL quota: full
+    bodies for every new article would exceed the 500k/month free limit).
+    Returns the number of newly inserted articles. Raises nothing on DB
+    failure: the scheduler / web layer wrap this in try/except."""
+    if not articles:
+        return 0
+    from utils.translator import Translator
+
+    inserted = 0
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        for a in articles:
+            url = (a.get('url') or '').strip()
+            if not url:
+                continue
+            cursor.execute('SELECT 1 FROM news_articles WHERE url = %s', (url,))
+            if cursor.fetchone():
+                continue
+            title = (a.get('title') or '').strip()
+            excerpt = (a.get('excerpt') or '').strip()
+            # Batch-translate title + excerpt (skips empty/short internally).
+            trans = Translator.translate_batch([title, excerpt], 'uk')
+            title_uk = trans[0] if len(trans) > 0 else ''
+            excerpt_uk = trans[1] if len(trans) > 1 else ''
+            # Public slug for /news/<slug> (unique, suffix on collision).
+            slug = _news_slug_for_url(url, cursor)
+            # Body (EN) + hero image come straight from the RSS feed item — no
+            # extra HTTP fetch. body_uk stays NULL (lazy translation on view).
+            body = (a.get('body') or '').strip()
+            image = (a.get('image') or '').strip()
+            cursor.execute(
+                '''INSERT INTO news_articles
+                   (url, slug, title, title_uk, excerpt, excerpt_uk, body,
+                    image, category, category_raw, published_date)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                (url, slug, title, title_uk or None, excerpt or None, excerpt_uk or None,
+                 body or None, image or None, a.get('category_bucket') or 'missions',
+                 (a.get('category') or '')[:120] or None, a.get('date') or None)
+            )
+            inserted += 1
+        conn.commit()
+        if inserted:
+            logger.info(f"Ingested {inserted} new news article(s) into archive")
+    except Error as e:
+        logger.error(f"Error ingesting news articles: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+    return inserted
+
+
+def get_news_articles(limit: int = 60) -> list:
+    """Return the most recent archived news articles (newest first) as dicts.
+    Returns [] on any DB error (never raises) so the web layer can fall back
+    to a live SpaceflightNow fetch."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            '''SELECT id, url, slug, title, title_uk, excerpt, excerpt_uk, image,
+                      category, category_raw, published_date, source, fetched_at
+               FROM news_articles ORDER BY fetched_at DESC LIMIT %s''',
+            (limit,)
+        )
+        return list(cursor.fetchall())
+    except Error as e:
+        logger.error(f"Error reading news articles: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_news_article(article_id: int) -> Optional[dict]:
+    """Return a single archived article (all columns) by id, or None if not
+    found / DB error."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute('SELECT * FROM news_articles WHERE id = %s', (article_id,))
+        return cursor.fetchone()
+    except Error as e:
+        logger.error(f"Error reading news article {article_id}: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_news_article_by_slug(slug: str) -> Optional[dict]:
+    """Return a single archived article (all columns) by its public slug, or
+    None if not found / DB error. This is the key for the /news/<slug> page."""
+    if not slug:
+        return None
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute('SELECT * FROM news_articles WHERE slug = %s', (slug,))
+        return cursor.fetchone()
+    except Error as e:
+        logger.error(f"Error reading news article by slug {slug}: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_related_news_articles(category: str, exclude_slug: str, limit: int = 3) -> list:
+    """Return up to `limit` same-category articles (newest first), excluding the
+    one identified by `exclude_slug`. Falls back to any-category if fewer than
+    `limit` same-category results. Returns [] on DB error (never raises)."""
+    if not category:
+        category = 'missions'
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            '''SELECT id, url, slug, title, title_uk, excerpt, excerpt_uk, image,
+                      category, published_date, source
+               FROM news_articles
+               WHERE category = %s AND slug != %s AND slug != ''
+               ORDER BY fetched_at DESC LIMIT %s''',
+            (category, exclude_slug or '', limit)
+        )
+        rows = list(cursor.fetchall())
+        # Top up from other categories if not enough same-category matches.
+        if len(rows) < limit:
+            have = {r.get('slug') for r in rows}
+            have.add(exclude_slug)
+            placeholders = ",".join(["%s"] * len(have)) if have else "''"
+            cursor.execute(
+                f'''SELECT id, url, slug, title, title_uk, excerpt, excerpt_uk, image,
+                          category, published_date, source
+                   FROM news_articles
+                   WHERE slug != '' AND slug NOT IN ({placeholders})
+                   ORDER BY fetched_at DESC LIMIT %s''',
+                list(have) + [limit - len(rows)]
+            )
+            rows.extend(cursor.fetchall())
+        return rows[:limit]
+    except Error as e:
+        logger.error(f"Error reading related news articles: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def set_news_article_body(article_id: int, body: str, body_uk: str, image: Optional[str]) -> None:
+    """Persist the lazily-fetched article body + hero image. Best-effort."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            '''UPDATE news_articles SET body = %s, body_uk = %s, image = COALESCE(%s, image)
+               WHERE id = %s''',
+            (body or None, body_uk or None, image or None, article_id)
+        )
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error saving news article body {article_id}: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def ingest_apod_entries(entries: list) -> int:
+    """Mirror NASA APOD entries into the website photo archive.
+
+    Idempotent by ``date`` (PK): a row that already has both ``thumb_path`` and
+    ``full_path`` is skipped entirely; a row missing its images is re-fetched
+    (retry on a previous failed download). The explanation is translated to UK
+    **once** — never retranslated on a re-ingest that already has
+    ``explanation_uk`` (DeepL quota). Image download + translation use local
+    imports to avoid coupling database.py at module load. Best-effort: image
+    download failure still stores the row (without paths) so the next poll
+    retries. Raises nothing on DB failure. Returns the number of new/updated
+    rows.
+    """
+    if not entries:
+        return 0
+    from services.apod_images import download_apod_media
+    from utils.translator import Translator
+
+    changed = 0
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        for e in entries:
+            date = (e.get('date') or '').strip()
+            if not date:
+                continue
+            cursor.execute(
+                'SELECT thumb_path, full_path, explanation_uk FROM apod_entries WHERE date = %s',
+                (date,)
+            )
+            existing = cursor.fetchone()
+            # Skip only if both image sizes are already mirrored locally.
+            if existing and existing.get('thumb_path') and existing.get('full_path'):
+                continue
+
+            media_type = (e.get('media_type') or 'image').lower()
+            # Best-effort local image mirror; row is stored even on failure.
+            try:
+                full_rel, thumb_rel = download_apod_media(e)
+            except Exception as ex:  # never let image failure abort ingest
+                logger.error(f"APOD image download error for {date}: {ex}")
+                full_rel, thumb_rel = None, None
+
+            # Translate explanation once (reuse stored translation if present).
+            explanation = (e.get('explanation') or '').strip()
+            if existing and existing.get('explanation_uk'):
+                explanation_uk = existing['explanation_uk']
+            elif explanation:
+                try:
+                    explanation_uk = Translator.translate(explanation, 'en', 'uk') or None
+                except Exception:
+                    explanation_uk = None
+            else:
+                explanation_uk = None
+
+            video_url = (e.get('url') or '').strip() if media_type == 'video' else None
+            credit = (e.get('copyright') or '').strip() or None
+            title = (e.get('title') or '').strip() or ''
+
+            cursor.execute(
+                '''INSERT INTO apod_entries
+                   (date, title, explanation, explanation_uk, media_type,
+                    thumb_path, full_path, video_url, credit)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   ON DUPLICATE KEY UPDATE
+                     title = VALUES(title),
+                     explanation = VALUES(explanation),
+                     media_type = VALUES(media_type),
+                     video_url = VALUES(video_url),
+                     credit = VALUES(credit),
+                     thumb_path = COALESCE(VALUES(thumb_path), thumb_path),
+                     full_path = COALESCE(VALUES(full_path), full_path),
+                     explanation_uk = COALESCE(explanation_uk, VALUES(explanation_uk))''',
+                (date, title, explanation or None, explanation_uk, media_type,
+                 thumb_rel, full_rel, video_url, credit)
+            )
+            changed += 1
+        conn.commit()
+        if changed:
+            logger.info(f"Ingested/updated {changed} APOD entry/entries")
+    except Error as e:
+        logger.error(f"Error ingesting APOD entries: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+    return changed
+
+
+def get_apod_entries(start: str, end: str) -> Optional[list]:
+    """Return archived APOD entries for ``[start, end]`` (newest first) as
+    dicts. Returns ``None`` on DB error (so the web layer falls back to a live
+    NASA fetch) and ``[]`` if the window is empty/not yet backfilled.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            '''SELECT date, title, explanation, explanation_uk, media_type,
+                      thumb_path, full_path, video_url, credit
+               FROM apod_entries
+               WHERE date BETWEEN %s AND %s
+               ORDER BY date DESC''',
+            (start, end)
+        )
+        return list(cursor.fetchall())
+    except Error as e:
+        logger.error(f"Error reading APOD entries: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def backfill_apod_archive(days: int = 90) -> int:
+    """One-shot backfill of the last ``days`` of APOD into the archive.
+
+    Fetches ``[today - days, yesterday]`` from NASA in <=60-day chunks (NASA
+    caps a single APOD range request) and ingests each chunk (downloading +
+    translating as it goes). Run once manually after deploy; the daily poll
+    keeps it fresh thereafter. Returns the total number of ingested/updated
+    rows. Raises nothing — best-effort.
+    """
+    from services.nasa_api import NasaAPI
+    from datetime import date, timedelta
+
+    today = date.today()
+    start = today - timedelta(days=days)
+    end = today - timedelta(days=1)  # NASA 400s on today if not published yet.
+    total = 0
+    cursor_date = start
+    while cursor_date <= end:
+        chunk_end = min(cursor_date + timedelta(days=59), end)
+        try:
+            entries = NasaAPI.get_apod_archive(cursor_date.isoformat(), chunk_end.isoformat())
+            if entries:
+                total += ingest_apod_entries(entries)
+        except Exception as ex:
+            logger.error(f"APOD backfill chunk {cursor_date}..{chunk_end} error: {ex}")
+        cursor_date = chunk_end + timedelta(days=1)
+    logger.info(f"APOD backfill of {days} days done: {total} entries ingested/updated")
+    return total
 
 
 def is_meteor_notified(shower_name: str, peak_date: str, notification_type: str) -> bool:

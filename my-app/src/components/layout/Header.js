@@ -78,10 +78,16 @@ export default function Header() {
               </button>
               <div className="nav-dropdown">
                 {g.items.map((l) => (
-                  <NavLink key={l.to} to={l.to} end={l.end}
-                    className={({ isActive }) => isActive ? "active" : ""}>
-                    {t(l.labelKey)}
-                  </NavLink>
+                  l.disabled ? (
+                    <span key={l.to} className="nav-link disabled" aria-disabled="true">
+                      {t(l.labelKey)} <small className="soon">{t("nav.soon")}</small>
+                    </span>
+                  ) : (
+                    <NavLink key={l.to} to={l.to} end={l.end}
+                      className={({ isActive }) => isActive ? "active" : ""}>
+                      {t(l.labelKey)}
+                    </NavLink>
+                  )
                 ))}
               </div>
             </div>

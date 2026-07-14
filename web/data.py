@@ -28,6 +28,7 @@ from services.launch_api import LaunchAPI
 from services.n2yo_api import N2YOAPI
 from services.planets import PlanetsAPI, _EMOJI as PLANET_EMOJI, _az_to_code
 from services.moon_mars import MoonMarsAPI
+from services.mars_rover import MarsRoverAPI
 from services.meteor_shower import MeteorShower
 from services.astronomy import (
     get_upcoming_events, get_next_eclipse,
@@ -43,6 +44,7 @@ from services.iss_crew import (
     ISSCrewAPI, _country_name as crew_country, _position_name as crew_position,
     _flag_emoji as crew_flag,
 )
+from parsers import SpaceflightNowParser
 from services.voyager import _PROBES as VOYAGER_PROBES, AU_KM, C_KM_S
 from utils.i18n import DEFAULT_LANG, t, compass_dir, pick
 from utils.translator import Translator
@@ -51,7 +53,12 @@ from config import (
     NASA_NEO_URL, NASA_API_KEY,
     N2YO_BASE_URL, N2YO_API_KEY, ISS_NORAD_ID,
 )
-from database import get_city_suggestions, reverse_geocode as db_reverse_geocode
+from database import (
+    get_city_suggestions, reverse_geocode as db_reverse_geocode,
+    get_news_articles, get_news_article, get_news_article_by_slug,
+    get_related_news_articles, set_news_article_body, ingest_news_articles,
+    get_apod_entries, ingest_apod_entries,
+)
 
 from web.cache import get_or_fetch
 
@@ -1294,6 +1301,35 @@ async def get_mars() -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Mars rover photos (Mars Vista API) — recent Perseverance / Curiosity imagery
+# ---------------------------------------------------------------------------
+
+MARS_ROVERS_TTL = 1800  # rovers image daily; refresh every 30 min is plenty
+
+
+def _mars_rovers_raw() -> dict:
+    """Latest photos for both active rovers, behind the shared cache.
+
+    Returns ``{configured, perseverance, curiosity}``. When the Mars Vista
+    API key isn't set, ``configured`` is false and both lists are empty so the
+    site can render placeholder tiles instead of erroring.
+    """
+    if not MarsRoverAPI.is_configured():
+        return {"configured": False, "perseverance": [], "curiosity": []}
+    return {
+        "configured": True,
+        "perseverance": MarsRoverAPI.get_latest_photos("perseverance", limit=8),
+        "curiosity": MarsRoverAPI.get_latest_photos("curiosity", limit=8),
+    }
+
+
+async def get_mars_rovers() -> dict:
+    return await asyncio.to_thread(
+        get_or_fetch, "mars_rovers", MARS_ROVERS_TTL, _mars_rovers_raw
+    )
+
+
+# ---------------------------------------------------------------------------
 # APOD — NASA Astronomy Picture of the Day (photo + title + explanation)
 # ---------------------------------------------------------------------------
 
@@ -1348,6 +1384,133 @@ async def get_apod(lang: str = DEFAULT_LANG) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Space news — daily SpaceflightNow digest archived in MySQL (`news_articles`),
+# with a live-parser fallback so the page still works without the DB. The bot's
+# daily scheduler also calls `ingest_news_articles` to grow the archive.
+# ---------------------------------------------------------------------------
+
+NEWS_TTL = 1800  # 30 min
+NEWS_ARTICLE_TTL = 6 * 3600  # bodies don't change once fetched
+NEWS_LIST_LIMIT = 60
+
+
+def _news_localize(items, lang):
+    """Pick the title/excerpt in the requested language (fall back to EN)."""
+    out = []
+    for it in items:
+        title = (it.get("title_uk") if lang == "uk" and it.get("title_uk") else it.get("title")) or ""
+        excerpt = (it.get("excerpt_uk") if lang == "uk" and it.get("excerpt_uk") else it.get("excerpt")) or ""
+        out.append({
+            "id": it.get("id"),
+            "slug": it.get("slug") or "",
+            "url": it.get("url") or "",
+            "title": title,
+            "excerpt": excerpt,
+            "category": it.get("category") or "missions",
+            "date": it.get("published_date") or "",
+            "source": it.get("source") or "SpaceflightNow",
+            "image": it.get("image") or "",
+        })
+    return out
+
+
+def _news_live(lang):
+    """Live SpaceflightNow fetch used when the DB archive is empty/unavailable.
+    Best-effort stores into the archive, then reads back; if the DB is off,
+    returns the freshly-parsed list with id=null (cards link out to source)."""
+    arts = SpaceflightNowParser.get_news() or []
+    if not arts:
+        return []
+    try:
+        ingest_news_articles(arts)
+    except Exception as e:
+        logger.error("news live ingest: %s", e)
+    stored = get_news_articles(NEWS_LIST_LIMIT)
+    if stored:
+        return _news_localize(stored, lang)
+    return [{
+        "id": None, "slug": "", "url": a.get("url", ""), "title": a.get("title", ""),
+        "excerpt": a.get("excerpt", ""), "category": a.get("category_bucket", "missions"),
+        "date": a.get("date", ""), "source": "SpaceflightNow", "image": "",
+    } for a in arts]
+
+
+def _news_raw(lang):
+    stored = get_news_articles(NEWS_LIST_LIMIT)
+    if stored:
+        return {"available": True, "items": _news_localize(stored, lang)}
+    live = _news_live(lang)
+    return {"available": bool(live), "items": live}
+
+
+async def get_news(lang: str = DEFAULT_LANG) -> dict:
+    return await asyncio.to_thread(get_or_fetch, f"news:{lang}", NEWS_TTL, lambda: _news_raw(lang))
+
+
+def _news_article_raw(slug, lang):
+    """Article page data keyed by slug. The body (English) is stored at ingest
+    time (from the RSS ``content:encoded``), so this only translates it to UK
+    on first view (lazily, persisted — never retranslated). For legacy rows with
+    no stored body, falls back to a lazy HTML fetch via ``get_article_content``.
+    Returns 3 related articles in the same category."""
+    it = get_news_article_by_slug(slug)
+    if not it:
+        return {"available": False}
+    article_id = it.get("id")
+    # Legacy row without a stored body → lazy HTML fetch (RSS gap / pre-RSS
+    # ingest). New rows already carry the body from the feed — no HTTP fetch.
+    if not it.get("body"):
+        try:
+            content = SpaceflightNowParser.get_article_content(it["url"])
+            body = content.get("body", "")
+            image = content.get("image") or it.get("image")
+            body_uk = Translator.translate(body, "en", "uk") if (lang == "uk" and body) else ""
+            if body:
+                set_news_article_body(article_id, body, body_uk, image)
+                it["body"] = body
+                it["body_uk"] = body_uk
+                it["image"] = image
+        except Exception as e:
+            logger.error("news article body fetch: %s", e)
+    # Lazy UK translation of the stored EN body — persisted so it's only done
+    # once per article (DeepL quota: translating every new article's full body
+    # at ingest would exceed the 500k/month free limit).
+    if lang == "uk" and it.get("body") and not it.get("body_uk"):
+        try:
+            body_uk = Translator.translate(it["body"], "en", "uk")
+            if body_uk:
+                set_news_article_body(article_id, it["body"], body_uk, it.get("image"))
+                it["body_uk"] = body_uk
+        except Exception as e:
+            logger.error("news article body translate: %s", e)
+    body = (it.get("body_uk") if lang == "uk" and it.get("body_uk") else it.get("body")) or it.get("excerpt") or ""
+    title = (it.get("title_uk") if lang == "uk" and it.get("title_uk") else it.get("title")) or ""
+    related = _news_localize(
+        get_related_news_articles(it.get("category") or "missions", slug, 3), lang
+    )
+    return {
+        "available": True,
+        "id": article_id,
+        "slug": it.get("slug") or slug,
+        "url": it.get("url") or "",
+        "title": title,
+        "body": body,
+        "image": it.get("image") or "",
+        "category": it.get("category") or "missions",
+        "date": it.get("published_date") or "",
+        "source": it.get("source") or "SpaceflightNow",
+        "related": related,
+    }
+
+
+async def get_news_article_api(slug: str, lang: str = DEFAULT_LANG) -> dict:
+    return await asyncio.to_thread(
+        get_or_fetch, f"news_art:{slug}:{lang}", NEWS_ARTICLE_TTL,
+        lambda: _news_article_raw(slug, lang)
+    )
+
+
+# ---------------------------------------------------------------------------
 # APOD archive — a date range of NASA Astronomy Pictures of the Day, for the
 # site's photo/video gallery page. Each entry is the per-day APOD (image or
 # video) with a translated explanation.
@@ -1356,51 +1519,84 @@ async def get_apod(lang: str = DEFAULT_LANG) -> dict:
 APOD_ARCHIVE_TTL = 6 * 3600  # past days never change; refresh gently
 
 
-def _apod_archive_raw(start: str, end: str, lang: str = DEFAULT_LANG) -> list:
-    """Fetch ``[start, end]`` APOD entries and translate each explanation.
-
-    Returns a list of dicts (most-recent first):
-    ``{date, title, explanation, image, thumb, media_type, video_url, credit}``.
-    ``image`` is the best available (HD for image APODs) — used by the lightbox;
-    ``thumb`` is the lightweight standard-res ``url`` — used by the grid so a
-    page of 12 tiles isn't tens of MB of HD imagery. Fail-soft: ``[]`` if NASA
-    is unreachable.
+def _apod_localize(rows: list, lang: str = DEFAULT_LANG) -> list:
+    """Shape archive rows (DB dicts or live NASA entries) into the gallery's
+    entry dict: ``{date, title, explanation, image, thumb, media_type,
+    video_url, credit}``. DB rows carry local ``thumb_path``/``full_path``
+    (served from /apod-img); live NASA entries fall back to the remote URLs.
+    The explanation is already translated at ingest for DB rows, so this just
+    picks the right language column.
     """
-    entries = NasaAPI.get_apod_archive(start, end)
-    if not entries:
-        return []
-
     out = []
-    for e in entries:
-        explanation = e.get("explanation", "") or ""
-        if lang == "en":
-            expl = explanation
-        else:
-            try:
-                expl = Translator.translate(explanation, "en", "uk") or explanation
-            except Exception:
-                expl = explanation
-
-        media_type = e.get("media_type", "image")
+    for r in rows:
+        media_type = (r.get("media_type") or "image").lower()
         if media_type == "video":
-            image = e.get("thumbnail") or e.get("url")
-            thumb = image
+            image = r.get("full_path") or r.get("thumbnail") or r.get("url")
+            thumb = r.get("thumb_path") or image
+            video_url = r.get("video_url") or r.get("url")
         else:
-            # HD for the lightbox, standard `url` (~1280px, ~200–500 KB) for the grid.
-            image = e.get("hdurl") or e.get("url")
-            thumb = e.get("url") or image
+            # full_path = locally-mirrored HD original (lightbox);
+            # thumb_path = ~480px JPEG (grid card). Fall back to NASA URLs if
+            # the local files aren't present (live fetch without DB).
+            image = (r.get("full_path") if r.get("full_path")
+                     else r.get("hdurl") or r.get("url") or r.get("thumbnail"))
+            thumb = (r.get("thumb_path") if r.get("thumb_path")
+                     else r.get("thumbnail") or r.get("url") or image)
+            video_url = None
+
+        # Local paths are relative to data/apod → serve via /apod-img.
+        if image and not str(image).startswith(("http://", "https://", "/")):
+            image = "/apod-img/" + str(image).lstrip("/")
+        if thumb and not str(thumb).startswith(("http://", "https://", "/")):
+            thumb = "/apod-img/" + str(thumb).lstrip("/")
+
+        explanation = r.get("explanation", "") or ""
+        if lang != "en" and r.get("explanation_uk"):
+            explanation = r.get("explanation_uk") or explanation
 
         out.append({
-            "date": e.get("date", ""),
-            "title": e.get("title", ""),
-            "explanation": expl,
+            "date": r.get("date", ""),
+            "title": r.get("title", ""),
+            "explanation": explanation,
             "image": image,
             "thumb": thumb,
             "media_type": media_type,
-            "video_url": e.get("url") if media_type == "video" else None,
-            "credit": e.get("copyright") or "",
+            "video_url": video_url,
+            "credit": r.get("credit") or r.get("copyright") or "",
         })
     return out
+
+
+def _apod_archive_raw(start: str, end: str, lang: str = DEFAULT_LANG) -> list:
+    """Return ``[start, end]`` APOD entries for the gallery (most-recent first)
+    as ``{date, title, explanation, image, thumb, media_type, video_url,
+    credit}``.
+
+    DB-first: reads the mirrored ``apod_entries`` archive (populated daily by
+    the scheduler's ``poll_apod_archive`` + the one-shot backfill). Images are
+    served from our own ``/apod-img`` mirror (full + 480px thumb). If the DB has
+    nothing for this window (DB error, or the user browsed beyond the
+    backfilled range), fall back to a live NASA fetch and ingest it — lazy
+    backfill-on-browse that populates the DB while preserving full backward
+    navigation to 1995. Fail-soft: ``[]`` if both DB and NASA are unavailable.
+    """
+    stored = get_apod_entries(start, end)  # None = DB error, [] = empty window
+    if stored:
+        return _apod_localize(stored, lang)
+
+    # DB empty/unavailable → live NASA fetch + ingest (lazy backfill on browse).
+    entries = NasaAPI.get_apod_archive(start, end)
+    if not entries:
+        return []
+    try:
+        ingest_apod_entries(entries)
+    except Exception as e:
+        logger.error("APOD live-ingest error: %s", e)
+    # Read back from DB; if DB still empty (ingest failed / no DB), localize
+    # the live entries directly so the page still renders.
+    stored = get_apod_entries(start, end) or []
+    rows = stored if stored else entries
+    return _apod_localize(rows, lang)
 
 
 async def get_apod_archive(start: str, end: str, lang: str = DEFAULT_LANG) -> list:

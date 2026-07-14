@@ -22,6 +22,8 @@ from database import (
     is_launch_notified, mark_launch_notified, cleanup_old_launch_notifications,
     is_neo_notified, mark_neo_notified, cleanup_old_neo_notifications,
     is_news_notified, mark_news_notified, cleanup_old_news_notifications,
+    ingest_news_articles, get_news_articles,
+    ingest_apod_entries,
     is_meteor_notified, mark_meteor_notified, cleanup_old_meteor_notifications,
     is_flare_notified, mark_flare_notified, cleanup_old_flare_notifications,
     is_storm_notified, mark_storm_notified, cleanup_old_storm_notifications,
@@ -692,6 +694,41 @@ class NotificationScheduler:
         except Exception as e:
             logger.error(f"Astronomy event check error: {e}")
 
+    async def poll_apod_archive(self):
+        """Ingest the last ~7 days of APOD into the website photo archive.
+
+        Runs daily (called from run_scheduled_tasks right after the 09:00 APOD
+        subscriber push). Idempotent by date: existing rows with both image
+        sizes already mirrored are skipped; rows missing images are retried.
+        Fetches ending=yesterday — NASA 400s on today if it isn't published yet
+        (it appears during US daytime; 09:00 Kyiv ≈ 02:00 ET), so today's entry
+        is picked up the following day. This is the single live-fetch point for
+        the archive; the website (``/api/apod/archive``) reads from the DB.
+        Best-effort: never raises."""
+        try:
+            from datetime import date, timedelta
+            t = date.today()
+            entries = NasaAPI.get_apod_archive(
+                (t - timedelta(days=6)).isoformat(),
+                (t - timedelta(days=1)).isoformat(),
+            )
+            if entries:
+                ingest_apod_entries(entries)
+        except Exception as e:
+            logger.error(f"APOD archive poll error: {e}")
+
+    async def poll_news_feed(self):
+        """Fetch the SpaceflightNow RSS feed and ingest any new articles into
+        the shared archive. Runs every 2 hours — this is the single live-fetch
+        point for news; both the website (``/api/news``) and the bot digest
+        (``send_daily_news``) read from the DB. Best-effort: never raises."""
+        try:
+            articles = SpaceflightNowParser.get_news()  # RSS-first + HTML fallback
+            if articles:
+                ingest_news_articles(articles)
+        except Exception as e:
+            logger.error(f"News feed poll error: {e}")
+
     async def send_daily_news(self):
         """Send daily news digest from Spaceflightnow"""
         if self._is_quiet_hours():
@@ -699,8 +736,18 @@ class NotificationScheduler:
         try:
             logger.info("Sending daily news...")
 
-            # Get news articles
-            articles = SpaceflightNowParser.get_news()
+            # Read recent articles from the archive (populated every 2h by
+            # poll_news_feed). Fall back to a live fetch + ingest only when the
+            # DB is empty (first run / DB unavailable) so the digest still goes
+            # out and the archive is seeded.
+            articles = get_news_articles(60)
+            if not articles:
+                articles = SpaceflightNowParser.get_news()
+                if articles:
+                    try:
+                        ingest_news_articles(articles)
+                    except Exception as ingest_err:
+                        logger.error(f"News archive ingest error: {ingest_err}")
 
             if not articles:
                 logger.info("No news articles found")
@@ -722,18 +769,9 @@ class NotificationScheduler:
                 logger.info("No new articles to send")
                 return
 
-            # Pre-translate titles+excerpts to Ukrainian once (single batch call).
-            # English-language subscribers receive the original source text.
-            texts_to_translate = []
-            for article in new_articles[:3]:
-                texts_to_translate.append(article['title'])
-                if article.get('excerpt'):
-                    texts_to_translate.append(article['excerpt'])
-            translated_uk = Translator.translate_batch(texts_to_translate, 'uk')
-
             today = datetime.now().strftime('%d.%m.%Y')
 
-            # Send to all subscribers, formatted per-user language
+            # Send to all subscribers, formatted per-user language.
             sent_count = 0
             for user in subscribers:
                 try:
@@ -742,23 +780,27 @@ class NotificationScheduler:
                     message = t('sch.news.title', lang, date=today)
                     message += t('sch.news.source', lang)
 
-                    trans_idx = 0
                     for i, article in enumerate(new_articles[:3], 1):
                         title = article['title']
-                        excerpt = article['excerpt']
+                        excerpt = article.get('excerpt') or ''
                         url = article['url']
-                        category = article['category']
+                        # category_raw is the raw source label (e.g. "Falcon 9")
+                        # kept for the emoji keyword match; fall back to the bucket.
+                        category = article.get('category_raw') or article.get('category') or ''
 
                         if lang == 'uk':
-                            title_disp = translated_uk[trans_idx]
-                            trans_idx += 1
-                            excerpt_disp = translated_uk[trans_idx] if excerpt else ''
-                            if excerpt:
-                                trans_idx += 1
+                            # Use the stored DeepL translation (ingested at poll
+                            # time); translate on the fly only if missing.
+                            title_disp = article.get('title_uk') or title
+                            if not article.get('title_uk') and title:
+                                title_disp = Translator.translate(title, "en", "uk") or title
+                            excerpt_disp = article.get('excerpt_uk') or excerpt
+                            if excerpt and not article.get('excerpt_uk'):
+                                excerpt_disp = Translator.translate(excerpt, "en", "uk") or excerpt
                         else:
-                            # English: use the original source text, skip translation
+                            # English: use the original source text.
                             title_disp = title
-                            excerpt_disp = excerpt or ''
+                            excerpt_disp = excerpt
 
                         # Category emoji
                         cat_emoji = "🚀"
@@ -994,6 +1036,9 @@ class NotificationScheduler:
                 # APOD at 09:00 Kyiv time (with 1-minute window)
                 if now.hour == 9 and 0 <= now.minute <= 1:
                     await self.send_apod_to_subscribers()
+                    # Mirror the last ~7 days of APOD into the photo archive
+                    # (idempotent; retries any row missing its local images).
+                    await self.poll_apod_archive()
 
                 # Check ISS passes every 10 minutes
                 if now.minute % 10 == 0:
@@ -1018,6 +1063,13 @@ class NotificationScheduler:
                 # Check GRB alerts every 30 minutes
                 if now.minute % 30 == 0:
                     await self.check_grb_alerts()
+
+                # Poll the SpaceflightNow RSS feed for new articles every 2
+                # hours (runs at 00:00, 02:00, 04:00, …). Placed before the
+                # 10:00 news digest so the archive is fresh when the bot reads
+                # it. Both the website and the bot read news from the DB.
+                if now.hour % 2 == 0 and now.minute == 0:
+                    await self.poll_news_feed()
 
                 # Daily news at 10:00 Kyiv time
                 if now.hour == 10 and now.minute == 0:

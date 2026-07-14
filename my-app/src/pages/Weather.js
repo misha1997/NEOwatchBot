@@ -1,16 +1,16 @@
 // Space-weather page (weather.html): current conditions (Kp/wind/Bz/X-ray +
-// storm banner), five NOAA SWPC time-series charts, the aurora forecast card
-// and OVATION map, and the Mars weather section. Ports loadCurrent + loadSeries
-// from space-weather.js. The current payload and the series payload are each
-// fetched once at the page level so the aurora card and the map share sources.
+// storm banner), five NOAA SWPC time-series charts, and the aurora forecast
+// card + OVATION map. Ports loadCurrent + loadSeries from space-weather.js.
+// The current payload and the series payload are each fetched once at the page
+// level so the aurora card and the map share sources. (Mars weather used to
+// live here too — it has moved to the /planetarium/mars page.)
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LocationPill from "../components/LocationPill";
 import WeatherCurrent from "../components/weather/WeatherCurrent";
-import { MarsWeatherView } from "../components/weather/MarsWeather";
 import {
   CurrentSkeleton, ChartPairSkeleton, ChartSingleSkeleton,
-  AuroraSkeleton, MarsSkeleton,
+  AuroraSkeleton,
 } from "../components/weather/WeatherSkeletons";
 import KpHistory from "../components/charts/KpHistory";
 import KpForecast from "../components/charts/KpForecast";
@@ -19,7 +19,7 @@ import Bz from "../components/charts/Bz";
 import Xray from "../components/charts/Xray";
 import { useApi } from "../hooks/useApi";
 import { useLoc } from "../context/LocationContext";
-import { getWeather, getWeatherSeries, getMars } from "../lib/api";
+import { getWeather, getWeatherSeries } from "../lib/api";
 import { fmtNum, kpColor } from "../lib/format";
 import { auroraStatus } from "../lib/constants";
 
@@ -29,7 +29,6 @@ export default function Weather() {
   const { loc } = useLoc();
   const { data: w, loading: wLoading } = useApi(() => getWeather(loc), { deps: [loc && loc.lat, loc && loc.lon] });
   const { data: s, loading: sLoading } = useApi(getWeatherSeries);
-  const { data: mars, loading: marsLoading } = useApi(getMars);
   // Cache-bust the OVATION map on each mount (it refreshes ~5 min server-side).
   const [ts] = useState(() => Date.now());
   const auroraMap = s && s.aurora_map ? s.aurora_map + "?t=" + ts : null;
@@ -174,19 +173,6 @@ export default function Weather() {
               </div>
             </div>
           )}
-        </div>
-      </section>
-
-      <section className="section" id="mars" style={{ paddingTop: 0 }}>
-        <div className="wrap">
-          <div className="section-head">
-            <div>
-              <div className="eyebrow gold">{t("weather.s5.eyebrow")}</div>
-              <h2 className="section-title">{t("weather.s5.title")}</h2>
-            </div>
-          </div>
-          <p className="section-sub">{t("weather.s5.sub")}</p>
-          {marsLoading && !mars ? <MarsSkeleton /> : <MarsWeatherView d={mars} />}
         </div>
       </section>
     </>

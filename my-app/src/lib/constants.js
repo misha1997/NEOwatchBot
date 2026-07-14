@@ -18,6 +18,18 @@ export const NAV_GROUPS = [
     { to: "/iss", labelKey: "nav.iss" },
     { to: "/satellites", labelKey: "nav.satellites" },
     { to: "/launches", labelKey: "nav.launches" },
+    { to: "/news", labelKey: "nav.news" },
+  ]},
+  { labelKey: "nav.planetarium", items: [
+    { to: "/planetarium", labelKey: "nav.planetariumHub", end: true },
+    { to: "/planetarium/mars", labelKey: "nav.mars" },
+    { to: "/planetarium/mercury", labelKey: "nav.mercury", disabled: true },
+    { to: "/planetarium/venus", labelKey: "nav.venus", disabled: true },
+    { to: "/planetarium/earth", labelKey: "nav.earth", disabled: true },
+    { to: "/planetarium/jupiter", labelKey: "nav.jupiter", disabled: true },
+    { to: "/planetarium/saturn", labelKey: "nav.saturn", disabled: true },
+    { to: "/planetarium/uranus", labelKey: "nav.uranus", disabled: true },
+    { to: "/planetarium/neptune", labelKey: "nav.neptune", disabled: true },
   ]},
   { labelKey: "nav.bodies_group", items: [
     { to: "/asteroids", labelKey: "nav.asteroids" },

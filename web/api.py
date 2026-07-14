@@ -139,6 +139,45 @@ async def mars():
     return await data.get_mars()
 
 
+@router.get("/mars/rovers")
+async def mars_rovers():
+    """Latest Perseverance / Curiosity photos (Mars Vista API).
+
+    Returns ``{configured, perseverance[], curiosity[]}``. Each photo is
+    ``{img_src, camera, sol, earth_date, rover}``. When the API key isn't set,
+    ``configured`` is false and both lists are empty (the site shows
+    placeholder tiles rather than erroring).
+    """
+    return await data.get_mars_rovers()
+
+
+@router.get("/news")
+async def news(lang: str = LANG_Q):
+    """Space news digest archived in MySQL with a live-parser fallback.
+
+    Returns ``{available, items[]}``. ``available`` is false when neither the
+    DB archive nor a live SpaceflightNow fetch yielded anything. Each item has
+    ``id`` (DB row id; ``null`` for live-without-DB fallback entries) so the
+    front can route cards with an id to the on-site article page and the rest
+    out to the source.
+    """
+    return await data.get_news(lang)
+
+
+@router.get("/news/{slug}")
+async def news_article(slug: str, lang: str = LANG_Q):
+    """Full article body (translated) for the on-site article page /news/<slug>.
+
+    The slug is derived from the source article URL (see
+    SpaceflightNowParser.slug_from_url). The body is fetched lazily from the
+    source on first request and persisted in the DB, then cached per
+    article+language. Returns ``{available:false}`` when the slug isn't in the
+    archive (requires the DB). Also returns ``related[]`` (up to 3 same-category
+    articles) for the «Пов'язані новини» section.
+    """
+    return await data.get_news_article_api(slug, lang)
+
+
 @router.get("/apod")
 async def apod(lang: str = LANG_Q):
     """NASA Astronomy Picture of the Day: image, title, translated explanation."""

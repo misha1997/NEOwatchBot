@@ -34,6 +34,8 @@ export const getWeatherSeries = () => fetchJSON(API + "/weather/series");
 export const getLaunches = () => fetchJSON(API + "/launches");
 export const getIssCrew = (lang) => fetchJSON(API + "/iss/crew" + withLang("", lang));
 export const getMars = () => fetchJSON(API + "/mars");
+// Latest Perseverance / Curiosity photos (Mars Vista API). {configured, perseverance[], curiosity[]}.
+export const getMarsRovers = () => fetchJSON(API + "/mars/rovers");
 export const getApod = (lang) => fetchJSON(API + "/apod" + withLang("", lang));
 // APOD archive — a date range of NASA pictures/videos for the gallery page.
 // `start`/`end` are "YYYY-MM-DD"; omit for the last 30 days. Span capped at 60d server-side.
@@ -66,6 +68,14 @@ export const getNeo = (lang) => fetchJSON(API + "/neo" + withLang("", lang));
 export const getMeteors = (lang) => fetchJSON(API + "/meteors" + withLang("", lang));
 export const getEvents = (lang) => fetchJSON(API + "/events" + withLang("", lang));
 export const getComets = (lang) => fetchJSON(API + "/comets" + withLang("", lang));
+// Space news digest archived in MySQL, with a live-parser fallback. Items
+// carry `id` (DB row, or null for live-without-DB) so cards with an id link
+// to the on-site article page /news/:id and the rest link out to the source.
+export const getNews = (lang) => fetchJSON(API + "/news" + withLang("", lang));
+// Full article body (translated) for the on-site article page /news/<slug>.
+// Body is fetched lazily from the source on first request and cached server-side.
+export const getNewsArticle = (slug, lang) =>
+  fetchJSON(API + "/news/" + encodeURIComponent(slug) + withLang("", lang));
 // Language-neutral (numeric) NASA Exoplanet Archive data.
 export const getExoplanets = () => fetchJSON(API + "/exoplanets");
 export const getTle = (group, limit = 300, lang) =>

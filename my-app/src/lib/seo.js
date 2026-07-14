@@ -16,11 +16,14 @@ export const ROUTES = {
   asteroids: "asteroids",
   events: "events",
   launches: "launches",
+  news: "news",
   deep: "deep",
   voyager: "voyager",
   comets: "comets",
   exoplanets: "exoplanets",
   gallery: "gallery",
+  planetarium: "planetarium",
+  "planetarium/mars": "mars",
   // /rtl-sdr and /community are kept on disk but unlinked — omitted so
   // nameForPath() falls back to "404" for them. Re-add to restore.
 };
