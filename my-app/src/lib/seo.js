@@ -24,6 +24,7 @@ export const ROUTES = {
   gallery: "gallery",
   planetarium: "planetarium",
   "planetarium/mars": "mars",
+  "planetarium/jupiter": "jupiter",
   // /rtl-sdr and /community are kept on disk but unlinked — omitted so
   // nameForPath() falls back to "404" for them. Re-add to restore.
 };

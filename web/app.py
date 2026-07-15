@@ -65,7 +65,8 @@ def _build_bot_application():
 
     async def post_init(application):
         scheduler = NotificationScheduler()
-        application.create_task(scheduler.run_scheduled_tasks())
+        task = application.create_task(scheduler.run_scheduled_tasks())
+        application.bot_data['scheduler_task'] = task
         logger.info("Scheduler started")
 
     application = (

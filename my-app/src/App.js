@@ -26,6 +26,7 @@ const Mast = lazy(() => import("./pages/Mast"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Planetarium = lazy(() => import("./pages/Planetarium"));
 const Mars = lazy(() => import("./pages/Mars"));
+const Jupiter = lazy(() => import("./pages/Jupiter"));
 const News = lazy(() => import("./pages/News"));
 const NewsArticle = lazy(() => import("./pages/NewsArticle"));
 // RtlSdr / Community pages are kept on disk but currently unlinked — their
@@ -77,6 +78,7 @@ export default function App() {
                 <Route path="/gallery" element={<Gallery />} />
                 <Route path="/planetarium" element={<Planetarium />} />
                 <Route path="/planetarium/mars" element={<Mars />} />
+                <Route path="/planetarium/jupiter" element={<Jupiter />} />
                 <Route path="/news" element={<News />} />
                 <Route path="/news/:slug" element={<NewsArticle />} />
                 {/* RtlSdr (/rtl-sdr) and Community (/community) routes disabled —

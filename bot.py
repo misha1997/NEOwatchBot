@@ -32,7 +32,8 @@ async def post_init(application: Application):
     """Run after bot initialization"""
     # Start scheduler as background task
     scheduler = NotificationScheduler()
-    application.create_task(scheduler.run_scheduled_tasks())
+    task = application.create_task(scheduler.run_scheduled_tasks())
+    application.bot_data['scheduler_task'] = task
     logger.info("Scheduler started")
 
 

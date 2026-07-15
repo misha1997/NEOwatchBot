@@ -208,6 +208,13 @@ async def debris():
     return await data.get_debris()
 
 
+@router.get("/jupiter")
+async def jupiter():
+    """Jupiter moon catalog (all known satellites, JPL mean elements) + live
+    Earth-Jupiter distance and next opposition date."""
+    return await data.get_jupiter()
+
+
 @router.get("/grb")
 async def grb(limit: int = Query(20, ge=1, le=50)):
     """Recent gamma-ray burst alerts from NASA GCN Circulars."""

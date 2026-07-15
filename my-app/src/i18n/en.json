@@ -177,6 +177,7 @@
     "404": "Not found — OrbitLight",
     "planetarium": "Planetarium — OrbitLight",
     "mars": "Mars — OrbitLight",
+    "jupiter": "Jupiter — OrbitLight",
     "news": "Space news — NEOwatch"
   },
   "seo": {
@@ -202,6 +203,7 @@
       "404": "Page not found — return to the OrbitLight home page to see the sky now.",
       "planetarium": "OrbitLight planetarium: every planet of the solar system — diameter, day and year length, gravity, moons and mean temperature. Mars comes with live weather and fresh rover photos.",
       "mars": "Weather on Mars from InSight telemetry, fresh Perseverance and Curiosity rover photos, the Phobos and Deimos moons, an Earth comparison, dust storms and the history of Mars exploration.",
+      "jupiter": "Jupiter up close: the Great Red Spot, the four Galilean moons, the full system of 95 moons, the radiation environment, the Juno, Europa Clipper and JUICE missions, and the next opposition.",
       "news": "The top spaceflight stories in Ukrainian — translated and summarized coverage from SpaceflightNow, NASA, ESA and other sources."
     }
   },
@@ -1726,6 +1728,258 @@
       "vallesFoot": "A canyon longer than the USA — 10× the length of the Grand Canyon",
       "meteorites": "Martian meteorites",
       "meteoritesFoot": "Fragments of Mars found on Earth — blasted into space by ancient asteroid impacts"
+    }
+  },
+  "jupiter": {
+    "hero": {
+      "eyebrow": "Fifth planet · updated just now",
+      "title": "Jupiter<br><span class='accent'>and its Galilean moons</span>",
+      "sub": "The largest planet in the Solar System: the Great Red Spot, four worlds discovered by Galileo in 1610, and a stronger magnetic field than any other body in the system.",
+      "io": "Io",
+      "europa": "Europa",
+      "ganymede": "Ganymede",
+      "callisto": "Callisto",
+      "moreMoons": "+ {{n}} more, mostly tiny irregulars"
+    },
+    "stats": {
+      "distance": "628M km",
+      "signal": "35 min",
+      "distanceL": "distance to Earth (approx.)",
+      "signalL": "signal travel time",
+      "note": "Distance and signal travel time are live, from the JPL de440s ephemeris.",
+      "distUnit": "M km"
+    },
+    "weather": {
+      "eyebrow": "Juno · microwave radiometer",
+      "title": "Jupiter's atmosphere right now",
+      "grsK": "Great Red Spot",
+      "grsV": "13,000",
+      "grsUnit": "km",
+      "grsFoot": "Continues to slowly shrink every year",
+      "windK": "Wind speed in the GRS",
+      "windV": "618",
+      "windUnit": "km/h",
+      "windFoot": "At the spot's edge — the most powerful storm in the system",
+      "tempK": "Cloud temperature",
+      "tempV": "−145",
+      "tempUnit": "°C",
+      "tempFoot": "Top of the visible ammonia clouds",
+      "rotK": "Rotation period",
+      "rotV": "9h 56",
+      "rotUnit": "min",
+      "rotFoot": "Fastest rotation of any planet"
+    },
+    "compare": {
+      "eyebrow": "Jupiter vs Earth",
+      "title": "How different it all is",
+      "param": "Parameter",
+      "p": {
+        "day": "Day length",
+        "year": "Year length",
+        "gravity": "Gravity (at cloud tops)",
+        "diameter": "Diameter",
+        "mass": "Mass",
+        "atmosphere": "Atmosphere",
+        "moons": "Known moons"
+      },
+      "v": {
+        "day": {
+          "jupiter": "9h 56m",
+          "earth": "24h 00m"
+        },
+        "year": {
+          "jupiter": "11.9 Earth years",
+          "earth": "1 year"
+        },
+        "gravity": {
+          "jupiter": "24.79 m/s² (2.5×)",
+          "earth": "9.81 m/s²"
+        },
+        "diameter": {
+          "jupiter": "139,820 km (11×)",
+          "earth": "12,742 km"
+        },
+        "mass": {
+          "jupiter": "318 × Earth",
+          "earth": "1 ×"
+        },
+        "atmosphere": {
+          "jupiter": "90% H₂, 10% He",
+          "earth": "78% N₂, 21% O₂"
+        },
+        "moons": {
+          "jupiter": "{{count}}",
+          "earth": "1"
+        }
+      }
+    },
+    "moons": {
+      "eyebrow": "From nearest to most famous",
+      "title": "Moons of Jupiter",
+      "sub": "Jupiter has {{count}} known moons — most are small and irregularly shaped. Here are the eight shown in the animation above: four tiny ring moons closest to the planet and the four large Galilean moons.",
+      "note": "The orbital periods of Io, Europa and Ganymede are locked in a 1:2:4 resonance (Laplace resonance) — which is why their mutual gravity keeps Io volcanically active",
+      "metis": {
+        "name": "Metis",
+        "tag": "7h · orbit",
+        "grad": "linear-gradient(150deg,#5a564a,#2a2820)",
+        "desc": "One of the closest moons to Jupiter — it orbits faster than the planet rotates on its axis."
+      },
+      "adrastea": {
+        "name": "Adrastea",
+        "tag": "7h · orbit",
+        "grad": "linear-gradient(150deg,#615c4d,#2e2b22)",
+        "desc": "A tiny irregularly shaped moon, likely the source of material for Jupiter's thin ring."
+      },
+      "amalthea": {
+        "name": "Amalthea",
+        "tag": "12h · orbit",
+        "grad": "linear-gradient(150deg,#8a5a3a,#3a2515)",
+        "desc": "A reddish surface dusted with sulfur from Io's volcanoes — it emits more heat than it receives from the Sun."
+      },
+      "thebe": {
+        "name": "Thebe",
+        "tag": "16h · orbit",
+        "grad": "linear-gradient(150deg,#6b6255,#2f2b23)",
+        "desc": "The farthest of the four inner moons, with the large Zethus crater on its surface."
+      },
+      "io": {
+        "name": "Io",
+        "tag": "🌋 1.8 days · orbit",
+        "grad": "linear-gradient(150deg,#e8d48a,#8a5a1f)",
+        "desc": "The most volcanic body in the Solar System — over 400 active volcanoes, heated by Jupiter's tidal forces."
+      },
+      "europa": {
+        "name": "Europa",
+        "tag": "🧊 3.6 days · orbit",
+        "grad": "linear-gradient(150deg,#c9bfae,#5f6b6a)",
+        "desc": "An icy world with a subsurface ocean of liquid water — the prime candidate in the search for extraterrestrial life."
+      },
+      "ganymede": {
+        "name": "Ganymede",
+        "tag": "🪐 7.2 days · orbit",
+        "grad": "linear-gradient(150deg,#9c8f7e,#453e33)",
+        "desc": "The largest moon in the Solar System — bigger than Mercury, the only moon with its own magnetic field."
+      },
+      "callisto": {
+        "name": "Callisto",
+        "tag": "⚫ 16.7 days · orbit",
+        "grad": "linear-gradient(150deg,#6e6459,#2b2721)",
+        "desc": "The most heavily cratered object in the Solar System — its surface has been unchanged for billions of years."
+      }
+    },
+    "system": {
+      "eyebrow": "All {{count}} known moons",
+      "title": "The full moon system of Jupiter",
+      "sub": "All {{count}} moons on their real orbits (semi-major axes from JPL mean elements), with the correct direction of motion (prograde in teal, retrograde in coral) and real relative speeds. Hover a moon for details.",
+      "ring": "Ring group",
+      "galilean": "Galilean group",
+      "himalia": "Himalia group",
+      "ananke": "Ananke group",
+      "carme": "Carme group",
+      "pasiphae": "Pasiphae group",
+      "direct": "Prograde motion (with Jupiter's rotation)",
+      "retro": "Retrograde motion (against the rotation)",
+      "scaleNote": "Orbits are drawn on a true linear scale using real semi-major axes: from 128 thousand km (Metis) to ~24 million km (outer irregulars) — a ~190× span, so the inner 8 moons cluster tightly near the planet and the distant ones sit at the periphery. This is the real architecture of the system; use zoom and pan to inspect the inner system. Time is sped up for clarity (1 s ≈ 0.1 days); relative angular speeds are real. Each moon's current phase is approximate (JPL mean elements, not a precise ephemeris). Controls: mouse wheel or the ＋/－ buttons to zoom, drag to pan, ↺ to reset.",
+      "loading": "Loading the moon system…",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "zoomReset": "Reset zoom"
+    },
+    "grs": {
+      "eyebrow": "Observed since the 1830s",
+      "title": "The Great Red Spot is shrinking",
+      "sub": "The most famous storm in the Solar System has been steadily shrinking for over a century of observations — the cause of this process is still not fully understood.",
+      "km": "thousand km"
+    },
+    "depth": {
+      "eyebrow": "No solid surface",
+      "title": "What happens if you dive in",
+      "sub": "Jupiter has no surface to land on — only a gradual transition from gas to liquid under rising pressure and temperature.",
+      "m0": "0 km · cloud tops, −145°C",
+      "m1": "~1000 km · pressure like the bottom of Earth's ocean",
+      "m2": "~7000 km · liquid hydrogen",
+      "m3": "~13,000 km · metallic hydrogen, source of the magnetic field",
+      "m4": "~57,000 km · likely rocky core, 24,000°C"
+    },
+    "gallery": {
+      "eyebrow": "JunoCam · latest flyby",
+      "title": "Fresh images of Jupiter's clouds",
+      "c1": "Perijove 62 · 03.07.2026",
+      "c2": "Perijove 62 · 03.07.2026",
+      "c3": "Great Red Spot · 03.07.2026",
+      "c4": "Polar vortex · 02.07.2026"
+    },
+    "radiation": {
+      "eyebrow": "Hazard for spacecraft",
+      "title": "Radiation environment",
+      "io": {
+        "zone": "Extreme zone",
+        "dose": "36 Gy/day",
+        "level": "warn"
+      },
+      "europa": {
+        "zone": "Very high",
+        "dose": "5.4 Gy/day",
+        "level": "warn"
+      },
+      "ganymede": {
+        "zone": "Moderate",
+        "dose": "0.08 Gy/day",
+        "level": "gold"
+      },
+      "callisto": {
+        "zone": "Relatively safe",
+        "dose": "0.0001 Gy/day",
+        "level": "teal"
+      },
+      "note": "For comparison: a lethal dose for a human is about 5 Gy at once. This is why spacecraft near Jupiter need thick titanium shielding."
+    },
+    "missions": {
+      "eyebrow": "Who is \"alive\" now",
+      "title": "Missions to Jupiter",
+      "juno": "In orbit",
+      "clipper": "En route · arrival 2030",
+      "juice": "En route · arrival 2031",
+      "galileo": "Ended 2003",
+      "voyager": "Flyby, continued flight",
+      "newhorizons": "Gravity assist toward Pluto"
+    },
+    "opposition": {
+      "eyebrow": "Linked from sky.html",
+      "title": "Next Jupiter opposition",
+      "until": "Until the best time to observe",
+      "foot": "At opposition Jupiter is brightest and visible all night",
+      "whatTitle": "What is an opposition",
+      "whatBody": "About every 13 months Earth passes directly between the Sun and Jupiter — the planet rises in the east right after sunset and stays visible all night, reaching maximum brightness.",
+      "days": "days",
+      "hours": "hrs",
+      "mins": "min",
+      "passed": "Jupiter is at opposition right now — the best time to observe!"
+    },
+    "facts": {
+      "eyebrow": "Fun facts",
+      "title": "Jupiter of records",
+      "magnetic": "Magnetic field",
+      "magneticV": "20,000× stronger",
+      "magneticFoot": "The most powerful magnetic field of any planet in the Solar System",
+      "star": "Almost a star",
+      "starV": "×80 mass",
+      "starFoot": "If Jupiter were 80 times more massive, fusion would ignite inside it",
+      "rings": "Rings",
+      "ringsV": "yes, it has them",
+      "ringsFoot": "Thin, faint dust rings, discovered only in 1979 by the Voyager 1 probe"
+    },
+    "tooltip": {
+      "group": "Group",
+      "a": "Semi-major axis",
+      "period": "Orbital period",
+      "inclination": "Inclination",
+      "eccentricity": "Eccentricity",
+      "diameter": "Diameter",
+      "direction": "Direction",
+      "dirPro": "Prograde (with Jupiter's rotation)",
+      "dirRetro": "Retrograde (against rotation)",
+      "dash": "—"
     }
   },
   "news": {

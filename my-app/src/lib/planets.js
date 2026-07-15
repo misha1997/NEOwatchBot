@@ -39,7 +39,7 @@ export const PLANETS = [
   },
   {
     key: "jupiter", labelKey: "nav.jupiter", to: "/planetarium/jupiter",
-    disabled: true, accent: "#D9C29B", img: "/planets/Jupiter.png",
+    disabled: false, accent: "#D9C29B", img: "/planets/Jupiter.png",
     grad: ["#E8D9B8", "#C9A878", "#8A6A48"],
     facts: { dia: "139 820", day: "9.9", year: "11.9", gravity: "24.79", moons: "95", temp: "−145 °C" },
     blurbKey: "planetarium.blurbs.jupiter",

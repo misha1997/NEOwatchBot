@@ -36,6 +36,7 @@ from services.astronomy import (
     _is_supermoon, _detect_retrogrades,
 )
 from services.debris import SpaceDebrisAPI
+from services.jupiter import get_jupiter as _build_jupiter
 from services.grb_alerts import GRBAlertAPI
 from services.comets import CometAPI
 from services.exoplanets import ExoplanetAPI
@@ -74,6 +75,7 @@ METEORS_TTL = 3600        # shower calendar — dates change daily
 EVENTS_TTL = 3600         # eclipses / conjunctions / weekly digest
 MARS_TTL = 3600           # Mars weather (InSight feed is stale; refresh gently)
 DEBRIS_TTL = 86400        # curated ESA figures, ~annual
+JUPITER_TTL = 3600        # moon catalog is static; live distance refreshes hourly
 GRB_TTL = 1800            # GCN circulars archive
 COMETS_TTL = 3600         # curated comet digest; days-to-perihelion updates daily
 EXO_TTL = 3600            # exoplanet archive (TAP); new finds trickle in daily
@@ -1707,6 +1709,22 @@ def _debris_raw() -> dict:
 
 async def get_debris() -> dict:
     return await asyncio.to_thread(get_or_fetch, "debris", DEBRIS_TTL, _debris_raw)
+
+
+# ---------------------------------------------------------------------------
+# Jupiter — full moon catalog (JPL mean elements) + live geocentric distance
+# ---------------------------------------------------------------------------
+
+def _jupiter_raw() -> dict:
+    try:
+        return _build_jupiter()
+    except Exception as e:  # noqa: BLE001
+        logger.error("jupiter: %s", e)
+        return {}
+
+
+async def get_jupiter() -> dict:
+    return await asyncio.to_thread(get_or_fetch, "jupiter", JUPITER_TTL, _jupiter_raw)
 
 
 # ---------------------------------------------------------------------------
