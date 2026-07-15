@@ -11,7 +11,7 @@ from services.voyager import VoyagerAPI
 from services.debris import SpaceDebrisAPI
 from services.facts import RandomFact
 from services.grb_alerts import GRBAlertAPI
-from database import (get_user, update_user_location, toggle_subscription, geocode_city,
+from database import (get_user, update_user_location, toggle_subscription,
                       reverse_geocode, create_or_update_user, update_user_lang)
 from utils.keyboards import (get_main_menu, get_iss_menu, get_weather_menu, get_sky_menu,
                              get_deep_menu, get_language_picker)
@@ -72,6 +72,11 @@ class CallbackHandlers:
         lang = normalize_lang(user.get('lang'))
         context.user_data['lang'] = lang
 
+        # Any inline-button tap exits the "waiting for city" text-input mode.
+        # `set_location` re-enters it below; every other handler just leaves it,
+        # so a stale state can't make a later free-text message act as a city search.
+        user_states.pop(user_id, None)
+
         # Route to appropriate handler
         handlers = {
             'neo': CallbackHandlers.neo,
@@ -108,8 +113,6 @@ class CallbackHandlers:
             await handlers[data](update, context)
         elif data.startswith('cityloc:'):
             await CallbackHandlers.handle_cityloc_selection(update, context, data)
-        elif data.startswith('city_'):
-            await CallbackHandlers.handle_city_selection(update, context, data)
         elif data.startswith('voyager:'):
             await CallbackHandlers.handle_voyager_pick(update, context, data)
         elif data.startswith('sub_'):
@@ -881,33 +884,6 @@ class CallbackHandlers:
                 InlineKeyboardButton(t('city.cancel', lang), callback_data='back_menu')
             ]])
         )
-
-    @staticmethod
-    async def handle_city_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, data: str):
-        """Handle city selection from list"""
-        user_id = update.effective_user.id
-        lang = _lang_from(context)
-        city_name = data.replace('city_', '')
-
-        try:
-            lat, lon, display_name = geocode_city(city_name)
-            update_user_location(user_id, city_name, lat, lon)
-
-            await CallbackHandlers._replace_message(update, context,
-                t('city.set', lang, city=city_name, lat=f'{lat:.4f}', lon=f'{lon:.4f}'),
-                parse_mode='HTML',
-                reply_markup=get_main_menu(lang)
-            )
-
-            if user_id in user_states:
-                del user_states[user_id]
-
-        except Exception as e:
-            logger.error(f"City selection error: {e}")
-            await CallbackHandlers._replace_message(update, context,
-                t('city.save_error', lang),
-                reply_markup=get_main_menu(lang)
-            )
 
     @staticmethod
     async def handle_cityloc_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, data: str):

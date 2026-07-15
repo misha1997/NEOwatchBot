@@ -768,39 +768,6 @@ def _country_from_address(address: Dict, display_name: str) -> str:
     return ''
 
 
-def geocode_city(city_name: str, lang: str = DEFAULT_LANG) -> Optional[tuple]:
-    """Geocode city name to coordinates using OpenStreetMap Nominatim.
-
-    Returns (lat, lon, display_name) or None. Single top result — only used as
-    a legacy fallback; the main city flow goes through ``get_city_suggestions``
-    + coord-based callback to avoid wrong-country ambiguity.
-    """
-    try:
-        url = "https://nominatim.openstreetmap.org/search"
-        params = {
-            'q': city_name,
-            'format': 'json',
-            'limit': 1,
-            'addressdetails': 1,
-            'accept-language': _nominatim_accept_language(lang),
-        }
-        headers = {'User-Agent': 'NEOwatchBot/1.0'}
-
-        response = requests.get(url, params=params, headers=headers, timeout=10)
-        data = response.json()
-
-        if data and len(data) > 0:
-            lat = float(data[0]['lat'])
-            lon = float(data[0]['lon'])
-            display_name = data[0].get('display_name', city_name)
-            return (lat, lon, display_name)
-
-        return None
-    except Exception as e:
-        logger.error(f"Error geocoding city '{city_name}': {e}")
-        return None
-
-
 def get_user_count() -> int:
     """Get total user count"""
     conn = get_db_connection()
