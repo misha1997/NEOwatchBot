@@ -1,5 +1,5 @@
 """Command handlers for bot"""
-from telegram import Update
+from telegram import Update, LinkPreviewOptions
 from telegram.ext import ContextTypes
 from database import get_user
 from utils.keyboards import get_main_menu, get_language_picker
@@ -51,7 +51,8 @@ class CommandHandlers:
         await update.message.reply_text(
             message,
             reply_markup=get_main_menu(lang),
-            parse_mode='HTML'
+            parse_mode='HTML',
+            link_preview_options=LinkPreviewOptions(is_disabled=True)
         )
 
     @staticmethod

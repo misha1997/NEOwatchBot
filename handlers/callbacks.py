@@ -1,5 +1,5 @@
 """Callback query handlers"""
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, InputMediaPhoto
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, InputMediaPhoto, LinkPreviewOptions
 from telegram.ext import ContextTypes
 from services import NasaAPI, N2YOAPI, LaunchAPI, SpaceWeatherAPI, ISSCrewAPI
 from services.moon_mars import MoonMarsAPI
@@ -1006,5 +1006,6 @@ class CallbackHandlers:
         await CallbackHandlers._replace_message(
             update, context, message,
             parse_mode='HTML',
-            reply_markup=get_main_menu(lang)
+            reply_markup=get_main_menu(lang),
+            link_preview_options=LinkPreviewOptions(is_disabled=True)
         )
