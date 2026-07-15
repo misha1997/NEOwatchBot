@@ -46,6 +46,7 @@ class CommandHandlers:
         message += t('start.line.weather', lang)
         message += t('start.line.sky', lang)
         message += t('start.note', lang)
+        message += t('menu.website', lang)
 
         await update.message.reply_text(
             message,

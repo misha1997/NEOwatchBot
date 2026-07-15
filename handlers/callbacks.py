@@ -1001,6 +1001,7 @@ class CallbackHandlers:
         message += t('back.line.weather', lang)
         message += t('back.line.sky', lang)
         message += t('back.note', lang)
+        message += t('menu.website', lang)
 
         await CallbackHandlers._replace_message(
             update, context, message,
