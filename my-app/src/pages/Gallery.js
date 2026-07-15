@@ -116,6 +116,7 @@ export default function Gallery() {
   }
 
   return (
+    <>
     <div className="wrap" style={{ position: "relative", zIndex: 1 }}>
       <section className="page-head">
         <span className="icon-badge">NASA APOD · архів</span>
@@ -247,8 +248,10 @@ export default function Gallery() {
           </>
         )}
       </section>
+    </div>
 
-      {/* Lightbox */}
+      {/* Lightbox — rendered outside .wrap so its z-index isn't trapped
+          in the .wrap stacking context (which sits below the sticky header). */}
       {modal && (() => {
         const isVideo = modal.media_type === "video";
         const embed = isVideo ? videoEmbed(modal.video_url) : null;
@@ -376,6 +379,6 @@ export default function Gallery() {
           </div>
         );
       })()}
-    </div>
+    </>
   );
 }

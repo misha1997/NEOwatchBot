@@ -88,9 +88,8 @@
   min-height: 56px;
 }
 .planet-facts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 14px;
+  display: flex;
+  flex-direction: column;
   margin-top: 4px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
@@ -98,13 +97,17 @@
 .planet-facts > div {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
   font-family: var(--font-mono);
   font-size: 12px;
 }
-.planet-facts .fk { color: var(--text-dim); font-size: 10.5px; letter-spacing: .04em; }
-.planet-facts .fv { color: var(--text); }
-.planet-facts .fu { color: var(--text-dim); font-size: 10.5px; }
+.planet-facts > div:last-child { border-bottom: none; }
+.planet-facts .fk { color: var(--text-dim); font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; }
+.planet-facts .fv { color: var(--text); margin-left: auto; }
+.planet-facts .fu { color: var(--text-dim); font-size: 10.5px; margin-left: 3px; }
 .planet-cta {
   font-family: var(--font-mono);
   font-size: 12.5px;
