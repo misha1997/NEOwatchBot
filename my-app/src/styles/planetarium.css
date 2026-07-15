@@ -135,6 +135,7 @@
 .mars-orbit-ring { fill: none; stroke: var(--grid-line); stroke-width: 1; stroke-dasharray: 3 4; }
 .mars-moon-label { font-family: var(--font-mono); font-size: 9.5px; fill: var(--text-dim); }
 .mars-disc-img { filter: drop-shadow(0 8px 28px rgba(0,0,0,.55)); }
+.jupiter-disc-img { filter: drop-shadow(0 8px 28px rgba(0,0,0,.55)); }
 
 /* ---------- Mars moons cards ---------- */
 .mars-moon-desc {
@@ -376,6 +377,117 @@
   color: var(--text-dim); margin-top: 12px;
 }
 
+/* ---------- Jupiter hero + moons ---------- */
+.jupiter-hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; }
+.jupiter-hero-note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 12px;
+  max-width: 420px;
+}
+.jupiter-moons-note,
+.jupiter-radiation-note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 14px;
+  line-height: 1.6;
+  max-width: 760px;
+}
+.jupiter-opposition-now {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--teal);
+  margin-top: 14px;
+  line-height: 1.4;
+}
+
+/* moon cards (Jupiter eight-moon grid) */
+.moon-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(237,238,245,.02);
+}
+.moon-card .photo { aspect-ratio: 1/1; position: relative; }
+.moon-card .photo .tag {
+  position: absolute; top: 10px; left: 10px;
+  font-family: var(--font-mono); font-size: 9.5px; color: var(--gold);
+  background: rgba(9,10,20,.6); border: 1px solid rgba(232,185,77,.3);
+  padding: 2px 7px; border-radius: 20px;
+}
+.moon-card .body { padding: 16px; }
+.moon-card h4 { font-size: 14px; font-weight: 600; }
+.moon-card p { font-size: 12px; color: var(--text-dim); margin-top: 8px; line-height: 1.55; }
+.moon-radiation-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+/* ---------- Great Red Spot shrinkage chart ---------- */
+.grs-wrap { padding: 16px 4px; overflow: hidden; }
+.grs-wrap svg { width: 100%; height: auto; display: block; }
+.grs-axis { font-family: var(--font-mono); font-size: 9.5px; fill: var(--text-dim); }
+
+/* ---------- Jupiter depth scale (reuses .pmark / .pmark.hl) ---------- */
+.depth-wrap { display: flex; gap: 18px; align-items: stretch; height: 380px; margin-top: 22px; }
+.depth-bar { width: 56px; border-radius: 10px; background: linear-gradient(to bottom, #D8A46E, #B5651D 35%, #6b3410 65%, #2a1408); }
+.depth-marks { flex: 1; position: relative; height: 100%; }
+
+/* ---------- Jupiter full moon system (live, all moons on real orbits) ---------- */
+.jup-sys-wrap { position: relative; }
+.jup-sys-wrap svg { width: 100%; height: auto; display: block; max-width: 640px; margin: 0 auto; }
+.jup-sys-svg { cursor: grab; touch-action: none; }
+.jup-sys-svg:active { cursor: grabbing; }
+/* zoom controls overlay (top-right of the diagram) */
+.jup-sys-controls {
+  position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 4px; z-index: 5;
+}
+.jup-sys-controls button {
+  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; border: 1px solid var(--border); background: var(--card, rgba(20,24,38,.82));
+  color: var(--text); font-size: 16px; line-height: 1; cursor: pointer;
+  backdrop-filter: blur(6px); transition: background .15s, border-color .15s;
+}
+.jup-sys-controls button:hover { border-color: var(--gold, #c9a24a); }
+.jup-sys-controls button:last-child { font-size: 15px; }
+/* faint per-moon orbit circle (real log-compressed radius); highlighted on hover */
+.jup-orbit { fill: none; stroke-width: 1; opacity: .08; transition: opacity .15s; }
+.jup-orbit.hl { opacity: .55; stroke-width: 1.4; }
+/* moon dot: tiny fill + a transparent wide stroke enlarges the hover hit area
+   without changing the visible size (keeps one element per moon for the rAF
+   loop to drive via cx/cy) */
+.jup-moon-dot { cursor: help; pointer-events: visiblePainted; }
+.jup-sys-loading {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+}
+.jup-legend { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+
+/* hover tooltip (per moon) */
+.jup-moon-tooltip {
+  position: absolute; z-index: 5; pointer-events: none;
+  min-width: 210px; max-width: 240px;
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.55);
+  font-family: var(--font-mono); font-size: 11.5px;
+  color: var(--text);
+}
+.jup-moon-tooltip .jmt-name {
+  font-family: var(--font-display); font-weight: 600; font-size: 14px;
+  color: var(--gold); margin-bottom: 8px;
+}
+.jup-moon-tooltip .jmt-row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; padding: 3px 0; border-bottom: 1px solid var(--border);
+}
+.jup-moon-tooltip .jmt-row:last-child { border-bottom: none; }
+.jup-moon-tooltip .jmt-row span { color: var(--text-dim); font-size: 10.5px; letter-spacing: .03em; }
+.jup-moon-tooltip .jmt-row b { color: var(--text); font-weight: 500; text-align: right; }
+
 /* ---------- responsive ---------- */
 @media (max-width: 1100px) {
   .planet-grid { grid-template-columns: repeat(2, 1fr); }
@@ -383,9 +495,14 @@
 @media (max-width: 900px) {
   .mars-hero-grid { grid-template-columns: 1fr; }
   .mars-hero-grid .orbit-wrap { order: -1; }
+  .jupiter-hero-grid { grid-template-columns: 1fr; }
+  .jupiter-hero-grid .orbit-wrap { order: -1; }
   .planet-grid { grid-template-columns: 1fr; }
   .mission-row .ag { display: none; }
   .pressure-wrap { flex-direction: column; height: auto; }
   .pressure-bar { width: 100%; height: 70px; background: linear-gradient(to right, #0a3d5c, #4FD1C5 55%, #cfeeea); }
   .pressure-marks { height: 260px; }
+  .depth-wrap { flex-direction: column; height: auto; }
+  .depth-bar { width: 100%; height: 70px; background: linear-gradient(to right, #D8A46E, #B5651D 35%, #6b3410 65%, #2a1408); }
+  .depth-marks { height: 260px; }
 }
