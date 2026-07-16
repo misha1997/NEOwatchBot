@@ -71,18 +71,10 @@ def _build_bot_application():
     from telegram.ext import (
         CallbackQueryHandler, CommandHandler, MessageHandler, filters,
     )
-    from services.scheduler import NotificationScheduler
-
-    async def post_init(application):
-        scheduler = NotificationScheduler()
-        task = application.create_task(scheduler.run_scheduled_tasks())
-        application.bot_data['scheduler_task'] = task
-        logger.info("Scheduler started")
 
     application = (
         Application.builder()
         .token(token)
-        .post_init(post_init)
         .build()
     )
     application.add_handler(CommandHandler("start", CommandHandlers.start))
@@ -118,11 +110,27 @@ async def lifespan(app: FastAPI):
         ptb = _build_bot_application()
         if ptb is not None:
             from telegram import Update
+            from services.scheduler import NotificationScheduler
             try:
                 await ptb.initialize()
                 await ptb.start()
                 await ptb.updater.start_polling(allowed_updates=Update.ALL_TYPES)
                 logger.info("Telegram bot polling started")
+                # Start the notification scheduler as a background task on the
+                # same loop. This used to live in `post_init`, but PTB only
+                # invokes `post_init` from `run_polling`/`run_webhook` — and we
+                # drive the lifecycle manually here (initialize → start →
+                # start_polling), so `post_init` never ran and the scheduler
+                # never started. No scheduled notifications were ever sent in
+                # production. Start it explicitly now that the app is running
+                # (create_task tracks it via __create_task_tasks so stop() can
+                # await it). The legacy `bot.py` entrypoint uses run_polling,
+                # so its post_init path still works.
+                scheduler = NotificationScheduler()
+                app.state.scheduler_task = ptb.create_task(
+                    scheduler.run_scheduled_tasks()
+                )
+                logger.info("Scheduler started")
                 app.state.bot = ptb
             except Exception as exc:  # noqa: BLE001
                 logger.error("Bot startup failed, continuing site-only: %s", exc)
@@ -131,6 +139,15 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        # Cancel the scheduler loop first — it's an infinite `while True`, so
+        # leaving it running would make ptb.stop() hang awaiting it.
+        sched_task = getattr(app.state, "scheduler_task", None)
+        if sched_task is not None and not sched_task.done():
+            sched_task.cancel()
+            try:
+                await sched_task
+            except BaseException:  # noqa: BLE001 — CancelledError/any loop error
+                pass
         if ptb is not None:
             await ptb.updater.stop()
             await ptb.stop()
