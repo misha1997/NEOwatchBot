@@ -1,4 +1,6 @@
 import os
+import sys
+import json
 import logging
 import warnings
 import numpy as np
@@ -155,5 +157,37 @@ class MastService:
                     })
             except Exception as e:
                 logger.error("MAST: Failed to query region for %s: %s", target["name"], e)
-                
+
         return obs_list
+
+
+def _main() -> None:
+    """CLI entry used by ``web.data._run_mast_subprocess`` for process isolation.
+
+    Why a subprocess: importing lightkurve + astropy + astroquery pulls
+    ~hundreds of MB into resident memory, and ``download()`` loads a full
+    TESS/Kepler FITS product on top of that. Running it in the long-lived
+    web/bot process kept growing it until the OOM killer took the whole
+    service down. A short-lived child process imports the heavy stack,
+    does the work, prints one JSON line to stdout and exits — freeing all
+    of it. The web layer caches the result (24 h / 12 h), so the child
+    only forks once per target per day.
+
+    Usage::
+
+        python -m services.mast lightcurve <target>
+        python -m services.mast hubble-jwst
+    """
+    mode = sys.argv[1] if len(sys.argv) > 1 else ""
+    if mode == "lightcurve":
+        target = sys.argv[2] if len(sys.argv) > 2 else ""
+        print(json.dumps(MastService.query_star_lightcurve(target)))
+    elif mode == "hubble-jwst":
+        print(json.dumps(MastService.get_hubble_jwst_recent_obs()))
+    else:
+        sys.stderr.write(f"services.mast: unknown mode {mode!r}\n")
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    _main()

@@ -16,18 +16,29 @@ T = TypeVar("T")
 _CACHE: dict[str, Tuple[float, Any]] = {}
 
 
-def get_or_fetch(key: str, ttl: float, factory: Callable[[], T]) -> T:
+def get_or_fetch(
+    key: str,
+    ttl: float,
+    factory: Callable[[], T],
+    cacheable: Callable[[T], bool] | None = None,
+) -> T:
     """Return cached value for ``key`` if fresh, else call ``factory()``.
 
     ``factory`` is a synchronous function (the bot services use ``requests``);
     callers wrap it in ``asyncio.to_thread`` so this lookup itself never blocks.
+
+    ``cacheable``: optional predicate over the produced value. If it returns
+    False the value is returned to the caller but NOT stored, so a transient
+    failure (e.g. a MAST subprocess timeout returning ``None``) isn't pinned
+    in the cache for the full TTL.
     """
     now = time.monotonic()
     entry = _CACHE.get(key)
     if entry and (now - entry[0]) < ttl:
         return entry[1]
     value = factory()
-    _CACHE[key] = (now, value)
+    if cacheable is None or cacheable(value):
+        _CACHE[key] = (now, value)
     return value
 
 

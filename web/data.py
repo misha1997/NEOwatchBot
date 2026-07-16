@@ -1781,18 +1781,60 @@ async def get_exoplanets() -> dict:
 # MAST (Kepler/TESS archives)
 # ---------------------------------------------------------------------------
 
-def _mast_lightcurve_raw(target: str) -> dict:
-    from services.mast import MastService
-    res = MastService.query_star_lightcurve(target)
-    return res or {}
+def _run_mast_subprocess(args: list[str], timeout: float = 180) -> dict | list | None:
+    """Run a MAST query in a short-lived child process and parse its JSON.
+
+    lightkurve + astropy + astroquery are ~hundreds of MB resident, and
+    ``MastService.query_star_lightcurve`` loads a full TESS/Kepler FITS
+    product into memory on top of that. Running them in the long-lived
+    web/bot process grew it until the OOM killer took the whole service
+    down. The child process imports the heavy stack, does the work, prints
+    one JSON line to stdout and exits — freeing all of it. The caller
+    caches the result (24 h / 12 h), so the child only forks once per
+    target per day. Returns ``None`` on timeout / non-zero exit / bad JSON
+    so the caller can avoid caching a failure.
+    """
+    import sys as _sys
+    import subprocess
+    import json as _json
+    try:
+        proc = subprocess.run(
+            [_sys.executable, "-m", "services.mast", *args],
+            capture_output=True, text=True, timeout=timeout, check=False,
+        )
+    except subprocess.TimeoutExpired:
+        logger.warning("MAST subprocess timed out (%s)", args)
+        return None
+    if proc.returncode != 0:
+        logger.warning("MAST subprocess rc=%s: %s",
+                       proc.returncode, (proc.stderr or "")[-1000:])
+        return None
+    try:
+        return _json.loads(proc.stdout)
+    except _json.JSONDecodeError as exc:
+        logger.warning("MAST subprocess bad JSON: %s", exc)
+        return None
+
+
+def _mast_lightcurve_raw(target: str) -> dict | None:
+    return _run_mast_subprocess(["lightcurve", target])
 
 async def get_mast_lightcurve(target: str) -> dict:
     key = f"mast_lc:{target.strip().upper()}"
-    return await asyncio.to_thread(get_or_fetch, key, 86400, lambda: _mast_lightcurve_raw(target))
+    # Don't cache a failed (None) result for 24 h — only cache real data.
+    val = await asyncio.to_thread(
+        get_or_fetch, key, 86400,
+        lambda: _mast_lightcurve_raw(target),
+        lambda v: v is not None,
+    )
+    return val or {}
 
-def _mast_hubble_jwst_raw() -> list:
-    from services.mast import MastService
-    return MastService.get_hubble_jwst_recent_obs()
+def _mast_hubble_jwst_raw() -> list | None:
+    return _run_mast_subprocess(["hubble-jwst"])
 
 async def get_mast_hubble_jwst() -> list:
-    return await asyncio.to_thread(get_or_fetch, "mast_hj", 43200, _mast_hubble_jwst_raw)
+    val = await asyncio.to_thread(
+        get_or_fetch, "mast_hj", 43200, _mast_hubble_jwst_raw,
+        lambda v: v is not None,
+    )
+    return val or []

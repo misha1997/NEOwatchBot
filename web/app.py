@@ -33,13 +33,23 @@ from web.seo import build_robots_txt, build_sitemap_xml, render_html
 logger = logging.getLogger(__name__)
 
 # Make scheduler/service INFO logs visible in the journal. Uvicorn's default
-# root logger level can be WARNING, which silently hides the scheduler's
-# "Checking…/No subscribers/Sent …/Scheduler started" progress lines — leaving
-# us blind to why notifications don't go out. Force root (and its handlers) to
-# INFO so these reach stdout/journal alongside uvicorn's own logs.
-logging.getLogger().setLevel(logging.INFO)
-for _h in logging.getLogger().handlers:
+# LOGGING_CONFIG only configures the `uvicorn*` loggers (each with
+# propagate=False and its own handler) and leaves the ROOT logger with NO
+# handler. As a result every app-level logger.info(...) — the scheduler's
+# "Scheduler started" / "Checking…" / "Sent …" / "No subscribers", plus
+# "Database initialized" and "Telegram bot polling started" — is silently
+# dropped; only WARNING/ERROR leak out via Python's `lastResort` handler (which
+# is why DeepL/APOD *errors* showed but no scheduler *progress* ever did). That
+# left us blind to whether the scheduler was even running. Attach a stdout
+# StreamHandler to root at INFO so these reach the journal alongside uvicorn's
+# own logs. Uvicorn's loggers keep propagate=False, so nothing double-prints.
+_root = logging.getLogger()
+if not _root.handlers:
+    _h = logging.StreamHandler()
     _h.setLevel(logging.INFO)
+    _h.setFormatter(logging.Formatter("%(name)s: %(levelname)s: %(message)s"))
+    _root.addHandler(_h)
+_root.setLevel(logging.INFO)
 
 # React SPA build (production). The SPA is the only served frontend; build it
 # first with `npm run build` in my-app/ before starting the server.
@@ -156,6 +166,17 @@ _SPA_STATIC = REACT_BUILD_DIR / "static"
 if _SPA_STATIC.is_dir():
     app.mount("/static", StaticFiles(directory=_SPA_STATIC), name="react-static")
 
+# Extensions of static assets the SPA build actually ships. A request whose
+# last segment has an extension NOT in this set (e.g. /wp-login.php, /.env,
+# /xmlrpc.php) is a scanner/exploit probe, not a client route or asset —
+# return 404 instead of handing it the SPA shell (which previously made
+# /wp-admin/install.php answer 200).
+_SPA_ASSET_EXTS = {
+    ".js", ".css", ".json", ".map", ".txt", ".xml",
+    ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp", ".avif",
+    ".woff", ".woff2", ".ttf", ".eot", ".otf",
+}
+
 # Locally-mirrored APOD images (data/apod/YYYY/MM/DD-<full|thumb>.<ext>),
 # populated by the scheduler's poll_apod_archive + the one-shot backfill.
 # Served at /apod-img/<rel> so the gallery loads cards from our own server
@@ -204,5 +225,10 @@ async def _spa(full_path: str, lang: str = Query("uk", pattern="uk|en")):
             return _spa_html(full_path, lang)
         if target.is_file():
             return FileResponse(target)
+        # Has a file extension but not one the SPA ships → scanner noise
+        # (e.g. /wp-login.php, /.env). Don't serve the SPA shell for it.
+        _, ext = os.path.splitext(full_path.lower())
+        if ext and ext not in _SPA_ASSET_EXTS:
+            return Response(status_code=404)
     return _spa_html(full_path, lang)
 logger.info("Serving React build from %s", REACT_BUILD_DIR)
