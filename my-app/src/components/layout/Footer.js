@@ -1,13 +1,20 @@
-// Site footer (index.html footer). Links are mostly internal routes.
+// Site footer (index.html footer). Links are internal routes — passed as
+// i18n route names to LocalizedLink so they resolve to /ua/ or /en/.
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BOT_URL } from "../../lib/constants";
+import LocalizedLink from "../primitives/LocalizedLink";
+import { useLang } from "../../context/LanguageContext";
+import { pathFor } from "../../lib/seo";
 import FeedbackModal from "../FeedbackModal";
 
 export default function Footer() {
   const { t } = useTranslation();
+  const { lang } = useLang();
   const [fbOpen, setFbOpen] = useState(false);
+  // Home + a ?query that the Home page reads to jump to a section.
+  const homeWeather = pathFor("home", lang) + "?weather";
+  const homeLaunches = pathFor("home", lang) + "?launches";
   return (
     <footer>
       <div className="wrap">
@@ -26,21 +33,21 @@ export default function Footer() {
           </div>
           <div>
             <h5>{t("footer.colSky")}</h5>
-            <Link to="/iss">{t("footer.colOrbit")}</Link>
-            <Link to="/sky">{t("footer.colSkyObs")}</Link>
-            <Link to="/?weather">{t("footer.colWeather")}</Link>
-            <Link to="/?launches">{t("footer.colLaunches")}</Link>
-            <Link to="/comets">{t("footer.colComets")}</Link>
-            <Link to="/exoplanets">{t("nav.exoplanets")}</Link>
-            <Link to="/mast">{t("nav.mast")}</Link>
-            <Link to="/gallery">{t("nav.gallery")}</Link>
+            <LocalizedLink to="iss">{t("footer.colOrbit")}</LocalizedLink>
+            <LocalizedLink to="sky">{t("footer.colSkyObs")}</LocalizedLink>
+            <LocalizedLink to={homeWeather}>{t("footer.colWeather")}</LocalizedLink>
+            <LocalizedLink to={homeLaunches}>{t("footer.colLaunches")}</LocalizedLink>
+            <LocalizedLink to="comets">{t("footer.colComets")}</LocalizedLink>
+            <LocalizedLink to="exoplanets">{t("nav.exoplanets")}</LocalizedLink>
+            <LocalizedLink to="mast">{t("nav.mast")}</LocalizedLink>
+            <LocalizedLink to="gallery">{t("nav.gallery")}</LocalizedLink>
           </div>
           <div>
             <h5>{t("footer.colProject")}</h5>
             <a href={BOT_URL} target="_blank" rel="noopener">{t("footer.colBot")}</a>
-            <Link to="/deep">{t("footer.colDeep")}</Link>
-            <Link to="/voyager">{t("footer.colVoyager")}</Link>
-            <Link to="/events">{t("footer.colEvents")}</Link>
+            <LocalizedLink to="deep">{t("footer.colDeep")}</LocalizedLink>
+            <LocalizedLink to="voyager">{t("footer.colVoyager")}</LocalizedLink>
+            <LocalizedLink to="events">{t("footer.colEvents")}</LocalizedLink>
           </div>
         </div>
         <div className="foot-bottom">

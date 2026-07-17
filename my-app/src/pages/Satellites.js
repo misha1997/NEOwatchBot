@@ -3,10 +3,10 @@
 // Default-on groups (starlink/visual/stations) load on first paint; chips come
 // from /api/tle/groups and add/remove groups through the SatMap ref handle.
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useLang } from "../context/LanguageContext";
 import SatMap from "../components/SatMap";
+import LocalizedLink from "../components/primitives/LocalizedLink";
 import SectionHead from "../components/primitives/SectionHead";
 import { useApi } from "../hooks/useApi";
 import { getTleGroups } from "../lib/api";
@@ -49,7 +49,7 @@ export default function Satellites() {
             <p className="hero-sub">{t("satellites.hero.sub")}</p>
             <div className="hero-actions">
               <a href="#sat-map-card" className="btn primary">{t("satellites.hero.map")}</a>
-              <Link to="/iss" className="btn ghost">{t("satellites.hero.iss")}</Link>
+              <LocalizedLink to="iss" className="btn ghost">{t("satellites.hero.iss")}</LocalizedLink>
             </div>
           </div>
         </div>

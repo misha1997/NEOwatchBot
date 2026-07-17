@@ -4,48 +4,51 @@
 import i18next from "../i18n";
 
 // Header nav: a flat list of top-level entries. Each entry is either a
-// single link ({to,label,end}) or a dropdown group ({label, items:[…]}).
-// Grouped thematically so all 14 pages fit compactly behind 4 dropdowns.
+// single link ({name,label,end}) or a dropdown group ({label, items:[…]}).
+// `name` is the i18n route name (key into lib/seo.js SLUGS); the actual URL is
+// built per-language via pathFor(name, lang) in Header, so the same nav data
+// serves both /ua/ and /en/. Grouped thematically so all pages fit compactly
+// behind 4 dropdowns. `disabled` entries are display-only (no route yet).
 export const NAV_GROUPS = [
-  { to: "/", labelKey: "nav.home", end: true },
+  { name: "home", labelKey: "nav.home", end: true },
   { labelKey: "nav.sky_group", items: [
-    { to: "/sky", labelKey: "nav.sky" },
-    { to: "/constellations", labelKey: "nav.constellations" },
-    { to: "/meteors", labelKey: "nav.meteors" },
-    { to: "/events", labelKey: "nav.events" },
+    { name: "sky", labelKey: "nav.sky" },
+    { name: "constellations", labelKey: "nav.constellations" },
+    { name: "meteors", labelKey: "nav.meteors" },
+    { name: "events", labelKey: "nav.events" },
   ]},
   { labelKey: "nav.orbit_group", items: [
-    { to: "/iss", labelKey: "nav.iss" },
-    { to: "/satellites", labelKey: "nav.satellites" },
-    { to: "/launches", labelKey: "nav.launches" },
-    { to: "/news", labelKey: "nav.news" },
+    { name: "iss", labelKey: "nav.iss" },
+    { name: "satellites", labelKey: "nav.satellites" },
+    { name: "launches", labelKey: "nav.launches" },
+    { name: "news", labelKey: "nav.news" },
   ]},
   { labelKey: "nav.planetarium", items: [
-    { to: "/planetarium", labelKey: "nav.planetariumHub", end: true },
-    { to: "/planetarium/mars", labelKey: "nav.mars" },
-    { to: "/planetarium/mercury", labelKey: "nav.mercury", disabled: true },
-    { to: "/planetarium/venus", labelKey: "nav.venus", disabled: true },
-    { to: "/planetarium/earth", labelKey: "nav.earth", disabled: true },
-    { to: "/planetarium/jupiter", labelKey: "nav.jupiter", disabled: true },
-    { to: "/planetarium/saturn", labelKey: "nav.saturn", disabled: true },
-    { to: "/planetarium/uranus", labelKey: "nav.uranus", disabled: true },
-    { to: "/planetarium/neptune", labelKey: "nav.neptune", disabled: true },
+    { name: "planetarium", labelKey: "nav.planetariumHub", end: true },
+    { name: "mars", labelKey: "nav.mars" },
+    { name: "mercury", labelKey: "nav.mercury", disabled: true },
+    { name: "venus", labelKey: "nav.venus", disabled: true },
+    { name: "earth", labelKey: "nav.earth", disabled: true },
+    { name: "jupiter", labelKey: "nav.jupiter", disabled: true },
+    { name: "saturn", labelKey: "nav.saturn", disabled: true },
+    { name: "uranus", labelKey: "nav.uranus", disabled: true },
+    { name: "neptune", labelKey: "nav.neptune", disabled: true },
   ]},
   { labelKey: "nav.bodies_group", items: [
-    { to: "/asteroids", labelKey: "nav.asteroids" },
-    { to: "/comets", labelKey: "nav.comets" },
-    { to: "/exoplanets", labelKey: "nav.exoplanets" },
-    { to: "/mast", labelKey: "nav.mast" },
-    { to: "/deep", labelKey: "nav.deep" },
-    { to: "/voyager", labelKey: "nav.voyager" },
-    { to: "/gallery", labelKey: "nav.gallery" },
+    { name: "asteroids", labelKey: "nav.asteroids" },
+    { name: "comets", labelKey: "nav.comets" },
+    { name: "exoplanets", labelKey: "nav.exoplanets" },
+    { name: "mast", labelKey: "nav.mast" },
+    { name: "deep", labelKey: "nav.deep" },
+    { name: "voyager", labelKey: "nav.voyager" },
+    { name: "gallery", labelKey: "nav.gallery" },
   ]},
   // { labelKey: "nav.sunradio_group", items: [
-  //   { to: "/weather", labelKey: "nav.weather" },
-  //   { to: "/rtl-sdr", labelKey: "nav.rtl" },
+  //   { name: "weather", labelKey: "nav.weather" },
+  //   { name: "rtl", labelKey: "nav.rtl" },
   // ]},
-  { to: "/weather", labelKey: "nav.weather" },
-  // { to: "/community", labelKey: "nav.community" },
+  { name: "weather", labelKey: "nav.weather" },
+  // { name: "community", labelKey: "nav.community" },
 ];
 
 export const BOT_URL = "https://t.me/NEOwatchBot";

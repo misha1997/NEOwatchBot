@@ -1,9 +1,9 @@
 // Homepage (index.html): hero with the sky-dome, tonight's sky events,
 // space-weather strip, ISS passes, launches table, and the section grid.
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BOT_URL } from "../lib/constants";
+import LocalizedLink from "../components/primitives/LocalizedLink";
 import { useLoc, locCity } from "../context/LocationContext";
 import SectionHead from "../components/primitives/SectionHead";
 import FeatureCard from "../components/primitives/FeatureCard";
@@ -30,7 +30,7 @@ export default function Home() {
               <h1 className="hero-title" dangerouslySetInnerHTML={{ __html: t("home.hero.title") }} />
               <p className="hero-sub">{t("home.hero.sub")}</p>
               <div className="hero-actions">
-                <Link to="/sky" className="btn primary">{t("home.hero.skyNow")}</Link>
+                <LocalizedLink to="sky" className="btn primary">{t("home.hero.skyNow")}</LocalizedLink>
                 <a href={BOT_URL} className="btn ghost" target="_blank" rel="noopener">{t("home.hero.telegram")}</a>
               </div>
               <LocationPill />
@@ -45,7 +45,7 @@ export default function Home() {
       <section className="section" id="tonight">
         <div className="wrap">
           <SectionHead eyebrow={t("home.tonight.eyebrow")} title={t("home.tonight.title", { city })}
-            linkTo="/sky" linkLabel={t("home.tonight.link")} />
+            linkTo="sky" linkLabel={t("home.tonight.link")} />
           <p className="section-sub">{t("home.tonight.sub", {
             lat: Math.abs(Math.round(loc ? loc.lat : 50)),
             ns: ((loc ? loc.lat : 50) >= 0) ? t("common.latN") : t("common.latS"),
@@ -65,7 +65,7 @@ export default function Home() {
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <SectionHead gold eyebrow={t("home.iss.eyebrow")} title={t("home.iss.title")}
-            linkTo="/iss" linkLabel={t("home.iss.link")} />
+            linkTo="iss" linkLabel={t("home.iss.link")} />
           <IssPassCards />
         </div>
       </section>
@@ -73,7 +73,7 @@ export default function Home() {
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <SectionHead eyebrow={t("home.launches.eyebrow")} title={t("home.launches.title")}
-            linkTo="/launches" linkLabel={t("home.launches.link")} />
+            linkTo="launches" linkLabel={t("home.launches.link")} />
           <LaunchesTable />
         </div>
       </section>
@@ -83,10 +83,10 @@ export default function Home() {
           <SectionHead eyebrow={t("home.sections.eyebrow")} title={t("home.sections.title")}
             sub={t("home.sections.sub")} />
           <div className="fcards">
-            <FeatureCard to="/iss" icon="🛰️" title={t("home.sections.issTitle")}>
+            <FeatureCard to="iss" icon="🛰️" title={t("home.sections.issTitle")}>
               {t("home.sections.issBody")}
             </FeatureCard>
-            <FeatureCard to="/sky" icon="🔭" title={t("home.sections.skyTitle")}>
+            <FeatureCard to="sky" icon="🔭" title={t("home.sections.skyTitle")}>
               {t("home.sections.skyBody")}
             </FeatureCard>
           </div>

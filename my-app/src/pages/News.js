@@ -5,11 +5,12 @@
 // (/news/:id); live-without-DB items (id === null) link out to the source.
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
 import { useLang } from "../context/LanguageContext";
 import { useApi } from "../hooks/useApi";
 import { useSeo } from "../hooks/useSeo";
 import { getNews } from "../lib/api";
+import { pathFor } from "../lib/seo";
+import LocalizedLink from "../components/primitives/LocalizedLink";
 import "../styles/news.css";
 import "../styles/gallery.css"; // .pagination / .pg-btn
 
@@ -112,9 +113,9 @@ export default function News() {
             </div>
             <p>{featured.excerpt}</p>
             {featured.id && featured.slug ? (
-              <Link className="read-more" to={`/news/${featured.slug}`}>
+              <LocalizedLink className="read-more" to={`${pathFor("news", lang)}/${featured.slug}`}>
                 {t("news.readFull")}
-              </Link>
+              </LocalizedLink>
             ) : (
               <a
                 className="read-more"
@@ -282,10 +283,10 @@ export default function News() {
                 );
                 if (hasSlug) {
                   return (
-                    <Link className="news-card" to={`/news/${it.slug}`} key={it.slug}>
+                    <LocalizedLink className="news-card" to={`${pathFor("news", lang)}/${it.slug}`} key={it.slug}>
                       {preview}
                       {body}
-                    </Link>
+                    </LocalizedLink>
                   );
                 }
                 return (

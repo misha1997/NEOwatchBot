@@ -6,11 +6,11 @@
 // SpaceflightNow on first request, translated, and cached server-side.
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams, Link } from "react-router-dom";
 import { useLang } from "../context/LanguageContext";
 import { useApi } from "../hooks/useApi";
 import { getNewsArticle } from "../lib/api";
-import { SITE_URL } from "../lib/seo";
+import { SITE_URL, pathFor } from "../lib/seo";
+import LocalizedLink from "../components/primitives/LocalizedLink";
 import "../styles/news.css";
 
 const STOP = new Set([
@@ -19,17 +19,18 @@ const STOP = new Set([
   "via", "sfb", "fb", "launches", "launch", "news",
 ]);
 
-export default function NewsArticle() {
+export default function NewsArticle({ slug }) {
   const { t } = useTranslation();
   const { lang } = useLang();
-  const { slug } = useParams();
   const { data, loading, error } = useApi(() => getNewsArticle(slug, lang), {
     deps: [slug, lang],
   });
   const [copied, setCopied] = useState(false);
 
   const article = data && data.available ? data : null;
-  const shareUrl = article ? `${SITE_URL}/news/${article.slug || slug}` : "";
+  const shareUrl = article
+    ? `${SITE_URL}${pathFor("news", lang)}/${article.slug || slug}`
+    : "";
 
   // Per-article client-side title + canonical (no server meta for dynamic
   // /news/:slug). Keeps the tab + crawlable head in sync on SPA navigation.
@@ -91,7 +92,7 @@ export default function NewsArticle() {
   return (
     <div className="wrap" style={{ position: "relative", zIndex: 1 }}>
       <section className="page-head">
-        <Link to="/news" className="article-back">← {t("news.article.back")}</Link>
+        <LocalizedLink to="news" className="article-back">← {t("news.article.back")}</LocalizedLink>
 
         {loading ? (
           <p style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 14 }}>
@@ -101,9 +102,9 @@ export default function NewsArticle() {
           <div className="news-article-unavailable">
             <h3>{t("news.article.unavailable")}</h3>
             <p>{t("news.article.unavailableSub")}</p>
-            <Link to="/news" className="section-link" style={{ display: "inline-block", marginTop: 16 }}>
+            <LocalizedLink to="news" className="section-link" style={{ display: "inline-block", marginTop: 16 }}>
               ← {t("news.article.back")}
-            </Link>
+            </LocalizedLink>
           </div>
         ) : (
           <>
@@ -185,9 +186,9 @@ export default function NewsArticle() {
           </div>
           <div className="related-grid">
             {article.related.map((r) => (
-              <Link
+              <LocalizedLink
                 key={r.slug || r.id}
-                to={r.slug ? `/news/${r.slug}` : "#"}
+                to={r.slug ? `${pathFor("news", lang)}/${r.slug}` : "#"}
                 className="news-card related-card"
               >
                 {r.image ? (
@@ -202,7 +203,7 @@ export default function NewsArticle() {
                 <div className="bottom-row">
                   <span>{r.source} · {r.date}</span>
                 </div>
-              </Link>
+              </LocalizedLink>
             ))}
           </div>
         </section>

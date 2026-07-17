@@ -168,7 +168,7 @@ export default function Weather() {
                 <p className="aurora-tip">{t("weather.s4.tip")}</p>
               </div>
               <div className="aurora-map-wrap">
-                {auroraMap && <img className="aurora-map" src={auroraMap} alt={t("weather.s4.mapAlt")} />}
+                {auroraMap && <img className="aurora-map" src={auroraMap} alt={t("weather.s4.mapAlt")} loading="lazy" decoding="async" />}
                 <div className="ovl" />
               </div>
             </div>

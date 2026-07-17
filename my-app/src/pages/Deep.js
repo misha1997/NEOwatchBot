@@ -1,12 +1,12 @@
 // Deep space page (deep.html): orbital debris stats + GRB alerts, plus a
 // Voyager teaser grid. Port of app.js loadDebris / loadGRB.
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useApi } from "../hooks/useApi";
 import { getDebris, getGrb } from "../lib/api";
 import { fmtInt } from "../lib/format";
 import SectionHead from "../components/primitives/SectionHead";
+import LocalizedLink from "../components/primitives/LocalizedLink";
 import Eyebrow from "../components/primitives/Eyebrow";
 
 function DebrisCard({ label, value, unit }) {
@@ -129,18 +129,18 @@ export default function Deep() {
               <Eyebrow gold>{t("deep.s3.eyebrow")}</Eyebrow>
               <h2 className="section-title">{t("deep.s3.title")}</h2>
             </div>
-            <Link to="/voyager" className="section-link">{t("deep.s3.link")}</Link>
+            <LocalizedLink to="voyager" className="section-link">{t("deep.s3.link")}</LocalizedLink>
           </div>
           <div className="grid cols-2">
             <div className="card">
               <div className="k">{t("deep.v1.title")}</div>
               <p style={{ color: "var(--text-dim)", fontSize: 13.5, marginTop: 12, lineHeight: 1.6 }}>{t("deep.v1.body")}</p>
-              <Link to="/voyager" className="btn ghost" style={{ marginTop: 14 }}>{t("deep.v1.link")}</Link>
+              <LocalizedLink to="voyager" className="btn ghost" style={{ marginTop: 14 }}>{t("deep.v1.link")}</LocalizedLink>
             </div>
             <div className="card">
               <div className="k">{t("deep.v2.title")}</div>
               <p style={{ color: "var(--text-dim)", fontSize: 13.5, marginTop: 12, lineHeight: 1.6 }}>{t("deep.v2.body")}</p>
-              <Link to="/voyager" className="btn ghost" style={{ marginTop: 14 }}>{t("deep.v2.link")}</Link>
+              <LocalizedLink to="voyager" className="btn ghost" style={{ marginTop: 14 }}>{t("deep.v2.link")}</LocalizedLink>
             </div>
           </div>
         </div>

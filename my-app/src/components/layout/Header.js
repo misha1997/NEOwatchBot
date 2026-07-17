@@ -2,20 +2,29 @@
 // language switcher, CTA button, and a mobile burger that toggles the dropdown
 // panel. (index.html header.site, reworked into compact grouped submenus.)
 import { useState, useEffect } from "react";
-import { NavLink, Link, useLocation } from "react-router-dom";
+import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { NAV_GROUPS, BOT_URL } from "../../lib/constants";
 import { useLang } from "../../context/LanguageContext";
+import { pathFor, switchLangPath } from "../../lib/seo";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState(null);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { t } = useTranslation();
-  const { lang, setLang } = useLang();
+  const { lang } = useLang();
+
+  // Path for a nav entry by i18n name, in the active language.
+  const to = (name) => pathFor(name, lang);
 
   // A dropdown group is "active" (gold trigger) when any of its items matches.
-  const groupActive = (items) => items.some((l) => pathname === l.to || pathname.startsWith(l.to + "/"));
+  const groupActive = (items) => items.some((l) => {
+    if (l.disabled) return false;
+    const p = to(l.name);
+    return pathname === p || pathname.startsWith(p + "/");
+  });
 
   const closeMobile = () => { setOpen(false); setOpenGroup(null); };
 
@@ -37,11 +46,16 @@ export default function Header() {
     };
   }, [open]);
 
+  // Language switcher: navigate to the same content in the other language.
+  // The URL is the source of truth; Layout's effect then syncs localStorage +
+  // i18next to the new prefix. (setLang alone doesn't change the URL.)
+  const switchLang = (code) => navigate(switchLangPath(pathname, code));
+
   const LangBtn = ({ code }) => (
     <button
       type="button"
       className={"lang-btn " + code + (lang === code ? " active" : "")}
-      onClick={() => setLang(code)}
+      onClick={() => switchLang(code)}
       aria-pressed={lang === code}
       title={code === "uk" ? "Українська" : "English"}
     >
@@ -52,7 +66,7 @@ export default function Header() {
   return (
     <header className="site">
       <div className="wrap nav">
-        <Link to="/" className="logo" onClick={closeMobile}>
+        <Link to={to("home")} className="logo" onClick={closeMobile}>
           <img className="logo-img" src="/web-app-manifest-192x192.png" alt="" aria-hidden="true" />
           <span>OrbitLight<small>{t("header.tagline")}</small></span>
         </Link>
@@ -79,11 +93,11 @@ export default function Header() {
               <div className="nav-dropdown">
                 {g.items.map((l) => (
                   l.disabled ? (
-                    <span key={l.to} className="nav-link disabled" aria-disabled="true">
+                    <span key={l.name} className="nav-link disabled" aria-disabled="true">
                       {t(l.labelKey)} <small className="soon">{t("nav.soon")}</small>
                     </span>
                   ) : (
-                    <NavLink key={l.to} to={l.to} end={l.end}
+                    <NavLink key={l.name} to={to(l.name)} end={l.end}
                       className={({ isActive }) => isActive ? "active" : ""}>
                       {t(l.labelKey)}
                     </NavLink>
@@ -92,7 +106,7 @@ export default function Header() {
               </div>
             </div>
           ) : (
-            <NavLink key={g.to} to={g.to} end={g.end}
+            <NavLink key={g.name} to={to(g.name)} end={g.end}
               className={({ isActive }) => isActive ? "active" : ""}>
               {t(g.labelKey)}
             </NavLink>

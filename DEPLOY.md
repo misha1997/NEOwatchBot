@@ -130,6 +130,60 @@ chown -R neowatch:neowatch /opt/neowatch/data
 
 `data/` вже в `.gitignore`.
 
+### 7b. Мультимовне SEO: білд React-фронтенду
+
+Сайт — React SPA (`my-app/`), обслуговується FastAPI з мовними префіксами
+`/ua/...` та `/en/...` (slug'и перекладено). Перед кожним деплоєм фронтенду:
+
+```bash
+cd /opt/neowatch/my-app
+npm ci
+npm run build
+```
+
+Білд кладеться у `my-app/build/` — FastAPI читає `index.html` щого запиту й
+інжектує per-route meta (див. `web/seo.py`). Без білду сайт не підніметься
+(`RuntimeError`).
+
+### 7c. Prerendering для ботів (необовʼязково, за замовч. вимкнено)
+
+SPA рендерить тіло JS-ом; `web/seo.py` вже дає ботам коректний `<head>`
+(title/canonical/hreflang/OG/JSON-LD). Щоб Bing/FB/TG-скрапери бачили й тіло
+сторінки, увімкни headless-Chrome prerendering:
+
+```bash
+source venv/bin/activate
+pip install playwright
+playwright install chromium
+# у .env / systemd Environment= додай:
+#   PRERENDER_ENABLED=1
+#   PORT=8000
+sudo systemctl restart neowatch
+```
+
+Кеш рендерів — у `data/prerender/<lang>/<slug>.html` (TTL 24 год, див.
+`PRERENDER_TTL`). За відсутності Chromium або таймауту — автоматичний фолбек
+на meta-інʼєкційний shell. Альтернатива без локального Chromium:
+`PRERENDER_PROVIDER=prerenderio` + `PRERENDER_IO_TOKEN` (проксі через
+Prerender.io; не реалізовано повністю — допиши у `web/prerender.py` за потреби).
+
+### 7d. Стиснення (Brotli/gzip) + кеш статики через nginx
+
+uvicorn не стискає; реверс-проксі nginx має робити це для `/static` та HTML:
+
+```nginx
+gzip on;
+gzip_types text/css application/javascript application/json image/svg+xml;
+brotli on;  # якщо встановлено ngx_brotli
+brotli_types text/css application/javascript application/json image/svg+xml;
+
+# CRA-білд: хешовані імена файлів у /static — кешуй назавжди
+location /static/ {
+  expires 1y;
+  add_header Cache-Control "public, immutable";
+}
+```
+
 ## 8. Автозапуск через systemd
 
 Сайт і бот тепер живуть в одному процесі (FastAPI + uvicorn піднімає і

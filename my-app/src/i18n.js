@@ -20,7 +20,22 @@ export function detectLang() {
   return "en";
 }
 
+// The URL language prefix is authoritative (the server sets <html lang> from
+// it). Prefer it so the first client render matches the server-rendered shell
+// — no language flash. Only fall back to localStorage / browser detection
+// when there is no prefix (e.g. an unprefixed dev hit the server didn't
+// redirect).
+function langFromUrl() {
+  try {
+    const m = window.location.pathname.match(/^\/(ua|en)(\/|$)/);
+    if (m) return m[1] === "ua" ? "uk" : "en";
+  } catch { /* window unavailable (SSR) */ }
+  return null;
+}
+
 export function readLang() {
+  const fromUrl = langFromUrl();
+  if (fromUrl) return fromUrl;
   try {
     const v = localStorage.getItem(KEY);
     if (v === "uk" || v === "en") return v;

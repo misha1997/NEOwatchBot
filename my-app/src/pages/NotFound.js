@@ -1,8 +1,9 @@
 // 404 page — served for any unknown route. The Layout's Starfield sits behind
 // it, so the big translucent "404" reads as a drifting object in the field.
 import { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import LocalizedLink from "../components/primitives/LocalizedLink";
 
 export default function NotFound() {
   const { t } = useTranslation();
@@ -18,7 +19,7 @@ export default function NotFound() {
             <h1 className="hero-title">{t("notFound.title")}</h1>
             <p className="hero-sub">{t("notFound.body")}</p>
             <div className="hero-actions">
-              <Link to="/" className="btn primary">{t("notFound.home")}</Link>
+              <LocalizedLink to="home" className="btn primary">{t("notFound.home")}</LocalizedLink>
               <button type="button" className="btn ghost" onClick={() => navigate(-1)}>{t("notFound.back")}</button>
             </div>
           </div>

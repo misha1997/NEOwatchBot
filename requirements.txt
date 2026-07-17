@@ -11,3 +11,6 @@ uvicorn[standard]
 lightkurve
 astroquery
 Pillow
+# Optional: headless-Chrome prerendering for SEO bots (PRERENDER_ENABLED=1).
+# Only needed if you enable bot prerendering; also run `playwright install chromium`.
+playwright

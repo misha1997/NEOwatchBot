@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useLang } from "../context/LanguageContext";
 import { getMastLightcurve, getMastHubbleJwst, getExoplanets } from "../lib/api";
+import { pathFor } from "../lib/seo";
 import ChartCanvas from "../components/charts/ChartCanvas";
 import "../styles/mast.css";
 
@@ -414,19 +415,19 @@ export default function Mast() {
         </p>
         <div className="grid cols-4">
           <div className="ffi-tile" onClick={() => setActiveFfiImage({ src: "/data/ffi_cam1.jpg", title: lang === "uk" ? "Сектор 91 · камера 1" : "Sector 91 · Camera 1" })}>
-            <img src="/data/ffi_cam1.jpg" alt="Camera 1" className="ffi-img" />
+            <img src="/data/ffi_cam1.jpg" alt="Camera 1" className="ffi-img" loading="lazy" decoding="async" />
             <div className="info">{lang === "uk" ? "Сектор 91 · камера 1" : "Sector 91 · Camera 1"}</div>
           </div>
           <div className="ffi-tile" onClick={() => setActiveFfiImage({ src: "/data/ffi_cam2.jpg", title: lang === "uk" ? "Сектор 91 · камера 2" : "Sector 91 · Camera 2" })}>
-            <img src="/data/ffi_cam2.jpg" alt="Camera 2" className="ffi-img" />
+            <img src="/data/ffi_cam2.jpg" alt="Camera 2" className="ffi-img" loading="lazy" decoding="async" />
             <div className="info">{lang === "uk" ? "Сектор 91 · камера 2" : "Sector 91 · Camera 2"}</div>
           </div>
           <div className="ffi-tile" onClick={() => setActiveFfiImage({ src: "/data/ffi_cam3.jpg", title: lang === "uk" ? "Сектор 91 · камера 3" : "Sector 91 · Camera 3" })}>
-            <img src="/data/ffi_cam3.jpg" alt="Camera 3" className="ffi-img" />
+            <img src="/data/ffi_cam3.jpg" alt="Camera 3" className="ffi-img" loading="lazy" decoding="async" />
             <div className="info">{lang === "uk" ? "Сектор 91 · камера 3" : "Sector 91 · Camera 3"}</div>
           </div>
           <div className="ffi-tile" onClick={() => setActiveFfiImage({ src: "/data/ffi_cam4.jpg", title: lang === "uk" ? "Сектор 91 · камера 4" : "Sector 91 · Camera 4" })}>
-            <img src="/data/ffi_cam4.jpg" alt="Camera 4" className="ffi-img" />
+            <img src="/data/ffi_cam4.jpg" alt="Camera 4" className="ffi-img" loading="lazy" decoding="async" />
             <div className="info">{lang === "uk" ? "Сектор 91 · камера 4" : "Sector 91 · Camera 4"}</div>
           </div>
         </div>
@@ -490,7 +491,7 @@ export default function Mast() {
               {lang === "uk" ? "TOI-кандидати з переглядом кривої блиску" : "TOI Candidates Live Stream"}
             </h2>
           </div>
-          <a href="/exoplanets" className="section-link">
+          <a href={pathFor("exoplanets", lang)} className="section-link">
             {lang === "uk" ? "Повний каталог →" : "Full Catalog →"}
           </a>
         </div>
@@ -546,7 +547,7 @@ export default function Mast() {
         <div className="ffi-lightbox" onClick={() => setActiveFfiImage(null)}>
           <div className="ffi-lightbox-content" onClick={(e) => e.stopPropagation()}>
             <button className="ffi-lightbox-close" onClick={() => setActiveFfiImage(null)}>×</button>
-            <img src={activeFfiImage.src} alt={activeFfiImage.title} />
+            <img src={activeFfiImage.src} alt={activeFfiImage.title} decoding="async" />
             <div className="ffi-lightbox-title">{activeFfiImage.title}</div>
           </div>
         </div>

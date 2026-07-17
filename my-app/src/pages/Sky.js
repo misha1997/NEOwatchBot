@@ -49,7 +49,7 @@ export default function Sky() {
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <SectionHead eyebrow={t("sky.s1.eyebrow")} title={t("sky.s1.title")}
-            linkTo="/" linkLabel={t("sky.s1.link")} />
+            linkTo="home" linkLabel={t("sky.s1.link")} />
           <SkyWeather />
         </div>
       </section>
@@ -60,7 +60,7 @@ export default function Sky() {
           <FeatureRow tag={t("sky.tips.t1_tag")} title={t("sky.tips.t1_title")} href="#">{t("sky.tips.t1_body")}</FeatureRow>
           <FeatureRow tag={t("sky.tips.t2_tag")} title={t("sky.tips.t2_title")} href="#">{t("sky.tips.t2_body")}</FeatureRow>
           <FeatureRow tag={t("sky.tips.t3_tag")} title={t("sky.tips.t3_title")} href="#">{t("sky.tips.t3_body")}</FeatureRow>
-          <FeatureRow tag={t("sky.tips.t4_tag")} title={t("sky.tips.t4_title")} to="/">{t("sky.tips.t4_body")}</FeatureRow>
+          <FeatureRow tag={t("sky.tips.t4_tag")} title={t("sky.tips.t4_title")} to="home">{t("sky.tips.t4_body")}</FeatureRow>
         </div>
       </section>
 

@@ -4,8 +4,8 @@
 // card shows a planet photo (from /public/planets), a short blurb and a row of
 // key facts. Ports the visual language of templates/mars.html.
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import LocalizedLink from "../components/primitives/LocalizedLink";
 import { PLANETS } from "../lib/planets";
 import { useSeo } from "../hooks/useSeo";
 import "../styles/planetarium.css";
@@ -68,10 +68,10 @@ export default function Planetarium() {
                   {body}
                 </div>
               ) : (
-                <Link key={p.key} to={p.to} className="planet-card">
+                <LocalizedLink key={p.key} to={p.to} className="planet-card">
                   {body}
                   <div className="planet-cta">{t("planetarium.open")} →</div>
-                </Link>
+                </LocalizedLink>
               );
             })}
           </div>

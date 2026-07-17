@@ -237,7 +237,7 @@ export default function Iss() {
 
       <section className="section" id="passes" style={{ paddingTop: 0 }}>
         <div className="wrap">
-          <SectionHead gold eyebrow={t("iss.s2.eyebrow", { city })} title={t("iss.s2.title")} linkTo="/" linkLabel={t("iss.s2.link")} />
+          <SectionHead gold eyebrow={t("iss.s2.eyebrow", { city })} title={t("iss.s2.title")} linkTo="home" linkLabel={t("iss.s2.link")} />
           <p className="section-sub">{t("iss.s2.sub")}</p>
           <div className="table-wrap">
             <table className="data">

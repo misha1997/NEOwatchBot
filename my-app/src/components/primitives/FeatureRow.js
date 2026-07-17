@@ -1,6 +1,7 @@
 // Numbered feature row (.feat-row) used by several pages' "how-to" sections.
 // tag → small mono label (e.g. "01 МІСЦЕ"); title → h4; children → description.
-import { Link } from "react-router-dom";
+// `to` is an i18n route name resolved to a language-prefixed path.
+import LocalizedLink from "./LocalizedLink";
 export default function FeatureRow({ tag, title, num, children, to, href }) {
   const inner = (
     <>
@@ -12,7 +13,7 @@ export default function FeatureRow({ tag, title, num, children, to, href }) {
       {num != null && <div className="num">{num}</div>}
     </>
   );
-  if (to) return <Link to={to} className="feat-row">{inner}</Link>;
+  if (to) return <LocalizedLink to={to} className="feat-row">{inner}</LocalizedLink>;
   if (href) return <a href={href} className="feat-row">{inner}</a>;
   return <div className="feat-row">{inner}</div>;
 }

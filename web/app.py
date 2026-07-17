@@ -22,13 +22,26 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Query
-from fastapi.responses import FileResponse, HTMLResponse, Response
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from database import init_db
 from web.api import router as api_router
-from web.seo import build_robots_txt, build_sitemap_xml, render_html
+from web.seo import (
+    DEFAULT_LANG,
+    SITE_URL,
+    build_robots_txt,
+    build_sitemap_index_xml,
+    build_sitemap_news_xml,
+    build_sitemap_pages_xml,
+    name_for_slug,
+    prefix_for,
+    render_html,
+    render_head,
+    slug_for_name,
+)
+from web.seo import _render_news_jsonld
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +149,16 @@ async def lifespan(app: FastAPI):
                 logger.error("Bot startup failed, continuing site-only: %s", exc)
                 ptb = None
 
+    # Optional headless-Chrome prerendering for SEO bots (Phase C). Default
+    # off; launch only when PRERENDER_ENABLED=1 and Playwright is installed.
+    # The browser lives on app.state.prerender_browser and is closed below.
+    if os.getenv("PRERENDER_ENABLED", "0") == "1":
+        try:
+            from web.prerender import launch_browser
+            await launch_browser(app)
+        except Exception as exc:  # noqa: BLE001 — must not break the site
+            logger.error("Prerender startup failed: %s", exc)
+
     try:
         yield
     finally:
@@ -153,6 +176,13 @@ async def lifespan(app: FastAPI):
             await ptb.stop()
             await ptb.shutdown()
             logger.info("Telegram bot stopped")
+        # Close the prerender headless browser if it was started.
+        if os.getenv("PRERENDER_ENABLED", "0") == "1":
+            try:
+                from web.prerender import close_browser
+                await close_browser(app)
+            except Exception:  # noqa: BLE001
+                pass
 
 
 app = FastAPI(title="NEOwatch", lifespan=lifespan)
@@ -160,13 +190,21 @@ app.include_router(api_router)
 
 
 @app.middleware("http")
-async def _no_cache_api(request, call_next):
-    """Keep /api/* responses fresh — the live map and dashboard must not show
-    stale JSON from the browser disk cache (e.g. after a server-side color or
-    data change). Static site files are still cacheable."""
+async def _cache_headers(request, call_next):
+    """Cache policy:
+    - /api/* — no-store (live map/dashboard must not show stale JSON).
+    - /static/* — CRA build assets with hashed filenames → immutable, 1y
+      (Phase D Core Web Vitals: instant repeat loads, safe because a new
+      build produces new hashes).
+    Everything else (SPA shell, sitemap, robots) keeps the handler's own
+    Cache-Control.
+    """
     response = await call_next(request)
-    if request.url.path.startswith("/api/"):
+    path = request.url.path
+    if path.startswith("/api/"):
         response.headers["Cache-Control"] = "no-store, max-age=0"
+    elif path.startswith("/static/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return response
 
 # Static site: serve the React SPA build with a SPA fallback (any unknown path
@@ -204,20 +242,37 @@ _APOD_IMG_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/apod-img", StaticFiles(directory=_APOD_IMG_DIR), name="apod-img")
 
 
-def _spa_html(full_path: str, lang: str) -> HTMLResponse:
+def _spa_html(name: str, lang: str, status_code: int = 200,
+              extra_jsonld: str = "", overrides: dict | None = None) -> HTMLResponse:
     """Serve the SPA shell with per-route SEO meta injected server-side.
 
     Crawlers that don't run JavaScript (FB/Twitter/Telegram scrapers, Bing) get
     a correct, unique <title>/description/canonical/OG/JSON-LD for the requested
-    URL instead of the homepage's. See web/seo.py.
+    URL instead of the homepage's. See web/seo.py. ``name`` is the i18n route
+    name; ``status_code`` lets unknown routes return HTTP 404 (real 404, not a
+    soft SPA 404) while still showing the React NotFound page to humans.
     """
-    body = render_html(_SPA_INDEX.read_text(encoding="utf-8"), full_path, lang)
-    return HTMLResponse(content=body, headers={"Cache-Control": "public, max-age=300"})
+    body = render_html(_SPA_INDEX.read_text(encoding="utf-8"), name, lang,
+                       extra_jsonld=extra_jsonld, overrides=overrides)
+    return HTMLResponse(content=body, status_code=status_code,
+                        headers={"Cache-Control": "public, max-age=300"})
 
 
 @app.get("/sitemap.xml", include_in_schema=False)
 async def _sitemap():
-    return Response(build_sitemap_xml(), media_type="application/xml; charset=utf-8",
+    return Response(build_sitemap_index_xml(), media_type="application/xml; charset=utf-8",
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/sitemap-pages.xml", include_in_schema=False)
+async def _sitemap_pages():
+    return Response(build_sitemap_pages_xml(), media_type="application/xml; charset=utf-8",
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/sitemap-news.xml", include_in_schema=False)
+async def _sitemap_news():
+    return Response(build_sitemap_news_xml(), media_type="application/xml; charset=utf-8",
                     headers={"Cache-Control": "public, max-age=3600"})
 
 
@@ -227,25 +282,236 @@ async def _robots():
                     headers={"Cache-Control": "public, max-age=3600"})
 
 
-@app.get("/{full_path:path}")
-async def _spa(full_path: str, lang: str = Query("uk", pattern="uk|en")):
-    """Serve a built asset if it exists, else the SPA shell (client route).
+# --- Language detection for the root redirect ---------------------------------
 
-    Route requests (no matching file) get server-injected per-route meta for
-    non-JS crawlers; the client still hydrates and takes over navigation.
+_LANG_COOKIE = "neowatch.lang"
+
+
+def _pick_lang_from_headers(accept_language: str | None) -> str:
+    """Accept-Language → uk|en. uk/ru → uk, everything else → en."""
+    if not accept_language:
+        return DEFAULT_LANG
+    al = accept_language.lower()
+    for part in al.split(","):
+        tag = part.split(";")[0].strip()
+        if tag.startswith("uk") or tag.startswith("ru"):
+            return "uk"
+    return "en"
+
+
+def _lang_for_request(request) -> str:
+    cookie = request.cookies.get(_LANG_COOKIE)
+    if cookie in ("uk", "en"):
+        return cookie
+    return _pick_lang_from_headers(request.headers.get("accept-language"))
+
+
+def _lang_redirect(lang: str, set_cookie: bool = False) -> RedirectResponse:
+    """301 to /<prefix>/ (uk→/ua/, en→/en/). Optionally set the lang cookie
+    on first visit."""
+    resp = RedirectResponse(url=f"/{prefix_for(lang)}/", status_code=301)
+    if set_cookie:
+        resp.set_cookie(_LANG_COOKIE, lang, max_age=60 * 60 * 24 * 365,
+                        samesite="lax", httponly=False)
+    return resp
+
+
+def _serve_static_asset(full_path: str):
+    """Return a FileResponse for a built SPA asset, or None if it isn't one.
+
+    A request whose last segment has an extension NOT in ``_SPA_ASSET_EXTS``
+    (e.g. /wp-login.php, /.env, /xmlrpc.php) is a scanner/exploit probe, not a
+    client route or asset — return a 404 Response instead of handing it the SPA
+    shell (which previously made /wp-admin/install.php answer 200).
     """
-    if full_path:
-        target = (REACT_BUILD_DIR / full_path).resolve()
-        try:
-            target.relative_to(REACT_BUILD_DIR.resolve())
-        except ValueError:
-            return _spa_html(full_path, lang)
-        if target.is_file():
-            return FileResponse(target)
-        # Has a file extension but not one the SPA ships → scanner noise
-        # (e.g. /wp-login.php, /.env). Don't serve the SPA shell for it.
-        _, ext = os.path.splitext(full_path.lower())
-        if ext and ext not in _SPA_ASSET_EXTS:
-            return Response(status_code=404)
-    return _spa_html(full_path, lang)
+    target = (REACT_BUILD_DIR / full_path).resolve()
+    try:
+        target.relative_to(REACT_BUILD_DIR.resolve())
+    except ValueError:
+        return None
+    if target.is_file():
+        return FileResponse(target)
+    _, ext = os.path.splitext(full_path.lower())
+    if ext and ext not in _SPA_ASSET_EXTS:
+        return Response(status_code=404)
+    return None
+
+
+def _try_news_article(slug: str):
+    """Fetch a news article by slug for JSON-LD; None if DB unavailable / missing.
+
+    Imported lazily so a DB outage never breaks the site shell; the news page
+    still renders, just without per-article JSON-LD.
+    """
+    if not slug:
+        return None
+    try:
+        from database import get_news_article_by_slug
+        return get_news_article_by_slug(slug)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+async def _spa_lang(lang: str, rest: str, request: Request):
+    """Serve the SPA shell (or redirect / 404) for a /<lang>/<rest> URL.
+
+    - Home (rest == "") → home meta.
+    - News list (rest == news slug) → news meta.
+    - News article (rest == <news slug>/<slug>) → per-article meta + NewsArticle
+      JSON-LD; HTTP 404 if the article slug doesn't resolve in the DB (real 404,
+      not a soft SPA 404). If the DB is unreachable we can't verify, so we serve
+      the shell (200) and let the client decide.
+    - Other rest → resolved via the slug map; unknown → HTTP 404.
+    """
+    rest = (rest or "").strip("/")
+    # Trailing-slash canonicalization: the language home keeps its slash
+    # (``/ua/``), every subpage must not (``/ua/mks``). A request with a
+    # trailing slash on a subpage 301-redirects to the slash-less form so
+    # there's no duplicate-content URL (canonical is slash-less).
+    path = request.url.path
+    pfx = prefix_for(lang)
+    if path not in (f"/{pfx}/", f"/{pfx}") and path.endswith("/"):
+        return RedirectResponse(url=path.rstrip("/") or f"/{pfx}", status_code=301)
+    news_slug = slug_for_name("news", lang)
+    name = "home"
+    status = 200
+    extra_jsonld = ""
+    overrides: dict | None = None
+
+    if rest == "" or rest == "/":
+        name = "home"
+    elif rest == news_slug:
+        name = "news"
+    elif rest.startswith(news_slug + "/"):
+        tail = rest[len(news_slug) + 1:]
+        article_slug = tail.split("/")[0]
+        if not article_slug or "/" in tail:
+            name = "404"
+            status = 404
+        else:
+            article = _try_news_article(article_slug)
+            if article is None:
+                name = "404"
+                status = 404
+            else:
+                name = "news"
+                headline = (article.get("title_uk") or article.get("title")) if lang == "uk" else article.get("title")
+                excerpt = (article.get("excerpt_uk") or article.get("excerpt")) if lang == "uk" else article.get("excerpt")
+                overrides = {
+                    "title": headline or None,
+                    "desc": (excerpt or "")[:160] or None,
+                    "canonical": f"{SITE_URL}/{prefix_for(lang)}/{news_slug}/{article_slug}",
+                    "uk_alt": f"{SITE_URL}/ua/{slug_for_name('news','uk')}/{article_slug}",
+                    "en_alt": f"{SITE_URL}/en/{slug_for_name('news','en')}/{article_slug}",
+                }
+                extra_jsonld = _render_news_jsonld(article, lang)
+    else:
+        name = name_for_slug(lang, rest)
+        if name == "404":
+            status = 404
+
+    # Prerendering hook (Phase C): render full HTML for bots when enabled.
+    if _PRERENDER_ENABLED and _is_bot(request.headers.get("user-agent", "")) \
+            and request.headers.get("x-prerender-internal") != "1" and status == 200:
+        rendered = await _maybe_prerender(lang, rest, name)
+        if rendered is not None:
+            return HTMLResponse(content=rendered, status_code=status,
+                                headers={"Cache-Control": "public, max-age=600"})
+
+    return _spa_html(name, lang, status_code=status,
+                     extra_jsonld=extra_jsonld, overrides=overrides)
+
+
+# --- Routes ------------------------------------------------------------------
+
+@app.get("/", include_in_schema=False)
+async def _root(request: Request):
+    """301 / → /<lang>/ by cookie (if set) else Accept-Language. Sets the
+    cookie on the first visit so subsequent root hits are stable."""
+    lang = _lang_for_request(request)
+    has_cookie = request.cookies.get(_LANG_COOKIE) in ("uk", "en")
+    return _lang_redirect(lang, set_cookie=not has_cookie)
+
+
+@app.get("/ua", include_in_schema=False)
+async def _spa_ua_root():
+    return RedirectResponse(url="/ua/", status_code=301)
+
+
+@app.get("/ua/{rest:path}", include_in_schema=False)
+async def _spa_ua(rest: str, request: Request):
+    # /ua/  (rest == "")  → home. /ua/<slug> → _spa_lang.
+    return await _spa_lang("uk", rest, request)
+
+
+@app.get("/en", include_in_schema=False)
+async def _spa_en_root():
+    return RedirectResponse(url="/en/", status_code=301)
+
+
+@app.get("/en/{rest:path}", include_in_schema=False)
+async def _spa_en(rest: str, request: Request):
+    return await _spa_lang("en", rest, request)
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def _spa_legacy(full_path: str, request: Request):
+    """Catch-all for unprefixed URLs.
+
+    - Built SPA assets (under the build dir) → FileResponse.
+    - Scanner-noise extensions (.php, .env, …) → 404.
+    - Legacy English-slug URLs without a language prefix (old inbound links to
+      ``/iss``, ``/meteors``, …) → 301 to ``/en/<en-slug>`` to preserve link
+      equity (the old site used English slugs, so they map to the EN version).
+    - Legacy news article URLs ``/news/<slug>`` → ``/en/news/<slug>``.
+    - Anything else → 404 (no duplicate unprefixed content).
+    """
+    if not full_path:
+        return _lang_redirect(_lang_for_request(request), set_cookie=False)
+    asset = _serve_static_asset(full_path)
+    if asset is not None:
+        return asset
+
+    rest = full_path.strip("/")
+    news_en = slug_for_name("news", "en")
+    if rest == news_en or rest.startswith(news_en + "/"):
+        return RedirectResponse(url=f"/en/{rest}", status_code=301)
+    name = name_for_slug("en", rest)
+    if name not in ("404", "home"):
+        slug = slug_for_name(name, "en")
+        target = "/en/" if not slug else f"/en/{slug}"
+        return RedirectResponse(url=target, status_code=301)
+    return Response(status_code=404)
+
+
+# --- Prerendering (Phase C, env-gated) ----------------------------------------
+
+_PRERENDER_ENABLED = os.getenv("PRERENDER_ENABLED", "0") == "1"
+
+
+def _is_bot(user_agent: str) -> bool:
+    ua = (user_agent or "").lower()
+    return any(b in ua for b in (
+        "googlebot", "bingbot", "yandex", "duckduckbot", "baiduspider",
+        "slurp", "facebookexternalhit", "twitterbot", "linkedinbot",
+        "applebot", "whatsapp", "telegrambot", "discordbot", "petalbot",
+        "bytespider", "sogou", "exabot", "ia_archiver",
+    ))
+
+
+async def _maybe_prerender(lang: str, rest: str, name: str) -> str | None:
+    """Render the page via headless Chrome for bots. Implemented in Phase C
+    (web/prerender.py); returns None when disabled so the caller falls back to
+    the meta-injected shell."""
+    try:
+        from web.prerender import get_rendered  # local import; optional dep
+    except Exception:  # noqa: BLE001 — playwright may be absent
+        return None
+    try:
+        return await get_rendered(lang, rest, name)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("prerender failed (%s/%s): %s — serving shell", lang, rest, exc)
+        return None
+
+
 logger.info("Serving React build from %s", REACT_BUILD_DIR)

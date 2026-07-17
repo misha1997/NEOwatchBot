@@ -1,5 +1,6 @@
 // Section heading: eyebrow + title on the left, optional link on the right.
-import { Link } from "react-router-dom";
+// `linkTo` is an i18n route name resolved to a language-prefixed path.
+import LocalizedLink from "./LocalizedLink";
 import Eyebrow from "./Eyebrow";
 
 export default function SectionHead({ eyebrow, gold, title, linkTo, linkHref, linkLabel, sub }) {
@@ -12,7 +13,7 @@ export default function SectionHead({ eyebrow, gold, title, linkTo, linkHref, li
       </div>
       {linkLabel && (
         linkTo
-          ? <Link to={linkTo} className="section-link">{linkLabel}</Link>
+          ? <LocalizedLink to={linkTo} className="section-link">{linkLabel}</LocalizedLink>
           : <a href={linkHref || "#"} className="section-link">{linkLabel}</a>
       )}
     </div>

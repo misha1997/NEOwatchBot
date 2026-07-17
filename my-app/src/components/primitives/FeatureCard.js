@@ -1,5 +1,7 @@
 // Grid link card (.fcard) used by the homepage "Досліджуй усе небо" section.
-import { Link } from "react-router-dom";
+// `to` is an i18n route name (e.g. "iss") resolved to a language-prefixed path
+// by LocalizedLink.
+import LocalizedLink from "./LocalizedLink";
 import { useTranslation } from "react-i18next";
 
 export default function FeatureCard({ to, href, icon, title, children }) {
@@ -13,5 +15,5 @@ export default function FeatureCard({ to, href, icon, title, children }) {
     </>
   );
   if (href) return <a href={href} className="fcard">{inner}</a>;
-  return <Link to={to} className="fcard">{inner}</Link>;
+  return <LocalizedLink to={to} className="fcard">{inner}</LocalizedLink>;
 }
