@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from config import DEFAULT_LAT, DEFAULT_LON
-from web import data
+from web import data, online as online_tracker
 from web.feedback import FeedbackNotConfigured, send_feedback_telegram
 
 logger = logging.getLogger(__name__)
@@ -265,6 +265,17 @@ async def geo_ip(request: Request):
         ip = request.client.host if request.client else ""
     res = await data.ip_geocode(ip)
     return res or {"lat": None, "lon": None, "label": None, "source": None}
+
+
+@router.get("/online")
+async def online(request: Request):
+    """Current site visitors online. Counts unique caller IPs that have hit
+    this endpoint in the last ~90 s; the call itself also registers the caller
+    as a heartbeat, so the footer poll both reports and refreshes the count."""
+    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    if not ip:
+        ip = request.client.host if request.client else ""
+    return {"online": online_tracker.touch(ip)}
 
 
 @router.get("/tle")

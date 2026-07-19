@@ -57,6 +57,7 @@ export const getGeocode = (q) => fetchJSON(API + "/geocode?q=" + encodeURICompon
 export const getReverseGeocode = (lat, lon) =>
   fetchJSON(API + "/geocode/reverse?lat=" + lat + "&lon=" + lon);
 export const getIpGeo = () => fetchJSON(API + "/geo/ip");
+export const getOnline = () => fetchJSON(API + "/online");
 
 // Localized endpoints — the backend returns text in `lang` (uk by default).
 export const getIssPasses = (loc, lang) =>

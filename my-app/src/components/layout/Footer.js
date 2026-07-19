@@ -7,6 +7,7 @@ import LocalizedLink from "../primitives/LocalizedLink";
 import { useLang } from "../../context/LanguageContext";
 import { pathFor } from "../../lib/seo";
 import FeedbackModal from "../FeedbackModal";
+import OnlineCounter from "./OnlineCounter";
 
 export default function Footer() {
   const { t } = useTranslation();
@@ -41,9 +42,6 @@ export default function Footer() {
             <LocalizedLink to="exoplanets">{t("nav.exoplanets")}</LocalizedLink>
             <LocalizedLink to="mast">{t("nav.mast")}</LocalizedLink>
             <LocalizedLink to="gallery">{t("nav.gallery")}</LocalizedLink>
-            <LocalizedLink to="mars">{t("nav.mars")}</LocalizedLink>
-            <LocalizedLink to="jupiter">{t("nav.jupiter")}</LocalizedLink>
-            <LocalizedLink to="mercury">{t("nav.mercury")}</LocalizedLink>
           </div>
           <div>
             <h5>{t("footer.colProject")}</h5>
@@ -51,6 +49,10 @@ export default function Footer() {
             <LocalizedLink to="deep">{t("footer.colDeep")}</LocalizedLink>
             <LocalizedLink to="voyager">{t("footer.colVoyager")}</LocalizedLink>
             <LocalizedLink to="events">{t("footer.colEvents")}</LocalizedLink>
+          </div>
+          <div>
+            <h5>{t("footer.colStatus")}</h5>
+            <OnlineCounter />
           </div>
         </div>
         <div className="foot-bottom">
