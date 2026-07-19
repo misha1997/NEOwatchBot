@@ -29,7 +29,7 @@ export default function Footer() {
               {t("footer.intro")}
             </p>
             <button className="btn ghost foot-feedback" onClick={() => setFbOpen(true)}>
-              ✉ {t("footer.feedback")}
+              {t("footer.feedback")}
             </button>
           </div>
           <div>

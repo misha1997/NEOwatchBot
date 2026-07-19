@@ -12,7 +12,7 @@
 export const PLANETS = [
   {
     key: "mercury", labelKey: "nav.mercury", to: "mercury",
-    disabled: true, accent: "#9C948B", img: "/planets/Mercury.png",
+    disabled: false, accent: "#9C948B", img: "/planets/Mercury.png",
     grad: ["#C9C2BC", "#8C8A89", "#56534F"],
     facts: { dia: "4 879", day: "58.6", year: "88", gravity: "3.7", moons: "0", temp: "−53 °C" },
     blurbKey: "planetarium.blurbs.mercury",
