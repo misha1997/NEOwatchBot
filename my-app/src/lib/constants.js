@@ -26,10 +26,10 @@ export const NAV_GROUPS = [
   { labelKey: "nav.planetarium", items: [
     { name: "planetarium", labelKey: "nav.planetariumHub", end: true },
     { name: "mars", labelKey: "nav.mars" },
-    { name: "mercury", labelKey: "nav.mercury", disabled: true },
+    { name: "mercury", labelKey: "nav.mercury" },
     { name: "venus", labelKey: "nav.venus", disabled: true },
     { name: "earth", labelKey: "nav.earth", disabled: true },
-    { name: "jupiter", labelKey: "nav.jupiter", disabled: true },
+    { name: "jupiter", labelKey: "nav.jupiter" },
     { name: "saturn", labelKey: "nav.saturn", disabled: true },
     { name: "uranus", labelKey: "nav.uranus", disabled: true },
     { name: "neptune", labelKey: "nav.neptune", disabled: true },

@@ -178,6 +178,7 @@
     "planetarium": "Planetarium — OrbitLight",
     "mars": "Mars — OrbitLight",
     "jupiter": "Jupiter — OrbitLight",
+    "mercury": "Mercury — OrbitLight",
     "news": "Space news — NEOwatch"
   },
   "seo": {
@@ -204,6 +205,7 @@
       "planetarium": "OrbitLight planetarium: every planet of the solar system — diameter, day and year length, gravity, moons and mean temperature. Mars comes with live weather and fresh rover photos.",
       "mars": "Weather on Mars from InSight telemetry, fresh Perseverance and Curiosity rover photos, the Phobos and Deimos moons, an Earth comparison, dust storms and the history of Mars exploration.",
       "jupiter": "Jupiter up close: the Great Red Spot, the four Galilean moons, the full system of 95 moons, the radiation environment, the Juno, Europa Clipper and JUICE missions, and the next opposition.",
+      "mercury": "Mercury up close: extreme temperature swings, 3:2 spin-orbit resonance, Caloris Basin, MESSENGER and BepiColombo missions, and best times for observation.",
       "news": "The top spaceflight stories in Ukrainian — translated and summarized coverage from SpaceflightNow, NASA, ESA and other sources."
     }
   },
@@ -2039,6 +2041,165 @@
       "copy": "Copy link",
       "relatedEyebrow": "Read also",
       "relatedTitle": "Related news"
+    }
+  },
+  "mercury": {
+    "hero": {
+      "eyebrow": "First planet · updated just now",
+      "title": "Mercury<br><span class='accent'>world of extremes</span>",
+      "sub": "The closest and fastest planet to the Sun: no atmosphere, no moons, extreme temperature variations, and a strange 3:2 spin-orbit resonance."
+    },
+    "stats": {
+      "distance": "155M km",
+      "signal": "8.6 min",
+      "distanceL": "distance to Earth (live)",
+      "signalL": "signal travel time",
+      "distUnit": "M km"
+    },
+    "orbit": {
+      "eyebrow": "Orbital dynamics",
+      "title": "Mercury's eccentric orbit",
+      "scale": "Earth's orbit (for scale)",
+      "perihelion": "Perihelion · 46M km",
+      "aphelion": "Aphelion · 70M km",
+      "desc1": "Mercury has the most eccentric orbit of any major planet in the Solar System, with an eccentricity of 0.206. Its distance to the Sun varies by nearly double: ranging from 46 million kilometers at its closest point (perihelion) to 70 million kilometers at its farthest (aphelion).",
+      "desc2": "This highly elongated orbit causes the planet's speed to fluctuate significantly, from 39 km/s near aphelion to almost 59 km/s near perihelion. For scale, Earth's orbit shown on the scheme is almost perfectly circular (eccentricity of just 0.017).",
+      "footnote": "Mercury's orbit is the most eccentric among all planets (0.206): its distance to the Sun changes by nearly double during a single revolution."
+    },
+    "weather": {
+      "eyebrow": "MESSENGER · mapping",
+      "title": "Mercury right now",
+      "speedK": "Orbital speed",
+      "speedV": "47.4",
+      "speedUnit": "km/s",
+      "speedFoot": "Fastest planet in the Solar System",
+      "rotK": "Rotation period",
+      "rotV": "58.6",
+      "rotUnit": "Earth days",
+      "rotFoot": "Exactly 2/3 of its orbital period",
+      "dayK": "Solar day",
+      "dayV": "176",
+      "dayUnit": "Earth days",
+      "dayFoot": "Longer than a mercury year (88 days)",
+      "atmosK": "Atmosphere",
+      "atmosV": "None",
+      "atmosUnit": "",
+      "atmosFoot": "Only a tenuous exosphere of Na, K, O, He"
+    },
+    "compare": {
+      "eyebrow": "Mercury vs Earth",
+      "title": "How different it all is",
+      "p": {
+        "day": "Solar day length",
+        "year": "Year length",
+        "gravity": "Gravity",
+        "diameter": "Diameter",
+        "temp": "Mean temperature",
+        "atmosphere": "Atmosphere",
+        "moons": "Moons"
+      },
+      "v": {
+        "day": {
+          "mercury": "176 Earth days",
+          "earth": "24h 00m"
+        },
+        "year": {
+          "mercury": "88 Earth days",
+          "earth": "365 days"
+        },
+        "gravity": {
+          "mercury": "3.7 m/s² (38%)",
+          "earth": "9.81 m/s²"
+        },
+        "diameter": {
+          "mercury": "4,879 km (0.38×)",
+          "earth": "12,742 km"
+        },
+        "temp": {
+          "mercury": "167°C, range 610°C",
+          "earth": "+15°C"
+        },
+        "atmosphere": {
+          "mercury": "virtually none",
+          "earth": "78% N₂, 21% O₂"
+        },
+        "moons": {
+          "mercury": "0",
+          "earth": "1 (Moon)"
+        }
+      }
+    },
+    "resonance": {
+      "eyebrow": "Unique mechanics",
+      "title": "3:2 spin-orbit resonance",
+      "p1": "Mercury is the only major planet in the Solar System with a confirmed 3:2 spin-orbit resonance: for every two orbits around the Sun, it rotates on its axis exactly three times. This is a result of the Sun's gravitational tidal forces acting on the planet's eccentric orbit and non-spherical shape.",
+      "p2": "Due to this coupling of rotation and orbit, a single point on Mercury's surface sees a sunrise only once every 176 Earth days. Near perihelion, an observer on Mercury would see the Sun rise, stop, reverse direction, and then resume its forward journey across the sky."
+    },
+    "temperature": {
+      "eyebrow": "Largest temp swing in the system",
+      "title": "From +430°C to −180°C",
+      "sub": "Without an atmosphere to retain heat, Mercury's day side gets hotter than almost any other planet, while the night side plunges to the lowest temperatures. Paradoxically, water ice exists in permanently shadowed craters at the poles.",
+      "m1": "+430°C · equatorial daytime maximum",
+      "m2": "+167°C · mean daytime temperature",
+      "m3": "0°C",
+      "m4": "−170°C · nighttime minimum",
+      "m5": "−180°C · polar crater floors (ice!)"
+    },
+    "surface": {
+      "eyebrow": "MESSENGER · 2011–2015",
+      "title": "Caloris Basin & Surface Features",
+      "c1": "Caloris Basin · MESSENGER",
+      "c1Desc": "Caloris Basin is one of the largest impact basins in the entire Solar System. The image was captured by NASA's MESSENGER spacecraft.",
+      "c2": "Lobate scarps (rupes)",
+      "c2Desc": "Lobate scarps (rupes) are giant cliffs hundreds of kilometers long, formed by thrust faults as the planet's core cooled and contracted.",
+      "c3": "Polar crater with ice",
+      "c3Desc": "Polar crater is a permanently shadowed zone at Mercury's poles where radar measurements from MESSENGER confirmed deposits of water ice.",
+      "c4": "Color mosaic surface",
+      "c4Desc": "Enhanced color mosaic of Mercury's surface created by combining MESSENGER filters to highlight geological and chemical differences of rocks.",
+      "basink": "Caloris Basin",
+      "basinv": "1,550 km",
+      "basinfoot": "One of the largest impact basins in the Solar System",
+      "shrinkk": "Planet is shrinking",
+      "shrinkv": "up to 7 km",
+      "shrinkfoot": "Radius shrunk as the core cooled — creating 'wrinkles' (rupes)",
+      "corek": "Iron core",
+      "corev": "~85%",
+      "corefoot": "Occupies most of the radius — largest relative core of any planet"
+    },
+    "missions": {
+      "eyebrow": "Who explored and explores",
+      "title": "Missions to Mercury",
+      "bepi": "BepiColombo",
+      "bepist": "In flight · orbit insertion 2026",
+      "messenger": "MESSENGER",
+      "messengerst": "First orbital spacecraft · ended 2015",
+      "mariner": "Mariner 10",
+      "marinerst": "First flyby · 3 encounters, 1974–75",
+      "footnote": "BepiColombo performed six gravity assists at Mercury before entering permanent orbit — flying to the innermost planet paradoxically requires deceleration rather than acceleration due to the Sun's strong gravity."
+    },
+    "observe": {
+      "eyebrow": "Linked with sky",
+      "title": "Best times for observation",
+      "until": "Until greatest elongation",
+      "days": "days",
+      "hours": "hours",
+      "whyK": "Why Mercury is hard to see",
+      "whyBody": "Mercury never departs more than 28° from the Sun in our sky. Therefore, it can only be spotted in a brief window just after sunset or before sunrise, and only a few times a year during greatest elongations.",
+      "footEastern": "Best visibility above the western horizon immediately after sunset",
+      "footWestern": "Best visibility above the eastern horizon immediately before sunrise"
+    },
+    "facts": {
+      "eyebrow": "Interesting facts",
+      "title": "Mercury of Records",
+      "speedK": "Fastest planet",
+      "speedV": "47.4 km/s",
+      "speedFoot": "Hence the name after the swift messenger of the gods",
+      "moonsK": "No moons",
+      "moonsV": "0",
+      "moonsFoot": "Along with Venus — the only planets without natural satellites",
+      "transitK": "Transit of Mercury",
+      "transitV": "November 13, 2032",
+      "transitFoot": "A rare phenomenon — happens only 13-14 times per century"
     }
   }
 }

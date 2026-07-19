@@ -215,6 +215,12 @@ async def jupiter():
     return await data.get_jupiter()
 
 
+@router.get("/mercury")
+async def mercury():
+    """Live Earth-Mercury distance and next greatest elongation date."""
+    return await data.get_mercury()
+
+
 @router.get("/grb")
 async def grb(limit: int = Query(20, ge=1, le=50)):
     """Recent gamma-ray burst alerts from NASA GCN Circulars."""

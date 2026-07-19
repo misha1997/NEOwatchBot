@@ -41,6 +41,9 @@ export default function Footer() {
             <LocalizedLink to="exoplanets">{t("nav.exoplanets")}</LocalizedLink>
             <LocalizedLink to="mast">{t("nav.mast")}</LocalizedLink>
             <LocalizedLink to="gallery">{t("nav.gallery")}</LocalizedLink>
+            <LocalizedLink to="mars">{t("nav.mars")}</LocalizedLink>
+            <LocalizedLink to="jupiter">{t("nav.jupiter")}</LocalizedLink>
+            <LocalizedLink to="mercury">{t("nav.mercury")}</LocalizedLink>
           </div>
           <div>
             <h5>{t("footer.colProject")}</h5>

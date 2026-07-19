@@ -50,6 +50,7 @@ export const getApodArchivePage = (page, pageSize, lang) => {
 };
 export const getDebris = () => fetchJSON(API + "/debris");
 export const getJupiter = () => fetchJSON(API + "/jupiter");
+export const getMercury = () => fetchJSON(API + "/mercury");
 export const getGrb = (limit = 12) => fetchJSON(API + "/grb?limit=" + limit);
 export const getVoyager = () => fetchJSON(API + "/voyager");
 export const getGeocode = (q) => fetchJSON(API + "/geocode?q=" + encodeURIComponent(q));

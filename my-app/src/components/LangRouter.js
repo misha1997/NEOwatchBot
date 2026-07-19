@@ -30,6 +30,7 @@ const Gallery = lazy(() => import("../pages/Gallery"));
 const Planetarium = lazy(() => import("../pages/Planetarium"));
 const Mars = lazy(() => import("../pages/Mars"));
 const Jupiter = lazy(() => import("../pages/Jupiter"));
+const Mercury = lazy(() => import("../pages/Mercury"));
 const News = lazy(() => import("../pages/News"));
 const NewsArticle = lazy(() => import("../pages/NewsArticle"));
 
@@ -53,6 +54,7 @@ const PAGES = {
   planetarium: Planetarium,
   mars: Mars,
   jupiter: Jupiter,
+  mercury: Mercury,
   news: News,
 };
 

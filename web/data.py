@@ -37,6 +37,7 @@ from services.astronomy import (
 )
 from services.debris import SpaceDebrisAPI
 from services.jupiter import get_jupiter as _build_jupiter
+from services.mercury import get_mercury as _build_mercury
 from services.grb_alerts import GRBAlertAPI
 from services.comets import CometAPI
 from services.exoplanets import ExoplanetAPI
@@ -76,6 +77,7 @@ EVENTS_TTL = 3600         # eclipses / conjunctions / weekly digest
 MARS_TTL = 3600           # Mars weather (InSight feed is stale; refresh gently)
 DEBRIS_TTL = 86400        # curated ESA figures, ~annual
 JUPITER_TTL = 3600        # moon catalog is static; live distance refreshes hourly
+MERCURY_TTL = 3600        # live distance and elongation updates hourly
 GRB_TTL = 1800            # GCN circulars archive
 COMETS_TTL = 3600         # curated comet digest; days-to-perihelion updates daily
 EXO_TTL = 3600            # exoplanet archive (TAP); new finds trickle in daily
@@ -1725,6 +1727,22 @@ def _jupiter_raw() -> dict:
 
 async def get_jupiter() -> dict:
     return await asyncio.to_thread(get_or_fetch, "jupiter", JUPITER_TTL, _jupiter_raw)
+
+
+# ---------------------------------------------------------------------------
+# Mercury — live distance and greatest elongation dates
+# ---------------------------------------------------------------------------
+
+def _mercury_raw() -> dict:
+    try:
+        return _build_mercury()
+    except Exception as e:
+        logger.error("mercury: %s", e)
+        return {}
+
+
+async def get_mercury() -> dict:
+    return await asyncio.to_thread(get_or_fetch, "mercury", MERCURY_TTL, _mercury_raw)
 
 
 # ---------------------------------------------------------------------------

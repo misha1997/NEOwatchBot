@@ -506,3 +506,12 @@
   .depth-bar { width: 100%; height: 70px; background: linear-gradient(to right, #D8A46E, #B5651D 35%, #6b3410 65%, #2a1408); }
   .depth-marks { height: 260px; }
 }
+
+@keyframes planetRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.planet-spin {
+  animation: planetRotate 180s linear infinite;
+}
