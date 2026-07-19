@@ -166,6 +166,60 @@ def init_db():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
 
+        # Famous-galaxies catalog for the website /galaxies hub + per-galaxy
+        # pages. `key` is the PK (curated, stable). Curated fields (names,
+        # distances, descriptions, facts) are authored in services/galaxies.py
+        # GALAXIES and seeded here at ingest; `redshift`/`ned_type`/`ned_prefname`
+        # come live from NED TAP; photos are mirrored to data/galaxies/<key>/ by
+        # services/galaxy_images and served via /galaxy-img. `slug` drives the
+        # per-galaxy URL (/galaxies/<slug>, language-neutral). preview_* point at
+        # the first photo for the hub card.
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS galaxies (
+                `key` VARCHAR(40) PRIMARY KEY,
+                slug VARCHAR(60) NOT NULL UNIQUE,
+                category VARCHAR(20) NOT NULL,
+                designation VARCHAR(40),
+                name_uk VARCHAR(120), name_en VARCHAR(120),
+                dist_text_uk VARCHAR(60), dist_text_en VARCHAR(60),
+                dist_ly FLOAT,
+                diameter_ly VARCHAR(40),
+                magnitude VARCHAR(20),
+                ra DOUBLE, `dec` DOUBLE,
+                redshift DOUBLE, ned_type VARCHAR(20), ned_prefname VARCHAR(60),
+                description_uk MEDIUMTEXT, description_en MEDIUMTEXT,
+                fact_uk VARCHAR(600), fact_en VARCHAR(600),
+                nasa_query VARCHAR(120),
+                preview_nasa_id VARCHAR(180),
+                preview_thumb VARCHAR(300),
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_gal_slug (slug),
+                INDEX idx_gal_cat (category)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
+        # One row per NASA Image Library photo per galaxy. (galaxy_key, nasa_id)
+        # is unique (idempotent UPSERT). thumb_path/full_path are relative to
+        # data/galaxies/ served via /galaxy-img. title/description stay English
+        # (NASA captions, as-is — no translator quota spent).
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS galaxy_photos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                galaxy_key VARCHAR(40) NOT NULL,
+                nasa_id VARCHAR(180) NOT NULL,
+                title VARCHAR(300),
+                description TEXT,
+                thumb_path VARCHAR(300),
+                full_path VARCHAR(300),
+                credit VARCHAR(300),
+                date_created VARCHAR(40),
+                sort_order INT DEFAULT 0,
+                UNIQUE KEY idx_gal_photo (galaxy_key, nasa_id),
+                INDEX idx_gp_galaxy (galaxy_key),
+                FOREIGN KEY (galaxy_key) REFERENCES galaxies(`key`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
         # Hazardous asteroids notifications tracking
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS neo_notifications (
@@ -353,6 +407,28 @@ def init_db():
             # Duplicate non-unique slugs would block this; log and continue
             # (the site still works, the column just isn't uniqueness-constrained).
             logger.warning(f"news_articles idx_news_slug migration: {e}")
+
+        # Galaxy photo nasa_id can be long (Hubble/ESA press-release ids run
+        # 65+ chars). Widens VARCHAR(60) → VARCHAR(180) for installs seeded
+        # before this fix; idempotent (only alters when the column is narrower).
+        try:
+            cursor.execute("""
+                SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'galaxy_photos'
+                  AND COLUMN_NAME = 'nasa_id'
+            """)
+            row = cursor.fetchone()
+            if row and int(row[0] or 0) < 180:
+                cursor.execute(
+                    "ALTER TABLE galaxy_photos MODIFY COLUMN nasa_id VARCHAR(180) NOT NULL"
+                )
+                cursor.execute(
+                    "ALTER TABLE galaxies MODIFY COLUMN preview_nasa_id VARCHAR(180)"
+                )
+                conn.commit()
+                logger.info("Widened galaxy nasa_id columns to VARCHAR(180)")
+        except Error as e:
+            logger.warning(f"galaxy nasa_id widen migration: {e}")
 
         conn.commit()
         logger.info("Database initialized (MySQL)")
@@ -1403,6 +1479,245 @@ def backfill_apod_archive(days: int = 90) -> int:
             logger.error(f"APOD backfill chunk {cursor_date}..{chunk_end} error: {ex}")
         cursor_date = chunk_end + timedelta(days=1)
     logger.info(f"APOD backfill of {days} days done: {total} entries ingested/updated")
+    return total
+
+
+def ingest_galaxies(records: list) -> int:
+    """Upsert the 12 curated+live galaxy rows into ``galaxies``.
+
+    Curated fields are always overwritten from the catalog (the source of truth);
+    ``redshift``/``ned_type``/``ned_prefname`` come from the live NED enrichment
+    in each record (``None`` if NED failed for that galaxy). ``preview_*`` are NOT
+    touched here — they're set by ``ingest_galaxy_photos`` once the first photo is
+    mirrored (COALESCE keeps a previously-set preview). Best-effort: never raises.
+    Returns the number of upserted rows.
+    """
+    if not records:
+        return 0
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    changed = 0
+    try:
+        for r in records:
+            cursor.execute(
+                '''INSERT INTO galaxies
+                   (`key`, slug, category, designation, name_uk, name_en,
+                    dist_text_uk, dist_text_en, dist_ly, diameter_ly, magnitude,
+                    ra, `dec`, redshift, ned_type, ned_prefname,
+                    description_uk, description_en, fact_uk, fact_en, nasa_query)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   ON DUPLICATE KEY UPDATE
+                     slug=VALUES(slug), category=VALUES(category),
+                     designation=VALUES(designation),
+                     name_uk=VALUES(name_uk), name_en=VALUES(name_en),
+                     dist_text_uk=VALUES(dist_text_uk), dist_text_en=VALUES(dist_text_en),
+                     dist_ly=VALUES(dist_ly), diameter_ly=VALUES(diameter_ly),
+                     magnitude=VALUES(magnitude), ra=VALUES(ra), `dec`=VALUES(`dec`),
+                     redshift=VALUES(redshift), ned_type=VALUES(ned_type),
+                     ned_prefname=VALUES(ned_prefname),
+                     description_uk=VALUES(description_uk),
+                     description_en=VALUES(description_en),
+                     fact_uk=VALUES(fact_uk), fact_en=VALUES(fact_en),
+                     nasa_query=VALUES(nasa_query)''',
+                (r['key'], r['slug'], r['category'], r.get('designation'),
+                 r.get('name_uk'), r.get('name_en'),
+                 r.get('dist_text_uk'), r.get('dist_text_en'), r.get('dist_ly'),
+                 r.get('diameter_ly'), r.get('magnitude'),
+                 r.get('ra'), r.get('dec'),
+                 r.get('redshift'), r.get('ned_type'), r.get('ned_prefname'),
+                 r.get('description_uk'), r.get('description_en'),
+                 r.get('fact_uk'), r.get('fact_en'), r.get('nasa_query'))
+            )
+            changed += 1
+        conn.commit()
+        if changed:
+            logger.info(f"Ingested/updated {changed} galaxy row(s)")
+    except Error as e:
+        logger.error(f"Error ingesting galaxies: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+    return changed
+
+
+def ingest_galaxy_photos(galaxy_key: str, photos: list) -> int:
+    """Mirror + upsert NASA photos for one galaxy into ``galaxy_photos``.
+
+    Idempotent by ``(galaxy_key, nasa_id)``: a row that already has both
+    ``thumb_path`` and ``full_path`` is skipped (no re-download); a row missing
+    its images is re-mirrored (retry on a prior failed download). The first
+    successfully-mirrored photo (sort_order 0) also sets the galaxy's
+    ``preview_nasa_id`` / ``preview_thumb`` so the hub card has a thumbnail.
+    Best-effort: image-download failure still stores the row (without paths) so
+    the next poll retries. Never raises. Returns upserted row count.
+    """
+    if not galaxy_key or not photos:
+        return 0
+    from services.galaxy_images import download_galaxy_photo
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    changed = 0
+    try:
+        for idx, p in enumerate(photos):
+            nasa_id = p.get('nasa_id')
+            if not nasa_id:
+                continue
+            cursor.execute(
+                'SELECT thumb_path, full_path FROM galaxy_photos '
+                'WHERE galaxy_key=%s AND nasa_id=%s',
+                (galaxy_key, nasa_id)
+            )
+            existing = cursor.fetchone()
+            if existing and existing.get('thumb_path') and existing.get('full_path'):
+                continue  # already mirrored
+
+            try:
+                full_rel, thumb_rel = download_galaxy_photo(
+                    galaxy_key, nasa_id, p.get('orig_url')
+                )
+            except Exception as ex:  # never let image failure abort ingest
+                logger.error(f"galaxy photo download error {galaxy_key}/{nasa_id}: {ex}")
+                full_rel, thumb_rel = None, None
+
+            cursor.execute(
+                '''INSERT INTO galaxy_photos
+                   (galaxy_key, nasa_id, title, description, thumb_path, full_path,
+                    credit, date_created, sort_order)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   ON DUPLICATE KEY UPDATE
+                     title=VALUES(title), description=VALUES(description),
+                     credit=VALUES(credit), date_created=VALUES(date_created),
+                     sort_order=VALUES(sort_order),
+                     thumb_path=COALESCE(VALUES(thumb_path), thumb_path),
+                     full_path=COALESCE(VALUES(full_path), full_path)''',
+                (galaxy_key, nasa_id, p.get('title'), p.get('description'),
+                 thumb_rel, full_rel, p.get('credit'), p.get('date_created'), idx)
+            )
+            changed += 1
+
+            # Set the galaxy's preview from the first mirrored photo.
+            if idx == 0 and thumb_rel:
+                cursor.execute(
+                    'UPDATE galaxies SET preview_nasa_id=%s, preview_thumb=%s WHERE `key`=%s '
+                    'AND (preview_thumb IS NULL OR preview_thumb=%s)',
+                    (nasa_id, thumb_rel, galaxy_key, '')
+                )
+        conn.commit()
+        if changed:
+            logger.info(f"Ingested/updated {changed} photo(s) for galaxy {galaxy_key}")
+    except Error as e:
+        logger.error(f"Error ingesting galaxy photos for {galaxy_key}: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+    return changed
+
+
+def _row_to_galaxy(row: dict) -> dict:
+    """Map a galaxies DB row (dictionary cursor) to a plain dict."""
+    return {
+        'key': row.get('key'), 'slug': row.get('slug'),
+        'category': row.get('category'), 'designation': row.get('designation'),
+        'name_uk': row.get('name_uk'), 'name_en': row.get('name_en'),
+        'dist_text_uk': row.get('dist_text_uk'), 'dist_text_en': row.get('dist_text_en'),
+        'dist_ly': row.get('dist_ly'), 'diameter_ly': row.get('diameter_ly'),
+        'magnitude': row.get('magnitude'), 'ra': row.get('ra'), 'dec': row.get('dec'),
+        'redshift': row.get('redshift'), 'ned_type': row.get('ned_type'),
+        'ned_prefname': row.get('ned_prefname'),
+        'description_uk': row.get('description_uk'),
+        'description_en': row.get('description_en'),
+        'fact_uk': row.get('fact_uk'), 'fact_en': row.get('fact_en'),
+        'preview_nasa_id': row.get('preview_nasa_id'),
+        'preview_thumb': row.get('preview_thumb'),
+    }
+
+
+def get_galaxies() -> Optional[list]:
+    """Return all 12 galaxy rows (catalog order by `key`) for the hub. Returns
+    ``None`` on DB error (so the web layer falls back to a live build+ingest)
+    and ``[]`` if the table is empty/not yet seeded."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute('SELECT * FROM galaxies')
+        rows = {r['key']: r for r in cursor.fetchall()}
+        # Preserve curated display order.
+        from services.galaxies import GALAXIES as _CAT
+        return [_row_to_galaxy(rows[g['key']]) for g in _CAT if g['key'] in rows]
+    except Error as e:
+        logger.error(f"Error reading galaxies: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_galaxy_photos(galaxy_key: str) -> Optional[list]:
+    """All mirrored NASA photos for a galaxy, in ``sort_order``. ``None`` on DB
+    error, ``[]`` if none yet."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            'SELECT nasa_id, title, description, thumb_path, full_path, '
+            'credit, date_created, sort_order FROM galaxy_photos '
+            'WHERE galaxy_key=%s ORDER BY sort_order, id',
+            (galaxy_key,)
+        )
+        return list(cursor.fetchall())
+    except Error as e:
+        logger.error(f"Error reading galaxy photos for {galaxy_key}: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_galaxy_by_slug(slug: str) -> Optional[dict]:
+    """One galaxy (by slug) + its photos, for the detail page. Returns ``None``
+    on DB error or unknown slug."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute('SELECT * FROM galaxies WHERE slug=%s', (slug,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        galaxy = _row_to_galaxy(row)
+        galaxy['photos'] = get_galaxy_photos(row['key']) or []
+        return galaxy
+    except Error as e:
+        logger.error(f"Error reading galaxy by slug {slug}: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def backfill_galaxies() -> int:
+    """One-shot backfill of the 12 galaxies + their NASA photos into the DB.
+
+    Fetches live NED redshift/type for each galaxy, ingests the catalog rows,
+    then fetches + mirrors up to ``PHOTO_CAP`` NASA photos per galaxy. Run once
+    manually after deploy; the weekly ``poll_galaxies`` keeps it fresh.
+    Returns the total number of ingested galaxy + photo rows. Never raises —
+    best-effort."""
+    from services.galaxies import build_galaxy_records, build_galaxy_photos
+
+    total = 0
+    records = build_galaxy_records()
+    total += ingest_galaxies(records)
+    for r in records:
+        try:
+            photos = build_galaxy_photos(r['key'], r.get('nasa_query'))
+            if photos:
+                total += ingest_galaxy_photos(r['key'], photos)
+        except Exception as ex:  # noqa: BLE001 — one galaxy's photos never block the rest
+            logger.error(f"galaxy photo backfill error for {r['key']}: {ex}")
+    logger.info(f"Galaxy backfill done: {total} row(s) ingested/updated")
     return total
 
 

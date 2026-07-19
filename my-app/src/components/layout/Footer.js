@@ -39,6 +39,7 @@ export default function Footer() {
             <LocalizedLink to={homeWeather}>{t("footer.colWeather")}</LocalizedLink>
             <LocalizedLink to={homeLaunches}>{t("footer.colLaunches")}</LocalizedLink>
             <LocalizedLink to="comets">{t("footer.colComets")}</LocalizedLink>
+            <LocalizedLink to="galaxies">{t("nav.galaxies")}</LocalizedLink>
             <LocalizedLink to="exoplanets">{t("nav.exoplanets")}</LocalizedLink>
             <LocalizedLink to="mast">{t("nav.mast")}</LocalizedLink>
             <LocalizedLink to="gallery">{t("nav.gallery")}</LocalizedLink>

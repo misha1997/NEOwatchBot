@@ -375,6 +375,17 @@
   border-radius: 12px;
   background: rgba(237, 238, 245, 0.02);
 }
+/* Highlighted fact/quote box (used by the galaxy detail page). */
+.article-pullquote {
+  border-left: 3px solid var(--gold);
+  padding: 6px 0 6px 22px;
+  margin: 28px 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 19px;
+  color: var(--text);
+  line-height: 1.5;
+}
 .article-tags {
   display: flex;
   flex-wrap: wrap;

@@ -221,6 +221,23 @@ async def mercury():
     return await data.get_mercury()
 
 
+@router.get("/galaxies")
+async def galaxies(lang: str = LANG_Q):
+    """Famous-galaxies hub: 12 cards (curated catalog + live NED redshift/type)
+    with a locally-mirrored preview thumbnail for each. DB-first with a live
+    build+ingest fallback. Returns ``{available, items[]}``."""
+    return await data.get_galaxies(lang)
+
+
+@router.get("/galaxies/{slug}")
+async def galaxy_detail(slug: str, lang: str = LANG_Q):
+    """One galaxy detail page: full curated record (name, distance, diameter,
+    magnitude, RA/Dec, redshift, NED type, description, fact) + its NASA Image
+    Library photo gallery (mirrored locally, English captions as-is). Returns
+    ``{available:false}`` for an unknown slug (the client renders NotFound)."""
+    return await data.get_galaxy_api(slug, lang)
+
+
 @router.get("/grb")
 async def grb(limit: int = Query(20, ge=1, le=50)):
     """Recent gamma-ray burst alerts from NASA GCN Circulars."""

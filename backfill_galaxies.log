@@ -1,0 +1,88 @@
+2026-07-19 23:20:22,362 database Ingested/updated 12 galaxy row(s)
+2026-07-19 23:20:26,848 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000148/GSFC_20171208_Archive_e000148~large.jpg -> 403
+2026-07-19 23:20:30,773 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA08516/PIA08516~large.jpg -> 403
+2026-07-19 23:20:33,624 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA04221/PIA04221~large.jpg -> 403
+2026-07-19 23:20:40,698 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA04231/PIA04231~large.jpg -> 403
+2026-07-19 23:20:45,501 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA12467/PIA12467~large.jpg -> 403
+2026-07-19 23:20:48,035 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001738/GSFC_20171208_Archive_e001738~large.jpg -> 403
+2026-07-19 23:20:55,564 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA17247/PIA17247~large.jpg -> 403
+2026-07-19 23:20:58,653 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA13942/PIA13942~large.jpg -> 403
+2026-07-19 23:21:01,315 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA17997/PIA17997~large.jpg -> 403
+2026-07-19 23:21:03,825 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA10115/PIA10115~large.jpg -> 403
+2026-07-19 23:21:06,841 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA19334/PIA19334~large.jpg -> 403
+2026-07-19 23:21:15,645 database Ingested/updated 24 photo(s) for galaxy milky-way
+2026-07-19 23:21:30,278 database Ingested/updated 6 photo(s) for galaxy triangulum
+2026-07-19 23:21:33,043 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA04230/PIA04230~large.jpg -> 403
+2026-07-19 23:21:35,797 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/hubble-sees-a-galactic-sunflower_21136469209_o/hubble-sees-a-galactic-sunflower_21136469209_o~large.jpg -> 403
+2026-07-19 23:21:38,784 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000615/GSFC_20171208_Archive_e000615~large.jpg -> 403
+2026-07-19 23:21:52,143 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001014/GSFC_20171208_Archive_e001014~large.jpg -> 403
+2026-07-19 23:21:53,689 database Ingested/updated 10 photo(s) for galaxy whirlpool
+2026-07-19 23:21:55,980 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/0700064/0700064~large.jpg -> 403
+2026-07-19 23:22:00,459 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/0700065/0700065~large.jpg -> 403
+2026-07-19 23:22:04,708 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000794/GSFC_20171208_Archive_e000794~large.jpg -> 403
+2026-07-19 23:22:07,582 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA15226/PIA15226~large.jpg -> 403
+2026-07-19 23:22:10,526 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA07899/PIA07899~large.jpg -> 403
+2026-07-19 23:22:13,442 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000106/GSFC_20171208_Archive_e000106~large.jpg -> 403
+2026-07-19 23:22:17,702 database Ingested/updated 8 photo(s) for galaxy sombrero
+2026-07-19 23:22:20,028 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001893/GSFC_20171208_Archive_e001893~large.jpg -> 403
+2026-07-19 23:22:23,116 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001995/GSFC_20171208_Archive_e001995~large.jpg -> 403
+2026-07-19 23:22:26,293 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/hubble-spies-a-rebel_23912757873_o/hubble-spies-a-rebel_23912757873_o~large.jpg -> 403
+2026-07-19 23:22:28,754 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000719/GSFC_20171208_Archive_e000719~large.jpg -> 403
+2026-07-19 23:22:30,876 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000433/GSFC_20171208_Archive_e000433~large.jpg -> 403
+2026-07-19 23:22:33,092 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA04624/PIA04624~large.jpg -> 403
+2026-07-19 23:22:37,016 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA07912/PIA07912~large.jpg -> 403
+2026-07-19 23:22:39,550 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA06007/PIA06007~large.jpg -> 403
+2026-07-19 23:22:44,984 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA05989/PIA05989~large.jpg -> 403
+2026-07-19 23:22:49,722 database Ingested/updated 14 photo(s) for galaxy centaurus-a
+2026-07-19 23:22:52,111 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/hubble-peers-at-a-distinctly-disorganized-dwarf-galaxy_25568403123_o/hubble-peers-at-a-distinctly-disorganized-dwarf-galaxy_25568403123_o~large.jpg -> 403
+2026-07-19 23:22:53,788 database Error ingesting galaxy photos for pinwheel: 1406 (22001): Data too long for column 'nasa_id' at row 1
+2026-07-19 23:22:56,266 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA23010/PIA23010~large.jpg -> 403
+2026-07-19 23:22:59,123 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA18841/PIA18841~large.jpg -> 403
+2026-07-19 23:23:02,162 database Ingested/updated 3 photo(s) for galaxy cigar
+2026-07-19 23:23:07,056 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/0700064/0700064~large.jpg -> 403
+2026-07-19 23:23:12,719 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA07899/PIA07899~large.jpg -> 403
+2026-07-19 23:23:16,203 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/0700065/0700065~large.jpg -> 403
+2026-07-19 23:23:22,897 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e002173/GSFC_20171208_Archive_e002173~large.jpg -> 403
+2026-07-19 23:23:31,192 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA19334/PIA19334~large.jpg -> 403
+2026-07-19 23:23:43,048 database Ingested/updated 15 photo(s) for galaxy black-eye
+2026-07-19 23:23:46,041 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001327/GSFC_20171208_Archive_e001327~large.jpg -> 403
+2026-07-19 23:23:53,931 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA04205/PIA04205~large.jpg -> 403
+2026-07-19 23:23:56,665 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA06854/PIA06854~large.jpg -> 403
+2026-07-19 23:24:01,126 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA06853/PIA06853~large.jpg -> 403
+2026-07-19 23:24:07,475 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/KSC-01pp0942/KSC-01pp0942~large.jpg -> 403
+2026-07-19 23:24:08,979 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/KSC-01pp0942/KSC-01pp0942~orig.jpg -> 403
+2026-07-19 23:24:17,747 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/KSC-01pp0944/KSC-01pp0944~large.jpg -> 403
+2026-07-19 23:24:19,098 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/KSC-01pp0944/KSC-01pp0944~orig.jpg -> 403
+2026-07-19 23:24:24,149 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA19336/PIA19336~large.jpg -> 403
+2026-07-19 23:24:34,983 database Ingested/updated 22 photo(s) for galaxy antennae
+2026-07-19 23:24:38,387 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA03296/PIA03296~large.jpg -> 403
+2026-07-19 23:24:41,697 database Ingested/updated 1 photo(s) for galaxy cartwheel
+2026-07-19 23:24:46,071 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001642/GSFC_20171208_Archive_e001642~large.jpg -> 403
+2026-07-19 23:24:49,566 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000933/GSFC_20171208_Archive_e000933~large.jpg -> 403
+2026-07-19 23:25:02,236 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/PIA04200/PIA04200~large.jpg -> 403
+2026-07-19 23:25:06,469 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/hubble-peeks-at-a-spiral-galaxy_18961260104_o/hubble-peeks-at-a-spiral-galaxy_18961260104_o~large.jpg -> 403
+2026-07-19 23:25:11,171 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000677/GSFC_20171208_Archive_e000677~large.jpg -> 403
+2026-07-19 23:25:14,226 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/hubble-looks-in-on-a-galactic-nursery_19965195932_o/hubble-looks-in-on-a-galactic-nursery_19965195932_o~large.jpg -> 403
+2026-07-19 23:25:19,126 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000687/GSFC_20171208_Archive_e000687~large.jpg -> 403
+2026-07-19 23:25:22,420 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e002021/GSFC_20171208_Archive_e002021~large.jpg -> 403
+2026-07-19 23:25:25,369 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/hubble-sees-a-youthful-cluster_20330747093_o/hubble-sees-a-youthful-cluster_20330747093_o~large.jpg -> 403
+2026-07-19 23:25:28,445 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001896/GSFC_20171208_Archive_e001896~large.jpg -> 403
+2026-07-19 23:25:33,862 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000154/GSFC_20171208_Archive_e000154~large.jpg -> 403
+2026-07-19 23:25:37,009 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001791/GSFC_20171208_Archive_e001791~large.jpg -> 403
+2026-07-19 23:25:41,058 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001986/GSFC_20171208_Archive_e001986~large.jpg -> 403
+2026-07-19 23:25:45,802 services.galaxy_images galaxy photo download failed https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000635/GSFC_20171208_Archive_e000635~large.jpg -> 403
+2026-07-19 23:25:49,453 database Ingested/updated 24 photo(s) for galaxy lmc
+2026-07-19 23:25:49,454 database Galaxy backfill done: 139 row(s) ingested/updated
+BACKFILL DONE: 139 rows in 363s
+  milky-way      photos=24 mirrored=24 preview=True
+  andromeda      photos=24 mirrored=24 preview=True
+  triangulum     photos= 6 mirrored= 6 preview=True
+  whirlpool      photos=10 mirrored=10 preview=True
+  sombrero       photos= 8 mirrored= 8 preview=True
+  centaurus-a    photos=14 mirrored=14 preview=True
+  pinwheel       photos= 0 mirrored= 0 preview=False
+  cigar          photos= 3 mirrored= 3 preview=True
+  black-eye      photos=15 mirrored=15 preview=True
+  antennae       photos=22 mirrored=22 preview=True
+  cartwheel      photos= 1 mirrored= 1 preview=True
+  lmc            photos=24 mirrored=24 preview=True

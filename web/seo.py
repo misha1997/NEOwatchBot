@@ -99,6 +99,7 @@ SLUGS: dict[str, dict[str, str]] = {
     "comets":       {"uk": "komety",            "en": "comets"},
     "exoplanets":   {"uk": "ekzoplanety",       "en": "exoplanets"},
     "gallery":      {"uk": "galereya",          "en": "gallery"},
+    "galaxies":     {"uk": "galaktyky",         "en": "galaxies"},
     "planetarium":  {"uk": "planetariy",        "en": "planetarium"},
     "mars":         {"uk": "planetariy/mars",   "en": "planetarium/mars"},
     "jupiter":      {"uk": "planetariy/yupiter","en": "planetarium/jupiter"},

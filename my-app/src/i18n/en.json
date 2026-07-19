@@ -94,6 +94,7 @@
     "rtl": "Radio",
     "community": "Community",
     "gallery": "Photo archive",
+    "galaxies": "Galaxies",
     "planetarium": "Planetarium",
     "planetariumHub": "All planets",
     "mars": "Mars",
@@ -177,6 +178,7 @@
     "rtl": "Radio astronomy — OrbitLight",
     "community": "Community — OrbitLight",
     "gallery": "NASA photo archive — OrbitLight",
+    "galaxies": "Famous galaxies — OrbitLight",
     "404": "Not found — OrbitLight",
     "planetarium": "Planetarium — OrbitLight",
     "mars": "Mars — OrbitLight",
@@ -204,6 +206,7 @@
       "rtl": "Radio astronomy: meteor pings, Jupiter and solar spectra received on an SDR receiver.",
       "community": "OrbitLight community: forum, photo gallery, observation diaries and local groups.",
       "gallery": "NASA photo archive: the Astronomy Picture of the Day by date — Hubble, James Webb, probes and rover imagery with translated descriptions.",
+      "galaxies": "Famous galaxies of the universe: Andromeda, Whirlpool, Sombrero, M82, Centaurus A and others — with live NASA/IPAC NED redshift and type data and photos from the NASA Image Library.",
       "404": "Page not found — return to the OrbitLight home page to see the sky now.",
       "planetarium": "OrbitLight planetarium: every planet of the solar system — diameter, day and year length, gravity, moons and mean temperature. Mars comes with live weather and fresh rover photos.",
       "mars": "Weather on Mars from InSight telemetry, fresh Perseverance and Curiosity rover photos, the Phobos and Deimos moons, an Earth comparison, dust storms and the history of Mars exploration.",
@@ -2204,5 +2207,81 @@
       "transitV": "November 13, 2032",
       "transitFoot": "A rare phenomenon — happens only 13-14 times per century"
     }
+  },
+  "galaxies": {
+    "hero": {
+      "eyebrow": "12 names across the cosmos",
+      "title": "Famous galaxies",
+      "sub": "From our own Milky Way to the Cartwheel ring galaxy half a billion light-years away — twelve of the most famous galaxies in the universe with real distances, types and scales.",
+      "cta": "Open NASA gallery"
+    },
+    "filters": {
+      "all": "All",
+      "spiral": "Spiral",
+      "elliptical": "Elliptical",
+      "irregular": "Irregular",
+      "peculiar": "Peculiar / interacting"
+    },
+    "card": {
+      "distLabel": "Distance",
+      "typeLabel": "Type",
+      "photos": "photos"
+    },
+    "localGroup": {
+      "eyebrow": "Our cosmic neighbourhood",
+      "title": "The Local Group",
+      "sub": "A gravitationally bound cluster of galaxies that includes the Milky Way, Andromeda and the Triangulum Galaxy, along with dozens of smaller satellite galaxies within about 10 million light-years."
+    },
+    "distances": {
+      "eyebrow": "Cosmic scale",
+      "title": "How far away they are",
+      "sub": "Distances are given in light-years; on a logarithmic scale, because the difference between the nearest and the farthest spans many orders of magnitude, and only a log axis can show them all at once.",
+      "axis0": "0 M ly",
+      "axis1": "0.1 M ly",
+      "axis2": "1 M ly",
+      "axis3": "10 M ly",
+      "axis4": "100 M ly",
+      "axis5": "500 M ly"
+    },
+    "records": {
+      "eyebrow": "Record holders",
+      "title": "Galactic champions",
+      "nearestK": "Closest to us",
+      "nearestV": "Andromeda",
+      "nearestFoot": "2.5 million light-years away and approaching",
+      "farthestK": "Farthest on the list",
+      "farthestV": "Cartwheel",
+      "farthestFoot": "~500 million light-years away",
+      "brightestK": "Brightest in the sky",
+      "brightestV": "Smallest apparent magnitude",
+      "brightestFoot": "The lower the magnitude, the brighter the galaxy"
+    },
+    "loading": "Loading galaxies…"
+  },
+  "galaxy": {
+    "back": "All galaxies",
+    "dataTitle": "Key data",
+    "distance": "Distance",
+    "redshift": "Redshift (z)",
+    "type": "Type (NED)",
+    "diameter": "Diameter",
+    "magnitude": "Apparent magnitude",
+    "coords": "Coordinates (RA/Dec)",
+    "nedName": "Name in NED",
+    "designation": "Designation",
+    "factLabel": "Did you know",
+    "galleryTitle": "NASA image gallery",
+    "gallerySub": "Photos from the NASA Image Library (EN captions).",
+    "photoHint": "Click to enlarge",
+    "credit": "Credit",
+    "date": "Date",
+    "openFull": "Open on NASA",
+    "nav": {
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "noData": "Data unavailable.",
+    "noPhotos": "Photos have not loaded yet.",
+    "ofN": "of"
   }
 }

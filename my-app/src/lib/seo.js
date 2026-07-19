@@ -37,6 +37,7 @@ export const SLUGS = {
   comets:         { uk: "komety",            en: "comets" },
   exoplanets:     { uk: "ekzoplanety",       en: "exoplanets" },
   gallery:        { uk: "galereya",          en: "gallery" },
+  galaxies:       { uk: "galaktyky",         en: "galaxies" },
   planetarium:    { uk: "planetariy",        en: "planetarium" },
   mars:           { uk: "planetariy/mars",   en: "planetarium/mars" },
   jupiter:        { uk: "planetariy/yupiter", en: "planetarium/jupiter" },
@@ -99,15 +100,24 @@ export function nameFromPath(pathname) {
     if (tail && !tail.includes("/")) return { name: "news", lang, articleSlug: tail };
     return { name: "404", lang };
   }
+  // galaxy detail: <galaxiesSlug>/<galaxySlug>
+  const galaxiesSlug = slugForName("galaxies", lang);
+  if (rest === galaxiesSlug) return { name: "galaxies", lang };
+  if (rest.startsWith(galaxiesSlug + "/")) {
+    const tail = rest.slice(galaxiesSlug.length + 1);
+    if (tail && !tail.includes("/")) return { name: "galaxies", lang, galaxySlug: tail };
+    return { name: "404", lang };
+  }
   const name = SLUG_TO_NAME[lang][rest];
   return { name: name || "404", lang };
 }
 
 // Path for the same content in the other language (for the language switcher).
 export function switchLangPath(pathname, targetLang) {
-  const { name, articleSlug } = nameFromPath(pathname);
+  const { name, articleSlug, galaxySlug } = nameFromPath(pathname);
   const base = pathFor(name, targetLang);
   if (name === "news" && articleSlug) return `${base}/${articleSlug}`;
+  if (name === "galaxies" && galaxySlug) return `${base}/${galaxySlug}`;
   return base;
 }
 

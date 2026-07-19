@@ -31,6 +31,8 @@ const Planetarium = lazy(() => import("../pages/Planetarium"));
 const Mars = lazy(() => import("../pages/Mars"));
 const Jupiter = lazy(() => import("../pages/Jupiter"));
 const Mercury = lazy(() => import("../pages/Mercury"));
+const Galaxies = lazy(() => import("../pages/Galaxies"));
+const Galaxy = lazy(() => import("../pages/Galaxy"));
 const News = lazy(() => import("../pages/News"));
 const NewsArticle = lazy(() => import("../pages/NewsArticle"));
 
@@ -55,6 +57,7 @@ const PAGES = {
   mars: Mars,
   jupiter: Jupiter,
   mercury: Mercury,
+  galaxies: Galaxies,
   news: News,
 };
 
@@ -73,6 +76,13 @@ export default function LangRouter() {
     return (
       <Suspense fallback={<Loading />}>
         <NewsArticle slug={resolved.articleSlug} />
+      </Suspense>
+    );
+  }
+  if (resolved.name === "galaxies" && resolved.galaxySlug) {
+    return (
+      <Suspense fallback={<Loading />}>
+        <Galaxy slug={resolved.galaxySlug} />
       </Suspense>
     );
   }

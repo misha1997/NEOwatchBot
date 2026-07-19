@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Меркурій — NEOwatch</title>
-<meta name="description" content="Найближча до Сонця планета: екстремальні перепади температур, резонанс обертання 3:2, кратер Калоріс, місії MESSENGER і BepiColombo та найкращий час для спостереження.">
+<title>Знамениті галактики — NEOwatch</title>
+<meta name="description" content="Дванадцять найвідоміших галактик Всесвіту: Андромеда, Чумацький Шлях, Вир, Сомбреро, Центавр А та інші — з реальними відстанями, типами й фактами.">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -933,191 +933,107 @@ h1.page-title{font-family:var(--font-display);font-weight:800;font-size:clamp(28
   </div>
 </header>
 
-<section class="hero">
-  <div class="wrap hero-grid">
-    <div>
-      <div class="eyebrow">Перша планета · оновлено щойно</div>
-      <h1 class="hero-title">Меркурій<br><span class="accent">світ крайнощів</span></h1>
-      <p class="hero-sub">Найближча до Сонця й найшвидша планета Сонячної системи. Без атмосфери, без місяців, з найбільшим перепадом температур і дивним обертанням, яке синхронізоване з орбітою у співвідношенні 3:2.</p>
-      <div class="stat-mini" style="margin-top:26px;max-width:420px">
-        <div class="box"><div class="n">155 млн км</div><div class="l">відстань до Землі зараз</div></div>
-        <div class="box"><div class="n">8.6 хв</div><div class="l">час проходження сигналу</div></div>
-      </div>
+<section class="page-head">
+  <div class="wrap">
+    <span class="icon-badge">12 об'єктів · перевірені дані</span>
+    <h1 class="page-title">Знамениті галактики</h1>
+    <p class="page-desc">Від нашого власного Чумацького Шляху до кільцевої галактики за 500 мільйонів світлових років — дванадцять найвідоміших галактик Всесвіту з реальними відстанями, типами й масштабами.</p>
+
+    <div class="filters" style="margin-top:22px">
+      <span class="filter-pill on" data-cat="all" onclick="nwFilterGal('all',this)">Усі</span>
+      <span class="filter-pill" data-cat="spiral" onclick="nwFilterGal('spiral',this)">Спіральні</span>
+      <span class="filter-pill" data-cat="elliptical" onclick="nwFilterGal('elliptical',this)">Еліптичні</span>
+      <span class="filter-pill" data-cat="irregular" onclick="nwFilterGal('irregular',this)">Неправильні</span>
+      <span class="filter-pill" data-cat="peculiar" onclick="nwFilterGal('peculiar',this)">Пекулярні / взаємодіючі</span>
     </div>
-    <div class="orbit-wrap">
-      <svg viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg">
-      <circle class="mars-orbit-ring" cx="175.4" cy="240.0" r="253.0" opacity=".5"/><text class="mars-moon-label" x="175.4" y="-23.0" text-anchor="middle">орбіта Землі (для масштабу)</text><ellipse class="comet-ellipse" cx="268.8" cy="240.0" rx="163.2" ry="133.8"/><path id="mercuryPath" d="M 432.0 240.0 A 163.2 133.8 0 1 1 105.6 240.0 A 163.2 133.8 0 1 1 432.0 240.0 Z" fill="none" opacity="0"/><circle cx="175.4" cy="240.0" r="9" fill="#FFD37A"/><circle cx="175.4" cy="240.0" r="16" fill="none" stroke="#FFD37A" stroke-opacity=".3"/><circle r="5" fill="#B7A08C">
-      <animateMotion dur="6s" repeatCount="indefinite" rotate="auto">
-        <mpath href="#mercuryPath"/>
-      </animateMotion>
-    </circle><text class="mars-moon-label" x="105.6" y="258.0" text-anchor="middle">Перигелій · 46 млн км</text><text class="mars-moon-label" x="432.0" y="228.0" text-anchor="middle">Афелій · 70 млн км</text>
-    </svg>
-    </div>
-  </div>
-  <div class="wrap" style="margin-top:8px">
-    <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);text-align:center">Орбіта Меркурія — найбільш ексцентрична серед усіх планет (0.206): відстань до Сонця змінюється майже вдвічі за один оберт</p>
   </div>
 </section>
 
 <section class="section" style="padding-top:8px">
   <div class="wrap">
-    <div class="section-head">
-      <div>
-        <div class="eyebrow">MESSENGER · картографування</div>
-        <h2 class="section-title">Меркурій просто зараз</h2>
-      </div>
+    <div class="photo-grid" id="galGrid">
+      <div class="photo-card" data-cat="spiral" onclick="nwOpenGalaxy(0)">
+      <div class="ph" style="background:linear-gradient(150deg,#2a2340,#0d0f1c)"><span class="cat">Спіральні</span></div>
+      <div class="cap"><h4>Чумацький Шлях</h4><div class="d">ми в ній</div></div>
     </div>
-    <div class="grid cols-4">
-      <div class="card">
-        <div class="k">Швидкість по орбіті</div>
-        <div class="v">47.4<span class="unit">км/с</span></div>
-        <div class="foot">Найшвидша планета Сонячної системи</div>
-      </div>
-      <div class="card">
-        <div class="k">Період обертання навколо осі</div>
-        <div class="v">58.6<span class="unit">земних діб</span></div>
-        <div class="foot">Точно 2/3 орбітального періоду</div>
-      </div>
-      <div class="card">
-        <div class="k">Сонячна доба</div>
-        <div class="v">176<span class="unit">земних діб</span></div>
-        <div class="foot">Довша за меркуріанський рік (88 діб)</div>
-      </div>
-      <div class="card">
-        <div class="k">Атмосфера</div>
-        <div class="v">Немає<span class="unit"></span></div>
-        <div class="foot">Лише розріджена екзосфера з Na, K, O, He</div>
-      </div>
+<div class="photo-card" data-cat="spiral" onclick="nwOpenGalaxy(1)">
+      <div class="ph" style="background:linear-gradient(150deg,#3a2d4d,#12142a)"><span class="cat">Спіральні</span></div>
+      <div class="cap"><h4>Андромеда (M31)</h4><div class="d">2.5 млн св. р.</div></div>
     </div>
-  </div>
-</section>
-
-<section class="section">
-  <div class="wrap">
-    <div class="section-head">
-      <div>
-        <div class="eyebrow">Меркурій проти Землі</div>
-        <h2 class="section-title">Наскільки все інакше</h2>
-      </div>
+<div class="photo-card" data-cat="spiral" onclick="nwOpenGalaxy(2)">
+      <div class="ph" style="background:linear-gradient(150deg,#2d3a4d,#12142a)"><span class="cat">Спіральні</span></div>
+      <div class="cap"><h4>Трикутник (M33)</h4><div class="d">2.7 млн св. р.</div></div>
     </div>
-    <table class="data">
-      <tr><th>Параметр</th><th>Меркурій</th><th>Земля</th></tr>
-      <tr><td>Тривалість доби (соняч.)</td><td class="mono">176 земних діб</td><td class="mono">24 год 00 хв</td></tr>
-      <tr><td>Тривалість року</td><td class="mono">88 земних діб</td><td class="mono">365 днів</td></tr>
-      <tr><td>Сила тяжіння</td><td class="mono">3.7 м/с² (38%)</td><td class="mono">9.81 м/с²</td></tr>
-      <tr><td>Діаметр</td><td class="mono">4 879 км (0.38×)</td><td class="mono">12 742 км</td></tr>
-      <tr><td>Середня температура</td><td class="mono">167°C, перепад 610°C</td><td class="mono">+15°C</td></tr>
-      <tr><td>Атмосфера</td><td class="mono">практично відсутня</td><td class="mono">78% N₂, 21% O₂</td></tr>
-      <tr><td>Супутники</td><td class="mono">0</td><td class="mono">1 (Місяць)</td></tr>
-    </table>
-  </div>
-</section>
-
-<section class="section" id="resonance">
-  <div class="wrap">
-    <div class="section-head">
-      <div>
-        <div class="eyebrow">Унікальна механіка</div>
-        <h2 class="section-title">Резонанс обертання 3:2</h2>
-      </div>
+<div class="photo-card" data-cat="spiral" onclick="nwOpenGalaxy(3)">
+      <div class="ph" style="background:linear-gradient(150deg,#1a3a4d,#0d0f1c)"><span class="cat">Спіральні</span></div>
+      <div class="cap"><h4>Вир (M51)</h4><div class="d">23 млн св. р.</div></div>
     </div>
-    <div class="grid cols-2" style="align-items:center">
-      <div style="display:flex;justify-content:center">
-        <svg viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg"><g>
-      <circle cx="130.0" cy="130.0" r="58" fill="#8A7562"/><circle cx="112.0" cy="120.0" r="7" fill="#6b5a4a" opacity=".6"/><circle cx="144.0" cy="146.0" r="5" fill="#6b5a4a" opacity=".6"/><circle cx="136.0" cy="108.0" r="4" fill="#6b5a4a" opacity=".6"/><circle cx="120.0" cy="148.0" r="6" fill="#6b5a4a" opacity=".6"/><circle cx="182.0" cy="130.0" r="4" fill="#FFD37A"/>
-      <animateTransform attributeName="transform" type="rotate" from="0 130.0 130.0" to="1080 130.0 130.0" dur="12s" repeatCount="indefinite"/>
-    </g></svg>
-      </div>
-      <div>
-        <p style="color:var(--text-dim);font-size:14px;line-height:1.75">
-          Меркурій — єдина велика планета Сонячної системи із задокументованим орбітальним резонансом обертання типу 3:2: за кожні два оберти навколо Сонця він обертається навколо своєї осі рівно тричі. Це наслідок гравітаційного впливу Сонця на витягнуту, несферичну форму планети.
-        </p>
-        <p style="color:var(--text-dim);font-size:14px;line-height:1.75;margin-top:14px">
-          Через це поєднання обертання й орбіти одна точка на поверхні Меркурія бачить схід Сонця лише раз на 176 земних діб — і в деяких місцях біля екватора під час найбільшого зближення з Сонцем можна навіть спостерігати, як Сонце ненадовго зупиняється, повертає назад і знову рухається вперед по небу.
-        </p>
-      </div>
+<div class="photo-card" data-cat="spiral" onclick="nwOpenGalaxy(4)">
+      <div class="ph" style="background:linear-gradient(150deg,#4d3a1a,#0d0f1c)"><span class="cat">Спіральні</span></div>
+      <div class="cap"><h4>Сомбреро (M104)</h4><div class="d">31 млн св. р.</div></div>
+    </div>
+<div class="photo-card" data-cat="peculiar" onclick="nwOpenGalaxy(5)">
+      <div class="ph" style="background:linear-gradient(150deg,#4d1a2b,#0d0f1c)"><span class="cat">Пекулярні / взаємодіючі</span></div>
+      <div class="cap"><h4>Центавр A (NGC 5128)</h4><div class="d">12 млн св. р.</div></div>
+    </div>
+<div class="photo-card" data-cat="spiral" onclick="nwOpenGalaxy(6)">
+      <div class="ph" style="background:linear-gradient(150deg,#1a4d3a,#0d0f1c)"><span class="cat">Спіральні</span></div>
+      <div class="cap"><h4>Вітрячок (M101)</h4><div class="d">21 млн св. р.</div></div>
+    </div>
+<div class="photo-card" data-cat="irregular" onclick="nwOpenGalaxy(7)">
+      <div class="ph" style="background:linear-gradient(150deg,#4d2a1a,#0d0f1c)"><span class="cat">Неправильні</span></div>
+      <div class="cap"><h4>Сигара (M82)</h4><div class="d">12 млн св. р.</div></div>
+    </div>
+<div class="photo-card" data-cat="spiral" onclick="nwOpenGalaxy(8)">
+      <div class="ph" style="background:linear-gradient(150deg,#2b1a4d,#0d0f1c)"><span class="cat">Спіральні</span></div>
+      <div class="cap"><h4>Чорне Око (M64)</h4><div class="d">17 млн св. р.</div></div>
+    </div>
+<div class="photo-card" data-cat="peculiar" onclick="nwOpenGalaxy(9)">
+      <div class="ph" style="background:linear-gradient(150deg,#4d1a1a,#0d0f1c)"><span class="cat">Пекулярні / взаємодіючі</span></div>
+      <div class="cap"><h4>Антени (NGC 4038/4039)</h4><div class="d">45–65 млн св. р.</div></div>
+    </div>
+<div class="photo-card" data-cat="peculiar" onclick="nwOpenGalaxy(10)">
+      <div class="ph" style="background:linear-gradient(150deg,#4d3a2f,#0d0f1c)"><span class="cat">Пекулярні / взаємодіючі</span></div>
+      <div class="cap"><h4>Колесо (Cartwheel)</h4><div class="d">~500 млн св. р.</div></div>
+    </div>
+<div class="photo-card" data-cat="irregular" onclick="nwOpenGalaxy(11)">
+      <div class="ph" style="background:linear-gradient(150deg,#3a4d1a,#0d0f1c)"><span class="cat">Неправильні</span></div>
+      <div class="cap"><h4>Велика Магелланова Хмара</h4><div class="d">~160 000 св. р.</div></div>
+    </div>
     </div>
   </div>
 </section>
 
-<section class="section" id="temperature">
+<section class="section" id="local-group">
   <div class="wrap">
     <div class="section-head">
       <div>
-        <div class="eyebrow">Найбільший перепад у системі</div>
-        <h2 class="section-title">Від +430°C до −180°C</h2>
+        <div class="eyebrow">Наші найближчі сусіди</div>
+        <h2 class="section-title">Місцева група галактик</h2>
       </div>
     </div>
-    <p class="section-sub">Без атмосфери, яка утримувала б тепло, денна сторона Меркурія розжарюється сильніше за будь-яку іншу планету, а нічна — вихолоджується до одних із найнижчих температур Сонячної системи. Парадоксально, але в постійно затінених кратерах на полюсах учені підтвердили наявність водяного льоду.</p>
-    <div class="depth-wrap" style="margin-top:10px">
-      <div class="depth-bar" style="background:linear-gradient(to bottom,#E8622F,#E8B94D 35%,#4FD1C5 62%,#2E5C8A 82%,#12203A)"></div>
-      <div class="depth-marks">
-        <div class="pmark hl" style="top:2%"><span class="txt">+430°C · денна сторона на екваторі</span><span class="ln"></span></div><div class="pmark" style="top:30%"><span class="txt">+167°C · середня денна</span><span class="ln"></span></div><div class="pmark" style="top:58%"><span class="txt">0°C</span><span class="ln"></span></div><div class="pmark" style="top:80%"><span class="txt">−170°C · нічна сторона</span><span class="ln"></span></div><div class="pmark hl" style="top:97%"><span class="txt">−180°C · дно полярних кратерів (лід!)</span><span class="ln"></span></div>
-      </div>
+    <p class="section-sub">Чумацький Шлях — не самотній острів: разом із Андромедою, Трикутником і десятками карликових галактик він входить до Місцевої групи, що охоплює простір діаметром понад 10 млн світлових років.</p>
+    <div class="orbit-wrap">
+      <svg viewBox="0 0 520 420" xmlns="http://www.w3.org/2000/svg">
+      <circle class="mars-orbit-ring" cx="260.0" cy="210.0" r="72.0"/><circle class="mars-orbit-ring" cx="260.0" cy="210.0" r="124.7"/><circle class="mars-orbit-ring" cx="260.0" cy="210.0" r="167.3"/><circle cx="260.0" cy="210.0" r="8.0" fill="var(--gold)" class="obj-dot"/><text class="mars-moon-label" x="270.0" y="214.0" text-anchor="start" fill="var(--gold)">Чумацький Шлях</text><circle cx="352.4" cy="78.1" r="6.0" fill="var(--teal)" class="obj-dot"/><text class="mars-moon-label" x="362.4" y="82.1" text-anchor="start" fill="var(--teal)">Андромеда (M31)</text><circle cx="404.9" cy="293.7" r="4.0" fill="#B98FE8" class="obj-dot"/><text class="mars-moon-label" x="414.9" y="297.7" text-anchor="start" fill="#B98FE8">Трикутник (M33)</text><circle cx="246.1" cy="248.3" r="3.0" fill="var(--coral)" class="obj-dot"/><text class="mars-moon-label" x="236.1" y="252.3" text-anchor="end" fill="var(--coral)">Велика Магелланова Хмара</text><circle cx="402.2" cy="127.9" r="2.5" fill="var(--text-dim)" class="obj-dot"/><text class="mars-moon-label" x="412.2" y="131.9" text-anchor="start" fill="var(--text-dim)">M32 (супутник M31)</text>
+    </svg>
     </div>
   </div>
 </section>
 
-<section class="section" id="caloris">
+<section class="section" id="distances">
   <div class="wrap">
     <div class="section-head">
       <div>
-        <div class="eyebrow">MESSENGER · 2011–2015</div>
-        <h2 class="section-title">Кратер Калоріс і поверхня</h2>
+        <div class="eyebrow">Логарифмічна шкала</div>
+        <h2 class="section-title">Наскільки далеко кожна з них</h2>
       </div>
     </div>
-    <div class="gal">
-      <div class="rover-photo" style="background:linear-gradient(160deg,#9a8570,#3a2f24)"><div class="info">Кратер Калоріс · MESSENGER</div></div>
-      <div class="rover-photo" style="background:linear-gradient(160deg,#8a7562,#332a20)"><div class="info">Лопатоподібні уступи (rupes)</div></div>
-      <div class="rover-photo" style="background:linear-gradient(160deg,#b09880,#40342a)"><div class="info">Полярний кратер із льодом</div></div>
-      <div class="rover-photo" style="background:linear-gradient(160deg,#7d6b58,#2e251d)"><div class="info">Кольорова мозаїка поверхні</div></div>
-    </div>
-    <div class="grid cols-3" style="margin-top:22px">
-      <div class="card"><div class="k">Кратер Калоріс</div><div class="v" style="font-size:20px">1 550 км</div><div class="foot">Один із найбільших ударних басейнів Сонячної системи</div></div>
-      <div class="card"><div class="k">Планета стискається</div><div class="v" style="font-size:20px">до 7 км</div><div class="foot">Радіус зменшився через охолодження ядра — звідси "зморшки" (rupes)</div></div>
-      <div class="card"><div class="k">Залізне ядро</div><div class="v" style="font-size:20px">~85%</div><div class="foot">Займає більшу частину радіуса — найбільше відносне ядро серед планет</div></div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="mission-status">
-  <div class="wrap">
-    <div class="section-head">
-      <div>
-        <div class="eyebrow">Хто досліджував і досліджує</div>
-        <h2 class="section-title">Місії до Меркурія</h2>
-      </div>
-    </div>
-    <div class="card" style="padding:8px 22px">
-      <div class="mission-row"><span class="dot live"></span><span class="nm">BepiColombo</span><span class="ag">ESA / JAXA</span><span class="yr">2018</span><span class="st active">У польоті · вихід на орбіту 2026</span></div>
-      <div class="mission-row"><span style="width:7px;height:7px;border-radius:50%;background:var(--text-dim);display:inline-block"></span><span class="nm">MESSENGER</span><span class="ag">NASA</span><span class="yr">2004</span><span class="st retired">Перший орбітальний апарат · завершено 2015</span></div>
-      <div class="mission-row"><span style="width:7px;height:7px;border-radius:50%;background:var(--text-dim);display:inline-block"></span><span class="nm">Mariner 10</span><span class="ag">NASA</span><span class="yr">1973</span><span class="st retired">Перший проліт · 3 зближення, 1974–75</span></div>
-    </div>
-    <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:12px">BepiColombo здійснив шість гравітаційних маневрів біля Меркурія, перш ніж вийти на постійну орбіту — політ до найближчої планети парадоксально вимагає гальмування, а не прискорення, через потужне тяжіння Сонця.</p>
-  </div>
-</section>
-
-<section class="section" id="observe">
-  <div class="wrap">
-    <div class="section-head">
-      <div>
-        <div class="eyebrow">Пов'язано з sky.html</div>
-        <h2 class="section-title">Найкращий час для спостереження</h2>
-      </div>
-    </div>
-    <div class="grid cols-2" style="align-items:center">
-      <div class="card" style="padding:26px">
-        <div class="k">До найбільшої елонгації</div>
-        <div class="clock" style="margin-top:14px">
-          <div class="seg"><div class="n">18</div><span class="u">днів</span></div>
-          <div class="seg"><div class="n">06</div><span class="u">годин</span></div>
-        </div>
-        <div class="foot" style="margin-top:14px">Найкраща видимість над західним обрієм одразу після заходу Сонця</div>
-      </div>
-      <div class="card" style="padding:26px">
-        <div class="k">Чому Меркурій важко побачити</div>
-        <p style="color:var(--text-dim);font-size:13.5px;margin-top:10px;line-height:1.7">Меркурій ніколи не віддаляється від Сонця більш ніж на 28° — тому побачити його можна лише в короткому вікні одразу після заходу або перед сходом Сонця, і лише кілька разів на рік у моменти найбільшої елонгації.</p>
-      </div>
+    <p class="section-sub">Відстані між галактиками настільки різні, що показати їх у лінійному масштабі неможливо — тут використано логарифмічну шкалу, де кожна поділка вдесятеро далі за попередню.</p>
+    <div class="brightness-wrap">
+      <svg viewBox="0 0 1080 280" xmlns="http://www.w3.org/2000/svg">
+      <line class="exo-gridline" x1="50.0" y1="20" x2="50.0" y2="250"/><line class="exo-gridline" x1="261.4" y1="20" x2="261.4" y2="250"/><line class="exo-gridline" x1="472.8" y1="20" x2="472.8" y2="250"/><line class="exo-gridline" x1="684.1" y1="20" x2="684.1" y2="250"/><line class="exo-gridline" x1="895.5" y1="20" x2="895.5" y2="250"/><line class="exo-gridline" x1="1043.3" y1="20" x2="1043.3" y2="250"/><rect x="50.0" y="24.2" width="0.0" height="10.7" rx="3" fill="var(--teal)" opacity=".85"/><text class="exo-axis" x="58.0" y="32.3" text-anchor="start" fill="var(--text)">Чумацький Шлях</text><rect x="50.0" y="43.4" width="506.9" height="10.7" rx="3" fill="var(--teal)" opacity=".85"/><text class="exo-axis" x="564.9" y="51.4" text-anchor="start" fill="var(--text)">Андромеда (M31)</text><rect x="50.0" y="62.6" width="513.9" height="10.7" rx="3" fill="var(--teal)" opacity=".85"/><text class="exo-axis" x="571.9" y="70.6" text-anchor="start" fill="var(--text)">Трикутник (M33)</text><rect x="50.0" y="81.7" width="710.6" height="10.7" rx="3" fill="var(--teal)" opacity=".85"/><text class="exo-axis" x="768.6" y="89.8" text-anchor="start" fill="var(--text)">Вир (M51)</text><rect x="50.0" y="100.9" width="738.0" height="10.7" rx="3" fill="var(--teal)" opacity=".85"/><text class="exo-axis" x="796.0" y="108.9" text-anchor="start" fill="var(--text)">Сомбреро (M104)</text><rect x="50.0" y="120.1" width="650.9" height="10.7" rx="3" fill="var(--coral)" opacity=".85"/><text class="exo-axis" x="708.9" y="128.1" text-anchor="start" fill="var(--text)">Центавр A (NGC 5128)</text><rect x="50.0" y="139.2" width="702.2" height="10.7" rx="3" fill="var(--teal)" opacity=".85"/><text class="exo-axis" x="760.2" y="147.3" text-anchor="start" fill="var(--text)">Вітрячок (M101)</text><rect x="50.0" y="158.4" width="650.9" height="10.7" rx="3" fill="var(--gold)" opacity=".85"/><text class="exo-axis" x="708.9" y="166.4" text-anchor="start" fill="var(--text)">Сигара (M82)</text><rect x="50.0" y="177.6" width="682.8" height="10.7" rx="3" fill="var(--teal)" opacity=".85"/><text class="exo-axis" x="740.8" y="185.6" text-anchor="start" fill="var(--text)">Чорне Око (M64)</text><rect x="50.0" y="196.7" width="772.2" height="10.7" rx="3" fill="var(--coral)" opacity=".85"/><text class="exo-axis" x="830.2" y="204.8" text-anchor="start" fill="var(--text)">Антени (NGC 4038/4039)</text><rect x="50.0" y="215.9" width="993.3" height="10.7" rx="3" fill="var(--coral)" opacity=".85"/><text class="exo-axis" x="1051.3" y="223.9" text-anchor="start" fill="var(--text)">Колесо (Cartwheel)</text><rect x="50.0" y="235.1" width="254.5" height="10.7" rx="3" fill="var(--gold)" opacity=".85"/><text class="exo-axis" x="312.5" y="243.1" text-anchor="start" fill="var(--text)">Велика Магелланова Хмара</text><text class="exo-axis" x="50.0" y="272" text-anchor="middle">0 млн р.</text><text class="exo-axis" x="261.4" y="272" text-anchor="middle">0.1 млн р.</text><text class="exo-axis" x="472.8" y="272" text-anchor="middle">1 млн р.</text><text class="exo-axis" x="684.1" y="272" text-anchor="middle">10 млн р.</text><text class="exo-axis" x="895.5" y="272" text-anchor="middle">100 млн р.</text><text class="exo-axis" x="1043.3" y="272" text-anchor="middle">500 млн р.</text>
+    </svg>
     </div>
   </div>
 </section>
@@ -1127,28 +1043,84 @@ h1.page-title{font-family:var(--font-display);font-weight:800;font-size:clamp(28
     <div class="section-head">
       <div>
         <div class="eyebrow">Цікаві факти</div>
-        <h2 class="section-title">Меркурій рекордів</h2>
+        <h2 class="section-title">Галактики рекордів</h2>
       </div>
     </div>
     <div class="grid cols-3">
-      <div class="card">
-        <div class="k">Найшвидша планета</div>
-        <div class="v" style="font-size:20px">47.4 км/с</div>
-        <div class="foot">Звідси й назва на честь прудкого посланця богів</div>
-      </div>
-      <div class="card">
-        <div class="k">Без місяців</div>
-        <div class="v" style="font-size:20px">0</div>
-        <div class="foot">Разом із Венерою — єдині планети без природних супутників</div>
-      </div>
-      <div class="card">
-        <div class="k">Транзит по диску Сонця</div>
-        <div class="v" style="font-size:20px">13 листопада 2032</div>
-        <div class="foot">Рідкісне явище — трапляється лише 13-14 разів на століття</div>
-      </div>
+      <div class="card"><div class="k">Найближча велика</div><div class="v" style="font-size:20px">Андромеда</div><div class="foot">2.5 млн світлових років — і наближається</div></div>
+      <div class="card"><div class="k">Найдальша в списку</div><div class="v" style="font-size:20px">Колесо (Cartwheel)</div><div class="foot">~500 млн світлових років</div></div>
+      <div class="card"><div class="k">Найяскравіша на небі</div><div class="v" style="font-size:20px">Велика Магелланова Хмара</div><div class="foot">Видима неозброєним оком з півдня</div></div>
     </div>
   </div>
 </section>
+
+<div class="photo-modal" id="galModal" onclick="nwGalBackdrop(event)">
+  <div class="photo-modal-inner">
+    <div class="photo-modal-img" id="galModalImg">
+      <button class="photo-modal-close" onclick="nwCloseGalaxy()">✕</button>
+      <button class="photo-modal-nav prev" onclick="nwNavGalaxy(-1)">‹</button>
+      <button class="photo-modal-nav next" onclick="nwNavGalaxy(1)">›</button>
+    </div>
+    <div class="photo-modal-info">
+      <div class="cat" id="galCat"></div>
+      <h3 id="galTitle"></h3>
+      <div class="d" id="galMeta"></div>
+      <p id="galFact"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+var nwGalaxies = [{cat:'spiral', name:'Чумацький Шлях', dist:'ми в ній', type:'Перетнута спіральна (SBbc)', mag:'—', diam:'~100 000–200 000 св. р.', grad:'#2a2340,#0d0f1c', fact:'Наш дім — понад 100–400 мільярдів зір, супермасивна чорна діра Стрілець A* у центрі масою ~4.3 млн M☉.'},{cat:'spiral', name:'Андромеда (M31)', dist:'2.5 млн св. р.', type:'Перетнута спіральна SA(s)b', mag:'3.4m', diam:'~152 000 св. р.', grad:'#3a2d4d,#12142a', fact:'Найближча велика галактика до нас, видима неозброєним оком. Зіткнеться з Чумацьким Шляхом приблизно через 4–10 млрд років.'},{cat:'spiral', name:'Трикутник (M33)', dist:'2.7 млн св. р.', type:'Спіральна Sc', mag:'5.7m', diam:'~60 000 св. р.', grad:'#2d3a4d,#12142a', fact:'Третя за розміром галактика Місцевої групи, можливо, супутник Андромеди — питання досі відкрите.'},{cat:'spiral', name:'Вир (M51)', dist:'23 млн св. р.', type:'Спіральна Sc, взаємодіє', mag:'8.4m', diam:'~60 000 св. р.', grad:'#1a3a4d,#0d0f1c', fact:'Класичний приклад гравітаційної взаємодії — менша галактика-супутник NGC 5195 деформує й підсилює спіральні рукави.'},{cat:'spiral', name:'Сомбреро (M104)', dist:'31 млн св. р.', type:'Спіральна/лінзоподібна Sa', mag:'8.0m', diam:'~50 000 св. р.', grad:'#4d3a1a,#0d0f1c', fact:'Яскравий гало й товстий пиловий диск створюють вигляд капелюха. У центрі — чорна діра масою ~1 млрд M☉.'},{cat:'peculiar', name:'Центавр A (NGC 5128)', dist:'12 млн св. р.', type:'Пекулярна лінзоподібна', mag:'6.8m', diam:'~60 000 св. р.', grad:'#4d1a2b,#0d0f1c', fact:'Одна з найяскравіших радіогалактик неба — наслідок нещодавнього злиття зі спіральною галактикою, що живить активну чорну діру.'},{cat:'spiral', name:'Вітрячок (M101)', dist:'21 млн св. р.', type:'Спіральна Sc', mag:'7.9m', diam:'~170 000 св. р.', grad:'#1a4d3a,#0d0f1c', fact:'Фізично більша за Чумацький Шлях, попри меншу масу — асиметрична форма спричинена гравітацією сусідніх карликових галактик.'},{cat:'irregular', name:'Сигара (M82)', dist:'12 млн св. р.', type:'Неправильна, старбьорст', mag:'8.4m', diam:'~37 000 св. р.', grad:'#4d2a1a,#0d0f1c', fact:'Темп зореутворення вдесятеро вищий за звичайні галактики через взаємодію з сусідньою M81 — потужний галактичний вітер видно в рентгені.'},{cat:'spiral', name:'Чорне Око (M64)', dist:'17 млн св. р.', type:'Спіральна Sa', mag:'8.5m', diam:'~54 000 св. р.', grad:'#2b1a4d,#0d0f1c', fact:'Темна смуга поглинання перед ядром дала назву. Внутрішній і зовнішній газ обертаються в протилежних напрямках — наслідок давнього злиття.'},{cat:'peculiar', name:'Антени (NGC 4038/4039)', dist:'45–65 млн св. р.', type:'Дві спіральні, що зливаються', mag:'10.3m', diam:'~130 000 св. р. (разом)', grad:'#4d1a1a,#0d0f1c', fact:'Дві галактики в процесі повного злиття — довгі припливні хвости з зір і газу нагадують антени комахи, звідси й назва.'},{cat:'peculiar', name:'Колесо (Cartwheel)', dist:'~500 млн св. р.', type:'Кільцева, пекулярна', mag:'15.2m', diam:'~150 000 св. р.', grad:'#4d3a2f,#0d0f1c', fact:'Кільцева форма утворилась після майже лобового зіткнення з меншою галактикою — хвиля зореутворення розійшлась назовні, як кола на воді.'},{cat:'irregular', name:'Велика Магелланова Хмара', dist:'~160 000 св. р.', type:'Неправильна, супутник Чумацького Шляху', mag:'0.9m', diam:'~14 000 св. р.', grad:'#3a4d1a,#0d0f1c', fact:'Видима неозброєним оком лише з південної півкулі — одна з найближчих галактик, у ній 1987 року спалахнула найяскравіша наднова за 400 років.'}];
+var nwGalIndex = 0;
+
+function nwRenderGalaxy(){
+  var g = nwGalaxies[nwGalIndex];
+  document.getElementById('galModalImg').style.background = 'linear-gradient(150deg,' + g.grad + ')';
+  document.getElementById('galCat').textContent = g.type;
+  document.getElementById('galTitle').textContent = g.name;
+  document.getElementById('galMeta').textContent = 'Відстань: ' + g.dist + ' · Величина: ' + g.mag + ' · Діаметр: ' + g.diam;
+  document.getElementById('galFact').textContent = g.fact;
+}
+
+function nwOpenGalaxy(i){
+  nwGalIndex = i;
+  nwRenderGalaxy();
+  document.getElementById('galModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function nwCloseGalaxy(){
+  document.getElementById('galModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function nwNavGalaxy(dir){
+  nwGalIndex = (nwGalIndex + dir + nwGalaxies.length) % nwGalaxies.length;
+  nwRenderGalaxy();
+}
+
+function nwGalBackdrop(evt){
+  if(evt.target.id === 'galModal') nwCloseGalaxy();
+}
+
+document.addEventListener('keydown', function(e){
+  var modal = document.getElementById('galModal');
+  if(!modal.classList.contains('open')) return;
+  if(e.key === 'Escape') nwCloseGalaxy();
+  if(e.key === 'ArrowLeft') nwNavGalaxy(-1);
+  if(e.key === 'ArrowRight') nwNavGalaxy(1);
+});
+
+function nwFilterGal(cat, btn){
+  document.querySelectorAll('.filters .filter-pill').forEach(function(el){
+    el.classList.toggle('on', el === btn);
+  });
+  document.querySelectorAll('#galGrid .photo-card').forEach(function(el){
+    el.style.display = (cat === 'all' || el.getAttribute('data-cat') === cat) ? '' : 'none';
+  });
+}
+</script>
 <footer>
   <div class="wrap">
     <div class="foot-grid">
@@ -1166,6 +1138,8 @@ h1.page-title{font-family:var(--font-display);font-weight:800;font-size:clamp(28
         <a href="mars.html">Фото з Марса</a>
         <a href="jupiter.html">Юпітер</a>
         <a href="mercury.html">Меркурій</a>
+        <a href="venus.html">Венера</a>
+        <a href="galaxies.html">Знамениті галактики</a>
         <a href="apod.html">Фото дня (APOD)</a>
         <a href="gallery.html">Фотоархів NASA</a>
         <a href="news.html">Космічні новини</a>

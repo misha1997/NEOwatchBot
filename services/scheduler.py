@@ -24,6 +24,7 @@ from database import (
     is_news_notified, mark_news_notified, cleanup_old_news_notifications,
     ingest_news_articles, get_news_articles,
     ingest_apod_entries,
+    ingest_galaxies, ingest_galaxy_photos,
     is_meteor_notified, mark_meteor_notified, cleanup_old_meteor_notifications,
     is_flare_notified, mark_flare_notified, cleanup_old_flare_notifications,
     is_storm_notified, mark_storm_notified, cleanup_old_storm_notifications,
@@ -717,6 +718,28 @@ class NotificationScheduler:
         except Exception as e:
             logger.error(f"APOD archive poll error: {e}")
 
+    async def poll_galaxies(self):
+        """Weekly refresh of the 12-galaxy catalog: re-fetch live NED redshift/
+        type for each galaxy and re-ingest any photos whose local mirror failed
+        on a previous run (idempotent — already-mirrored photos are skipped).
+
+        Runs every Monday at 03:00 Kyiv. Galaxy redshifts/types are effectively
+        static, so a weekly cadence is plenty; this mainly retries dropped image
+        downloads. This is the single live-fetch point for galaxies; the website
+        (``/api/galaxies`` + ``/api/galaxies/<slug>``) reads from the DB.
+        Best-effort: never raises."""
+        try:
+            from services.galaxies import build_galaxy_records, build_galaxy_photos
+            records = build_galaxy_records()
+            if records:
+                ingest_galaxies(records)
+                for r in records:
+                    photos = build_galaxy_photos(r['key'], r.get('nasa_query'))
+                    if photos:
+                        ingest_galaxy_photos(r['key'], photos)
+        except Exception as e:
+            logger.error(f"Galaxies poll error: {e}")
+
     async def poll_news_feed(self):
         """Fetch the SpaceflightNow RSS feed and ingest any new articles into
         the shared archive. Runs every 2 hours — this is the single live-fetch
@@ -1070,6 +1093,11 @@ class NotificationScheduler:
                 # it. Both the website and the bot read news from the DB.
                 if now.hour % 2 == 0 and now.minute == 0:
                     await self.poll_news_feed()
+
+                # Weekly galaxies refresh — Mondays at 03:00 Kyiv. Re-fetches
+                # NED redshift/type and retries any failed photo mirrors.
+                if now.weekday() == 0 and now.hour == 3 and now.minute == 0:
+                    await self.poll_galaxies()
 
                 # Daily news at 10:00 Kyiv time
                 if now.hour == 10 and now.minute == 0:

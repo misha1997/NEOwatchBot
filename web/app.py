@@ -241,6 +241,14 @@ _APOD_IMG_DIR = Path(__file__).resolve().parent.parent / "data" / "apod"
 _APOD_IMG_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/apod-img", StaticFiles(directory=_APOD_IMG_DIR), name="apod-img")
 
+# Locally-mirrored galaxy photos (data/galaxies/<key>/<nasa_id>-<full|thumb>.<ext>),
+# populated by the scheduler's poll_galaxies + the one-shot backfill_galaxies.
+# Served at /galaxy-img/<rel> so the gallery loads from our own server instead
+# of hotlinking images-assets.nasa.gov. Created on demand.
+_GAL_IMG_DIR = Path(__file__).resolve().parent.parent / "data" / "galaxies"
+_GAL_IMG_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/galaxy-img", StaticFiles(directory=_GAL_IMG_DIR), name="galaxy-img")
+
 
 def _spa_html(name: str, lang: str, status_code: int = 200,
               extra_jsonld: str = "", overrides: dict | None = None) -> HTMLResponse:
@@ -352,6 +360,18 @@ def _try_news_article(slug: str):
         return None
 
 
+def _try_galaxy(slug: str):
+    """Fetch a galaxy by slug for per-galaxy SEO meta; None if DB unavailable /
+    unknown slug. Lazy import so a DB outage never breaks the site shell."""
+    if not slug:
+        return None
+    try:
+        from database import get_galaxy_by_slug
+        return get_galaxy_by_slug(slug)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 async def _spa_lang(lang: str, rest: str, request: Request):
     """Serve the SPA shell (or redirect / 404) for a /<lang>/<rest> URL.
 
@@ -373,6 +393,7 @@ async def _spa_lang(lang: str, rest: str, request: Request):
     if path not in (f"/{pfx}/", f"/{pfx}") and path.endswith("/"):
         return RedirectResponse(url=path.rstrip("/") or f"/{pfx}", status_code=301)
     news_slug = slug_for_name("news", lang)
+    galaxies_slug = slug_for_name("galaxies", lang)
     name = "home"
     status = 200
     extra_jsonld = ""
@@ -405,6 +426,37 @@ async def _spa_lang(lang: str, rest: str, request: Request):
                     "en_alt": f"{SITE_URL}/en/{slug_for_name('news','en')}/{article_slug}",
                 }
                 extra_jsonld = _render_news_jsonld(article, lang)
+    elif rest.startswith(galaxies_slug + "/"):
+        tail = rest[len(galaxies_slug) + 1:]
+        galaxy_slug = tail.split("/")[0]
+        if not galaxy_slug or "/" in tail:
+            name = "404"
+            status = 404
+        else:
+            galaxy = _try_galaxy(galaxy_slug)
+            if galaxy is None:
+                # Unknown slug (or DB unreachable — can't verify). If the DB is
+                # down we can't tell, so serve the shell (200) and let the
+                # client decide; a real unknown slug 404s here.
+                from services.galaxies import GALAXY_BY_SLUG
+                if galaxy_slug not in GALAXY_BY_SLUG:
+                    name = "404"
+                    status = 404
+                else:
+                    name = "galaxies"
+            else:
+                name = "galaxies"
+                gname = (galaxy.get("name_uk") if lang == "uk" else galaxy.get("name_en")) \
+                    or galaxy.get("name_uk") or galaxy.get("name_en") or ""
+                gdesc = (galaxy.get("description_uk") if lang == "uk"
+                         else galaxy.get("description_en")) or galaxy.get("description_uk") or ""
+                overrides = {
+                    "title": (gname + " — " + ("Галактики" if lang == "uk" else "Galaxies")) or None,
+                    "desc": (gdesc or "")[:160] or None,
+                    "canonical": f"{SITE_URL}/{prefix_for(lang)}/{galaxies_slug}/{galaxy_slug}",
+                    "uk_alt": f"{SITE_URL}/ua/{slug_for_name('galaxies','uk')}/{galaxy_slug}",
+                    "en_alt": f"{SITE_URL}/en/{slug_for_name('galaxies','en')}/{galaxy_slug}",
+                }
     else:
         name = name_for_slug(lang, rest)
         if name == "404":
