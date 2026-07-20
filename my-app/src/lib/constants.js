@@ -52,7 +52,7 @@ export const NAV_GROUPS = [
   // { name: "community", labelKey: "nav.community" },
 ];
 
-export const BOT_URL = "https://t.me/NEOwatchBot";
+export const BOT_URL = "https://t.me/neo_watch_bot";
 
 // Launch Library 2 status id → (label, pillClass). Mirrors web/data.py _LAUNCH_STATUS.
 export const LAUNCH_STATUS_BY_CLASS = {
