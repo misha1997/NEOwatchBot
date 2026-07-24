@@ -88,7 +88,7 @@ export default function Venus() {
             <div className="eyebrow">{t("venus.hero.eyebrow")}</div>
             <h1 className="hero-title" dangerouslySetInnerHTML={{ __html: t("venus.hero.title") }} />
             <p className="hero-sub">{t("venus.hero.sub")}</p>
-            <div className="stat-mini" style={{ marginTop: 26, maxWidth: 420 }}>
+            <div className="stat-mini" style={{ marginTop: 26 }}>
               <div className="box">
                 <div className="n">{distStr}</div>
                 <div className="l">{t("venus.hero.distL")}</div>
