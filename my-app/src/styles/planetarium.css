@@ -515,3 +515,12 @@
 .planet-spin {
   animation: planetRotate 180s linear infinite;
 }
+
+.planet-spin-retro {
+  animation: planetRotateRetro 240s linear infinite;
+}
+
+@keyframes planetRotateRetro {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}

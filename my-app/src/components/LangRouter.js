@@ -31,6 +31,8 @@ const Planetarium = lazy(() => import("../pages/Planetarium"));
 const Mars = lazy(() => import("../pages/Mars"));
 const Jupiter = lazy(() => import("../pages/Jupiter"));
 const Mercury = lazy(() => import("../pages/Mercury"));
+const Earth = lazy(() => import("../pages/Earth"));
+const Venus = lazy(() => import("../pages/Venus"));
 const Galaxies = lazy(() => import("../pages/Galaxies"));
 const Galaxy = lazy(() => import("../pages/Galaxy"));
 const News = lazy(() => import("../pages/News"));
@@ -57,6 +59,8 @@ const PAGES = {
   mars: Mars,
   jupiter: Jupiter,
   mercury: Mercury,
+  earth: Earth,
+  venus: Venus,
   galaxies: Galaxies,
   news: News,
 };

@@ -81,7 +81,7 @@ class N2YOAPI:
                 return t('iss.no_passes', lang)
 
             passes = data['passes'][:5]
-            return N2YOAPI._format_passes(passes, lang)
+            return N2YOAPI._format_passes(passes, lon, lang)
 
         except Exception as e:
             logger.error(f"ISS passes error: {e}")
@@ -104,23 +104,37 @@ class N2YOAPI:
             return None
 
     @staticmethod
-    def _format_passes(passes, lang=DEFAULT_LANG):
+    def _format_passes(passes, lon=None, lang=DEFAULT_LANG):
         """Format ISS passes for Telegram"""
         message = t('iss.passes_title', lang)
-        kyiv = t('kyiv_time', lang)
+
+        is_ukraine = False
+        if lon is not None:
+            if 22 <= lon <= 40:
+                is_ukraine = True
+
+        from datetime import timezone as dt_timezone, timedelta
+        if is_ukraine or lon is None:
+            tz = KYIV_TZ
+            tz_label = t('kyiv_time', lang)
+        else:
+            offset_hours = round(lon / 15.0)
+            tz = dt_timezone(timedelta(hours=offset_hours))
+            sign = "+" if offset_hours >= 0 else ""
+            tz_label = f" (UTC{sign}{offset_hours})"
 
         for i, p in enumerate(passes, 1):
             start_utc = datetime.fromtimestamp(p['startUTC'], tz=timezone.utc)
             end_utc = datetime.fromtimestamp(p['endUTC'], tz=timezone.utc)
-            start_kyiv = start_utc.astimezone(KYIV_TZ)
-            end_kyiv = end_utc.astimezone(KYIV_TZ)
+            start_local = start_utc.astimezone(tz)
+            end_local = end_utc.astimezone(tz)
             duration = p['duration']
 
-            message += t('iss.pass_date', lang, i=i, date=start_kyiv.strftime('%d.%m.%Y'))
+            message += t('iss.pass_date', lang, i=i, date=start_local.strftime('%d.%m.%Y'))
             message += t('iss.pass_time', lang,
-                         start=start_kyiv.strftime('%H:%M'),
-                         end=end_kyiv.strftime('%H:%M'),
-                         kyiv=kyiv)
+                         start=start_local.strftime('%H:%M'),
+                         end=end_local.strftime('%H:%M'),
+                         kyiv=tz_label)
             message += t('iss.pass_duration', lang, dur=duration)
             message += t('iss.pass_mag', lang, mag=f"{p['mag']:.1f}")
 
@@ -130,47 +144,67 @@ class N2YOAPI:
     def get_starlink_passes(lat, lon, alt=0, days=7, lang=DEFAULT_LANG):
         """Get Starlink passes for given location"""
         try:
+            from web.cache import get_or_fetch
             from config import STARLINK_NORAD_IDS
 
-            all_passes = []
-            for sat_id in STARLINK_NORAD_IDS[:10]:  # Check first 10 satellites
-                url = f"{N2YO_BASE_URL}/visualpasses/{sat_id}/{lat}/{lon}/{alt}/{days}/60"
-                params = {'apiKey': N2YO_API_KEY}
+            key = f"starlink_passes:{round(lat,2)}:{round(lon,2)}:{lang}"
+            ttl = 3600  # 1 hour
 
-                try:
-                    response = requests.get(url, params=params, timeout=5)
-                    data = response.json()
+            def fetch():
+                all_passes = []
+                for sat_id in STARLINK_NORAD_IDS[:10]:
+                    url = f"{N2YO_BASE_URL}/visualpasses/{sat_id}/{lat}/{lon}/{alt}/{days}/60"
+                    params = {'apiKey': N2YO_API_KEY}
+                    try:
+                        response = requests.get(url, params=params, timeout=5)
+                        data = response.json()
+                        if 'passes' in data and data['passes']:
+                            for p in data['passes']:
+                                p['sat_id'] = sat_id
+                                all_passes.append(p)
+                    except:
+                        continue
+                return all_passes
 
-                    if 'passes' in data and data['passes']:
-                        for p in data['passes']:
-                            p['sat_id'] = sat_id
-                            all_passes.append(p)
-                except:
-                    continue
+            passes_data = get_or_fetch(key, ttl, fetch)
 
-            if not all_passes:
+            if not passes_data:
                 return t('starlink.no_passes', lang)
 
             # Sort by time and take first 5
-            all_passes.sort(key=lambda x: x['startUTC'])
-            return N2YOAPI._format_starlink_passes(all_passes[:5], lang)
+            passes_data.sort(key=lambda x: x['startUTC'])
+            return N2YOAPI._format_starlink_passes(passes_data[:5], lon, lang)
 
         except Exception as e:
-            logger.error(f"Starling passes error: {e}")
+            logger.error(f"Starlink passes error: {e}")
             return t('starlink.error', lang)
 
     @staticmethod
-    def _format_starlink_passes(passes, lang=DEFAULT_LANG):
+    def _format_starlink_passes(passes, lon=None, lang=DEFAULT_LANG):
         """Format Starlink passes for Telegram"""
         message = t('starlink.title', lang)
-        kyiv = t('kyiv_time', lang)
+
+        is_ukraine = False
+        if lon is not None:
+            if 22 <= lon <= 40:
+                is_ukraine = True
+
+        from datetime import timezone as dt_timezone, timedelta
+        if is_ukraine or lon is None:
+            tz = KYIV_TZ
+            tz_label = t('kyiv_time', lang)
+        else:
+            offset_hours = round(lon / 15.0)
+            tz = dt_timezone(timedelta(hours=offset_hours))
+            sign = "+" if offset_hours >= 0 else ""
+            tz_label = f" (UTC{sign}{offset_hours})"
 
         for i, p in enumerate(passes, 1):
             start_utc = datetime.fromtimestamp(p['startUTC'], tz=timezone.utc)
-            start_kyiv = start_utc.astimezone(KYIV_TZ)
+            start_local = start_utc.astimezone(tz)
 
             message += t('starlink.item', lang, i=i,
-                          date=start_kyiv.strftime('%d.%m.%Y %H:%M'),
-                          kyiv=kyiv, mag=f"{p['mag']:.1f}", el=p['maxEl'])
+                          date=start_local.strftime('%d.%m.%Y %H:%M'),
+                          kyiv=tz_label, mag=f"{p['mag']:.1f}", el=p['maxEl'])
 
         return message

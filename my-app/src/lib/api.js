@@ -51,6 +51,8 @@ export const getApodArchivePage = (page, pageSize, lang) => {
 export const getDebris = () => fetchJSON(API + "/debris");
 export const getJupiter = () => fetchJSON(API + "/jupiter");
 export const getMercury = () => fetchJSON(API + "/mercury");
+export const getEarth = () => fetchJSON(API + "/earth");
+export const getVenus = () => fetchJSON(API + "/venus");
 // Famous-galaxies hub: 12 cards with a preview thumbnail + live NED
 // redshift/type. {available, items[]}.
 export const getGalaxies = (lang) => fetchJSON(API + "/galaxies" + withLang("", lang));

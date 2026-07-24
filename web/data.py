@@ -38,6 +38,7 @@ from services.astronomy import (
 from services.debris import SpaceDebrisAPI
 from services.jupiter import get_jupiter as _build_jupiter
 from services.mercury import get_mercury as _build_mercury
+from services.venus import get_venus as _build_venus
 from services.grb_alerts import GRBAlertAPI
 from services.comets import CometAPI
 from services.exoplanets import ExoplanetAPI
@@ -374,16 +375,31 @@ async def get_launches() -> dict:
 # ISS passes
 # ---------------------------------------------------------------------------
 
-def _iss_pass_row(p: dict, lang: str = DEFAULT_LANG) -> dict:
+def _iss_pass_row(p: dict, lon: float | None = None, lang: str = DEFAULT_LANG) -> dict:
     """Map one N2YO visualpasses record to a dashboard card payload."""
     start_utc = datetime.fromtimestamp(p["startUTC"], tz=timezone.utc)
-    # Kyiv time for display (the bot uses Europe/Kyiv too).
+    
+    is_ukraine = False
+    if lon is not None:
+        if 22 <= lon <= 40:
+            is_ukraine = True
+            
     try:
-        from zoneinfo import ZoneInfo
-        local = start_utc.astimezone(ZoneInfo("Europe/Kyiv"))
-        when = local.strftime("%d.%m · %H:%M")
+        if is_ukraine or lon is None:
+            from zoneinfo import ZoneInfo
+            local = start_utc.astimezone(ZoneInfo("Europe/Kyiv"))
+            tz_label = ""
+        else:
+            from datetime import timezone as dt_timezone, timedelta
+            offset_hours = round(lon / 15.0)
+            local = start_utc.astimezone(dt_timezone(timedelta(hours=offset_hours)))
+            sign = "+" if offset_hours >= 0 else ""
+            tz_label = f" UTC{sign}{offset_hours}"
+            
+        when = local.strftime("%d.%m · %H:%M") + tz_label
     except Exception:
         when = start_utc.strftime("%d.%m · %H:%M UTC")
+        
     return {
         "start": when,
         "start_utc": p.get("startUTC"),
@@ -400,7 +416,7 @@ def _iss_passes_raw(lat: float, lon: float, lang: str = DEFAULT_LANG) -> dict:
     passes = (data or {}).get("passes") or []
     return {
         "lat": lat, "lon": lon,
-        "items": [_iss_pass_row(p, lang) for p in passes[:4]],
+        "items": [_iss_pass_row(p, lon, lang) for p in passes[:4]],
     }
 
 
@@ -436,7 +452,7 @@ def _sky_raw(lat: float, lon: float, lang: str = DEFAULT_LANG) -> dict:
         passes = (pdata or {}).get("passes") or []
         if passes:
             p = passes[0]
-            row = _iss_pass_row(p, lang)
+            row = _iss_pass_row(p, lon, lang)
             events.append({
                 "kind": "iss",
                 "emoji": "🛰️",
@@ -1745,6 +1761,97 @@ def _mercury_raw() -> dict:
 
 async def get_mercury() -> dict:
     return await asyncio.to_thread(get_or_fetch, "mercury", MERCURY_TTL, _mercury_raw)
+
+
+EARTH_TTL = 300
+
+
+def _earth_raw() -> dict:
+    """Fetch CO2, temperature anomaly from global-warming.org, and latest earthquake from USGS."""
+    import time
+    
+    out = {
+        "co2": None,
+        "co2_trend": None,
+        "temperature_anomaly": None,
+        "sea_level_rise_mm": None,
+        "latest_earthquake": None
+    }
+    
+    # 1. Fetch CO2
+    try:
+        r = requests.get("https://global-warming.org/api/co2-api", timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            if data.get("co2"):
+                latest = data["co2"][-1]
+                out["co2"] = float(latest.get("cycle", 0))
+                out["co2_trend"] = float(latest.get("trend", 0))
+    except Exception as e:
+        logger.error("Failed to fetch CO2 from global-warming.org: %s", e)
+        
+    # 2. Fetch Temperature
+    try:
+        r = requests.get("https://global-warming.org/api/temperature-api", timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            if data.get("result"):
+                latest = data["result"][-1]
+                out["temperature_anomaly"] = float(latest.get("station", 0))
+    except Exception as e:
+        logger.error("Failed to fetch temperature anomaly: %s", e)
+        
+    # 3. Sea level rise (NASA estimates about 104mm since 1993, growing at ~3.4mm per year).
+    # Since there's no reliable JSON API, we calculate it dynamically.
+    try:
+        base_time = time.mktime(time.strptime("2026-01-01 00:00:00", "%Y-%m-%d %H:%M:%S"))
+        elapsed = time.time() - base_time
+        growth_per_sec = 3.4 / (365.25 * 86400)
+        out["sea_level_rise_mm"] = round(104.0 + elapsed * growth_per_sec, 2)
+    except Exception as e:
+        out["sea_level_rise_mm"] = 104.0
+        
+    # 4. Fetch latest earthquake > 5.0
+    try:
+        r = requests.get("https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=5.0&limit=1", timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            features = data.get("features", [])
+            if features:
+                props = features[0].get("properties", {})
+                mag = props.get("mag")
+                place = props.get("place")
+                epoch_time = props.get("time", 0) / 1000.0
+                elapsed_min = int((time.time() - epoch_time) / 60.0)
+                out["latest_earthquake"] = {
+                    "mag": mag,
+                    "place": place,
+                    "time_epoch": epoch_time,
+                    "elapsed_min": elapsed_min
+                }
+    except Exception as e:
+        logger.error("Failed to fetch latest earthquake: %s", e)
+        
+    return out
+
+
+async def get_earth() -> dict:
+    return await asyncio.to_thread(get_or_fetch, "earth", EARTH_TTL, _earth_raw)
+
+
+VENUS_TTL = 300
+
+
+def _venus_raw() -> dict:
+    try:
+        return _build_venus()
+    except Exception as e:
+        logger.error("venus: %s", e)
+        return {}
+
+
+async def get_venus() -> dict:
+    return await asyncio.to_thread(get_or_fetch, "venus", VENUS_TTL, _venus_raw)
 
 
 # ---------------------------------------------------------------------------

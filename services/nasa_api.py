@@ -218,7 +218,7 @@ class NasaAPI:
         media_type = data.get('media_type', 'image')
         video_url = data.get('url', '') if media_type == 'video' else ''
         if media_type == 'video':
-            image_url = data.get('thumbnail_url') or data.get('url', '')
+            image_url = data.get('thumbnail') or data.get('url', '')
         else:
             image_url = data.get('hdurl') or data.get('url', '')
 

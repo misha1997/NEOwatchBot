@@ -19,14 +19,14 @@ export const PLANETS = [
   },
   {
     key: "venus", labelKey: "nav.venus", to: "venus",
-    disabled: true, accent: "#E8C07A", img: "/planets/Venus.png",
+    disabled: false, accent: "#E8C07A", img: "/planets/Venus.png",
     grad: ["#F3DDA0", "#E8C07A", "#A9763E"],
     facts: { dia: "12 104", day: "243", year: "225", gravity: "8.87", moons: "0", temp: "+464 °C" },
     blurbKey: "planetarium.blurbs.venus",
   },
   {
     key: "earth", labelKey: "nav.earth", to: "earth",
-    disabled: true, accent: "#4FA3D9", img: "/planets/Earth.png",
+    disabled: false, accent: "#4FA3D9", img: "/planets/Earth.png",
     grad: ["#7FC3E8", "#4FA3D9", "#2E6FA8"],
     facts: { dia: "12 742", day: "24", year: "365.25", gravity: "9.81", moons: "1", temp: "+15 °C" },
     blurbKey: "planetarium.blurbs.earth",

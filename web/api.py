@@ -221,6 +221,18 @@ async def mercury():
     return await data.get_mercury()
 
 
+@router.get("/earth")
+async def earth():
+    """Live Earth climate vital signs (CO2, temperature anomaly) and real-time earthquake data."""
+    return await data.get_earth()
+
+
+@router.get("/venus")
+async def venus():
+    """Live Earth-Venus distance and next apparition events."""
+    return await data.get_venus()
+
+
 @router.get("/galaxies")
 async def galaxies(lang: str = LANG_Q):
     """Famous-galaxies hub: 12 cards (curated catalog + live NED redshift/type)
