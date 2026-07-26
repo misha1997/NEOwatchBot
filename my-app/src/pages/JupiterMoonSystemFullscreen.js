@@ -46,6 +46,7 @@
 //   - Orbit Graphics are drawn once; only moon positions are updated each frame.
 //
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import * as PIXI from "pixi.js";
 import { useApi } from "../hooks/useApi";
@@ -1320,7 +1321,7 @@ export default function JupiterMoonSystemFullscreen({ onClose }) {
   // -------------------------------------------------------------------------
   const selected = selectedIndex != null ? geo[selectedIndex] : null;
 
-  return (
+  return createPortal(
     <div ref={wrapRef} className="jms-fullscreen-wrap" role="dialog" aria-modal="true" aria-label={t("jupiter.system.fullscreenTitle")}>
       <div ref={canvasWrapRef} className="jms-canvas-wrap" />
 
@@ -1419,6 +1420,7 @@ export default function JupiterMoonSystemFullscreen({ onClose }) {
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

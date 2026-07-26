@@ -533,7 +533,7 @@
 .jms-fullscreen-wrap {
   position: fixed;
   inset: 0;
-  z-index: 110;
+  z-index: 9999;
   background: #05060d;
   display: flex;
   flex-direction: column;
