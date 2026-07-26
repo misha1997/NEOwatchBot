@@ -10,11 +10,11 @@
 //
 // When fullscreen, an extra effect locks body scroll and closes on Escape.
 import { useEffect, useState, useMemo, useRef } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useLoc } from "../context/LocationContext";
 import { useLang } from "../context/LanguageContext";
 import { getConstellationDetails } from "../lib/constellation_details";
+import ConstellationMapFullscreenPixi from "./ConstellationMapFullscreenPixi";
 import "../styles/constellations.css";
 
 const CX = 750;
@@ -149,7 +149,6 @@ export default function ConstellationMap() {
   // the overlay reuses the same component state so pan/zoom/selection persist).
   const [showFs, setShowFs] = useState(false);
   const [geoInfo, setGeoInfo] = useState(null);
-  const [hideBottomBar, setHideBottomBar] = useState(false);
 
   // Pan & Zoom States (Zoom default 3.0, allow deep zoom up to 60.0)
   const [zoom, setZoom] = useState(3.0);
@@ -774,53 +773,19 @@ export default function ConstellationMap() {
 
   // --- fullscreen overlay (map fills screen + floating controls, like jms) ---
   if (showFs) {
-    return createPortal(
-      <div className="cfm-fullscreen-wrap" role="dialog" aria-modal="true" aria-label={t("title.constellations") || "Сузір'я"}>
-        {/* Sky map fills the whole screen */}
-        <div className="cfm-map-layer">
-          {mapSvgBlock}
-          {zoomButtons}
-        </div>
-
-        {/* Top-left title bar / close */}
-        <div className="cfm-top-bar">
-          <div>
-            <div className="cfm-title">{lang === "en" ? "Constellation map" : "Карта сузір'їв"}</div>
-            <div className="cfm-sub">
-              {lang === "en"
-                ? "Fullscreen sky viewer — drag, zoom, hover stars for details."
-                : "Повноекранний оглядач неба — перетягуй, зуми, наведи на зорю для деталей."}
-            </div>
-          </div>
-          <button className="cfm-btn cfm-btn-close" onClick={() => setShowFs(false)} aria-label={lang === "en" ? "Close" : "Закрити"}>
-            ✕
-          </button>
-        </div>
-
-        {/* Bottom floating controls: geolocate + seasons + status, then picker pills */}
-        <div className={`cfm-bottom-bar ${hideBottomBar ? "collapsed" : ""}`}>
-          <button
-            type="button"
-            className="cfm-toggle-bar-btn"
-            onClick={() => setHideBottomBar(!hideBottomBar)}
-            aria-label={hideBottomBar ? (lang === "en" ? "Show Panel" : "Показати панель") : (lang === "en" ? "Hide Panel" : "Сховати панель")}
-          >
-            {hideBottomBar ? "▲" : "▼"} {lang === "en" ? (hideBottomBar ? "Show Panel" : "Hide Panel") : (hideBottomBar ? "Показати панель" : "Сховати панель")}
-          </button>
-          <div className="cfm-control-row">
-            {geoControlsCompact}
-          </div>
-          {statusMsg && (
-            <div className={`geo-status cfm-status ${statusMsg.includes("Не вдалося") || statusMsg.includes("failed") ? "err" : (seasonFilter || geoInfo ? "ok" : "")}`}>
-              {statusMsg}
-            </div>
-          )}
-          <div className="cfm-pills-row">{pillsInner}</div>
-        </div>
-
-        {tooltipNode}
-      </div>,
-      document.body
+    return (
+      <ConstellationMapFullscreenPixi
+        onClose={() => setShowFs(false)}
+        activeConst={activeConst}
+        setActiveConst={setActiveConst}
+        currentTime={currentTime}
+        latLon={latLon}
+        seasonFilter={seasonFilter}
+        geoInfo={geoInfo}
+        statusMsg={statusMsg}
+        geoControlsCompact={geoControlsCompact}
+        pillsInner={pillsInner}
+      />
     );
   }
 
