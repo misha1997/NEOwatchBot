@@ -411,7 +411,11 @@
   overflow: hidden;
   background: rgba(237,238,245,.02);
 }
-.moon-card .photo { aspect-ratio: 1/1; position: relative; }
+.moon-card .photo {
+  aspect-ratio: 1/1;
+  position: relative;
+  background: radial-gradient(circle, #101222 0%, #05060d 100%);
+}
 .moon-card .photo .tag {
   position: absolute; top: 10px; left: 10px;
   font-family: var(--font-mono); font-size: 9.5px; color: var(--gold);
@@ -434,34 +438,52 @@
 .depth-marks { flex: 1; position: relative; height: 100%; }
 
 /* ---------- Jupiter full moon system (live, all moons on real orbits) ---------- */
-.jup-sys-wrap { position: relative; }
-.jup-sys-wrap svg { width: 100%; height: auto; display: block; max-width: 640px; margin: 0 auto; }
-.jup-sys-svg { cursor: grab; touch-action: none; }
-.jup-sys-svg:active { cursor: grabbing; }
-/* zoom controls overlay (top-right of the diagram) */
-.jup-sys-controls {
-  position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 4px; z-index: 5;
-}
-.jup-sys-controls button {
-  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
-  border-radius: 8px; border: 1px solid var(--border); background: var(--card, rgba(20,24,38,.82));
-  color: var(--text); font-size: 16px; line-height: 1; cursor: pointer;
-  backdrop-filter: blur(6px); transition: background .15s, border-color .15s;
-}
-.jup-sys-controls button:hover { border-color: var(--gold, #c9a24a); }
-.jup-sys-controls button:last-child { font-size: 15px; }
-/* faint per-moon orbit circle (real log-compressed radius); highlighted on hover */
+/* max-width matches the SVG so an absolutely-positioned corner button
+   sits at the top-left of the map itself, not the wider section column */
+.jup-sys-wrap { position: relative; max-width: 640px; margin: 0 auto; }
+.jup-sys-wrap svg { width: 100%; height: auto; display: block; }
+.jup-sys-svg { touch-action: none; cursor: default; }
+/* faint per-moon orbit circle (true linear radius); highlighted on hover */
 .jup-orbit { fill: none; stroke-width: 1; opacity: .08; transition: opacity .15s; }
-.jup-orbit.hl { opacity: .55; stroke-width: 1.4; }
+.jup-orbit.hl { opacity: .6; stroke-width: 2.5; }
 /* moon dot: tiny fill + a transparent wide stroke enlarges the hover hit area
    without changing the visible size (keeps one element per moon for the rAF
    loop to drive via cx/cy) */
-.jup-moon-dot { cursor: help; pointer-events: visiblePainted; }
+.jup-moon-dot { cursor: help; pointer-events: visiblePainted; filter: drop-shadow(0 0 2px rgba(255,255,255,.55)); }
+/* pinned (clicked) moon in the mini-map: a soft glow marks the selection
+   alongside its highlighted orbit ring */
+.jup-moon-dot.sel { filter: drop-shadow(0 0 4px #fff); }
 .jup-sys-loading {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
 }
+/* fullscreen icon button — sits in the top-left corner of the mini-map */
+.jup-sys-cta {
+  position: absolute; top: 10px; left: 10px; z-index: 4;
+  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; padding: 0; border-radius: 10px;
+  border: 1px solid var(--border); background: rgba(20,24,38,.82);
+  color: var(--text); cursor: pointer; backdrop-filter: blur(6px);
+  transition: background .15s, border-color .15s, transform .08s;
+}
+.jup-sys-cta:hover { border-color: var(--gold, #c9a24a); background: rgba(20,24,38,.95); }
+.jup-sys-cta:active { transform: translateY(1px); }
+.jup-sys-cta-ico { font-size: 18px; line-height: 1; color: var(--gold, #c9a24a); }
+/* hover/focus tooltip describing what the button opens */
+.jup-sys-cta-tip {
+  position: absolute; top: calc(100% + 8px); left: 0;
+  width: max-content; max-width: 230px;
+  padding: 8px 11px; border-radius: 8px;
+  background: rgba(12,15,26,.96); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font-mono); font-size: 11.5px; line-height: 1.45;
+  text-align: left; white-space: normal;
+  opacity: 0; pointer-events: none; transform: translateY(-3px);
+  transition: opacity .15s, transform .15s; z-index: 6;
+}
+.jup-sys-cta:hover .jup-sys-cta-tip,
+.jup-sys-cta:focus-visible .jup-sys-cta-tip { opacity: 1; transform: translateY(0); }
+.jup-sys-cta:focus-visible { outline: 2px solid var(--gold, #c9a24a); outline-offset: 2px; }
 .jup-legend { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
 
 /* hover tooltip (per moon) */
@@ -505,6 +527,235 @@
   .depth-wrap { flex-direction: column; height: auto; }
   .depth-bar { width: 100%; height: 70px; background: linear-gradient(to right, #D8A46E, #B5651D 35%, #6b3410 65%, #2a1408); }
   .depth-marks { height: 260px; }
+}
+
+/* ---------- Jupiter moon system fullscreen (PixiJS) ---------- */
+.jms-fullscreen-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: #05060d;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--text);
+}
+.jms-canvas-wrap {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+  touch-action: none;
+  pointer-events: none; /* let Pixi canvas receive pointer events directly */
+}
+.jms-canvas-wrap:active { cursor: grabbing; }
+.jms-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+/* Top-left title bar */
+.jms-top-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(5,6,13,.75), transparent);
+}
+.jms-top-bar > * { pointer-events: auto; }
+.jms-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.25;
+}
+.jms-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* Floating controls */
+.jms-controls {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(20,24,38,.82);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+.jms-btn {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(9,10,20,.55);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.jms-btn:hover { border-color: var(--gold); background: rgba(9,10,20,.85); }
+/* Text toggle button (orbit mode): wider than the icon buttons, slightly
+   smaller font so "Еліпси"/"Круги" fits on one line. */
+.jms-btn-toggle {
+  width: auto;
+  min-width: 84px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+}
+.jms-btn-close {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  font-size: 15px;
+}
+.jms-select {
+  height: 36px;
+  min-width: 160px;
+  max-width: 220px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(9,10,20,.55);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+.jms-select option { background: #0d0f1a; color: var(--text); }
+
+/* Hint text */
+.jms-hint {
+  position: absolute;
+  bottom: 22px;
+  left: 22px;
+  max-width: 260px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  line-height: 1.55;
+  pointer-events: none;
+  opacity: .85;
+}
+
+/* Detail card */
+.jms-card {
+  position: absolute;
+  top: 78px;
+  right: 22px;
+  width: 300px;
+  max-width: calc(100vw - 44px);
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 18px 20px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.55);
+  pointer-events: auto;
+}
+.jms-card h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  margin-bottom: 12px;
+  color: var(--gold);
+}
+.jms-card-close {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(9,10,20,.55);
+  color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+}
+.jms-card-close:hover { background: rgba(9,10,20,.85); border-color: var(--gold); }
+.jms-card-photo-wrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  background: #06070d;
+}
+.jms-card-photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 220px;
+  object-fit: contain;
+}
+.jms-card-photo-cap {
+  position: absolute;
+  bottom: 8px; right: 8px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-dim);
+  background: rgba(5,6,13,.6);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.jms-card-no-photo {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+  text-align: center;
+  background: rgba(237,238,245,.03);
+}
+.jms-card-no-photo span {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.jms-card-no-photo p {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  margin-top: 8px;
+  line-height: 1.55;
+}
+.jms-card-rows { display: flex; flex-direction: column; }
+.jms-card-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.jms-card-row:last-child { border-bottom: none; }
+.jms-card-row span { color: var(--text-dim); font-size: 10.5px; }
+.jms-card-row b { color: var(--text); font-weight: 500; text-align: right; }
+
+@media (max-width: 900px) {
+  .jms-card { top: auto; bottom: 90px; right: 16px; left: 16px; width: auto; }
+  .jms-hint { display: none; }
+  .jms-title { font-size: 16px; }
 }
 
 @keyframes planetRotate {

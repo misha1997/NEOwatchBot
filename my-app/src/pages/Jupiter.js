@@ -3,20 +3,22 @@
 //   - hero: live geocentric distance + signal travel time (JPL de440s
 //     ephemeris via skyfield) and the eight orbiting moons animated at their
 //     REAL relative periods (Metis fastest, Callisto slowest);
-//   - "full moon system": ALL known satellites drawn on a TRUE linear scale
-//     (real semi-major axes: 128 000 km Metis .. ~24 000 000 km outer irregulars,
+//   - "moon system": ALL known satellites drawn on a TRUE linear scale (real
+//     semi-major axes: 128 000 km Metis .. ~24 000 000 km outer irregulars,
 //     a ~190× span), colored by real direction (prograde teal / retrograde
 //     coral), animated at real relative angular speed, with a hover tooltip per
-//     moon and the live count. The inner 8 moons cluster near the centre, so
-//     zoom/pan is provided to inspect them;
+//     moon and the live count. The inner 8 moons cluster near the centre; a
+//     CTA opens the fullscreen PixiJS explorer for deep zoom, real photos and
+//     per-moon detail cards. The mini-map itself has no zoom/pan;
 //   - next opposition: date served from the API, countdown ticks client-side.
 // All prose is localized via `jupiter.*` i18n keys.
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SectionHead from "../components/primitives/SectionHead";
 import { useSeo } from "../hooks/useSeo";
 import { useApi } from "../hooks/useApi";
 import { getJupiter } from "../lib/api";
+import JupiterMoonSystemFullscreen from "./JupiterMoonSystemFullscreen";
 import "../styles/planetarium.css";
 
 // Fresh imagery of Jupiter clouds (JunoCam flybys)
@@ -101,9 +103,6 @@ const SYS = { vb: 640, cx: 320, cy: 320, rMin: 32, rMax: 300 };
 // relative to the moons' orbits (Metis, the innermost moon, orbits at 128 000 km,
 // only ~1.8× the planet's radius).
 const JUPITER_RADIUS_KM = 69911;
-// Zoom limits for the full-system viewBox (square, so width == height).
-const ZOOM_MIN_W = 6;  // max zoom-in viewBox width — allow deep zoom to inspect the inner system
-const ZOOM_MAX_W = SYS.vb; // never zoom out past the full system
 
 function breakdown(ms) {
   const total = Math.max(0, ms);
@@ -115,7 +114,7 @@ function breakdown(ms) {
 
 // Group digits with thin spaces (Ukrainian convention): 421800 -> "421 800".
 function spacer(n) {
-  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 
 export default function Jupiter() {
@@ -140,6 +139,10 @@ export default function Jupiter() {
   // ---- opposition countdown (date from API; ticks client-side) -------------
   const [now, setNow] = useState(() => Date.now());
   const [modalIdx, setModalIdx] = useState(null);
+  const [showFullscreen, setShowFullscreen] = useState(false);
+  // Pinned moon selection in the mini-map: clicking a dot or its orbit keeps
+  // that orbit highlighted (independent of hover). Toggle — click again to clear.
+  const [selectedI, setSelectedI] = useState(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30000);
@@ -172,12 +175,19 @@ export default function Jupiter() {
     return { ...breakdown(diff), passed: false };
   }, [now, data]);
 
+  // ---- full moon system: per-group counts for the legend ------------------
+  const counts = useMemo(() => {
+    const c = { ring: 0, galilean: 0, himalia: 0, ananke: 0, carme: 0, pasiphae: 0 };
+    for (const m of moons) c[m.group] = (c[m.group] || 0) + 1;
+    return c;
+  }, [moons]);
+
   // ---- full moon system: per-moon static geometry --------------------------
-  // Orbit radii are drawn on a TRUE linear scale (real semi-major axes a_km),
-  // not log-compressed: Metis (128 000 km) sits next to Jupiter and the outer
-  // irregulars (~24 000 000 km) sit near the edge — a ~190× span. The inner 8
-  // moons therefore cluster tightly near the centre; use zoom/pan to inspect
-  // them. This is the honest geometry; only the angular animation is sped up.
+  // Orbit radii are drawn on a TRUE linear scale (real semi-major axes a_km):
+  // Metis (128 000 km) sits next to Jupiter and the outer irregulars
+  // (~24 000 000 km) sit near the edge — a ~190× span. The inner 8 moons
+  // therefore cluster tightly near the centre; this is the honest geometry and
+  // matches the fullscreen PixiJS viewer. Only the angular animation is sped up.
   const geo = useMemo(() => {
     if (!moons.length) return [];
     const as = moons.map((m) => m.a_km);
@@ -197,21 +207,17 @@ export default function Jupiter() {
       const r = SYS.rMax * (m.a_km / aMax);
       const sgn = m.prograde ? 1 : -1;
       const size = getMoonSize(m);
+      // The mini-map is a simplified overview: orbits drawn as circles (radius
+      // = semi-major axis) and uniform angular motion. The accurate Keplerian
+      // ellipses + variable speed live in the fullscreen viewer (toggle there).
       return { ...m, r, sgn, size, color: m.prograde ? "var(--teal)" : "var(--coral)" };
     });
   }, [moons]);
 
-  // Jupiter disc radius, true-scaled to the same mapping as the orbits:
-  // JUPITER_RADIUS_KM (69,911 km) mapped proportionally to the outermost moon's a_km.
+  // Jupiter disc radius, true-scaled to the same mapping as the orbits.
   const discR = useMemo(() => {
     const aMax = moons.length ? Math.max(...moons.map((m) => m.a_km)) : 24203300;
     return SYS.rMax * (JUPITER_RADIUS_KM / aMax);
-  }, [moons]);
-
-  const counts = useMemo(() => {
-    const c = { ring: 0, galilean: 0, himalia: 0, ananke: 0, carme: 0, pasiphae: 0 };
-    for (const m of moons) c[m.group] = (c[m.group] || 0) + 1;
-    return c;
   }, [moons]);
 
   // ---- full moon system: animation (imperative, one rAF for all dots) ------
@@ -225,121 +231,46 @@ export default function Jupiter() {
     const kids = g.children;
     const t0 = performance.now();
     const daysSinceEpoch = (Date.now() - EPOCH_MS) / 86400000;
-    const place = (m, simDays) => {
-      const total = daysSinceEpoch + simDays;
+    // Simplified circular motion: uniform angular speed, radius = semi-major
+    // axis. (Keplerian ellipses + variable speed are in the fullscreen viewer.)
+    const place = (m, total) => {
       const ang = (m.sgn * (m.m0_deg + (360 / m.period_d) * total) * Math.PI) / 180;
       return [SYS.cx + m.r * Math.cos(ang), SYS.cy - m.r * Math.sin(ang)];
     };
     // initial positions before first paint (no origin flash)
     for (let i = 0; i < geo.length; i++) {
-      const [x, y] = place(geo[i], 0);
+      const [x, y] = place(geo[i], daysSinceEpoch);
       kids[i].setAttribute("cx", x.toFixed(2));
       kids[i].setAttribute("cy", y.toFixed(2));
     }
     let raf;
+    // The outer moons barely move per second (periods of months–years at
+    // TIME_SCALE=0.1), so the SVG dot repaint is capped at ~30 fps to keep the
+    // 115-dot + 115-ring SVG cheap. simDays is derived from real elapsed time,
+    // so throttling renders does not slow the motion — only the repaint rate.
+    let lastRender = -1;
     const frame = (t) => {
-      const simDays = ((t - t0) / 1000) * TIME_SCALE;
+      raf = requestAnimationFrame(frame);
+      if (lastRender >= 0 && t - lastRender < 33) return;
+      lastRender = t;
+      const total = daysSinceEpoch + ((t - t0) / 1000) * TIME_SCALE;
       for (let i = 0; i < geo.length; i++) {
-        const [x, y] = place(geo[i], simDays);
+        const [x, y] = place(geo[i], total);
         kids[i].setAttribute("cx", x.toFixed(2));
         kids[i].setAttribute("cy", y.toFixed(2));
       }
-      raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
   }, [geo]);
 
-  // ---- full moon system: zoom + pan of the SVG viewBox ----------------------
-  // The moon dots are positioned imperatively in the fixed 0..640 SYS space
-  // (see the rAF loop above); zoom/pan only reframes the viewBox, so the
-  // animation keeps running untouched at any zoom level.
-  const sysSvgRef = useRef(null);
-  const viewRef = useRef({ x: 0, y: 0, w: SYS.vb, h: SYS.vb });
-  const dragRef = useRef(null); // { x, y, v } while dragging
-
-  const clampView = (v) => {
-    const margin = v.w * 0.15;
-    const x = Math.max(-margin, Math.min(SYS.vb - v.w + margin, v.x));
-    const y = Math.max(-margin, Math.min(SYS.vb - v.h + margin, v.y));
-    return { ...v, x, y };
-  };
-
-  const applyView = useCallback((v) => {
-    viewRef.current = v;
-    const svg = sysSvgRef.current;
-    if (!svg) return;
-    svg.setAttribute("viewBox", `${v.x.toFixed(2)} ${v.y.toFixed(2)} ${v.w.toFixed(2)} ${v.w.toFixed(2)}`);
-
-    const g = dotsRef.current;
-    if (!g) return;
-    const kids = g.children;
-    if (kids.length === geo.length) {
-      const scale = v.w / SYS.vb;
-      for (let i = 0; i < geo.length; i++) {
-        const size = geo[i].size;
-        kids[i].setAttribute("r", (size * scale).toFixed(2));
-        kids[i].setAttribute("stroke-width", (8 * scale).toFixed(2));
-      }
-    }
-  }, [geo]);
-
-  // Wheel zoom must preventDefault(), which React's synthetic onWheel can't do
-  // (passive root listener) — attach a native non-passive listener instead.
-  useEffect(() => {
-    const svg = sysSvgRef.current;
-    if (!svg) return;
-    const onWheel = (e) => {
-      e.preventDefault();
-      const rect = svg.getBoundingClientRect();
-      const v = viewRef.current;
-      const sx = v.x + ((e.clientX - rect.left) / rect.width) * v.w;
-      const sy = v.y + ((e.clientY - rect.top) / rect.height) * v.h;
-      const factor = e.deltaY < 0 ? 0.82 : 1.22;
-      const w = Math.max(ZOOM_MIN_W, Math.min(ZOOM_MAX_W, v.w * factor));
-      const x = sx - (sx - v.x) * (w / v.w);
-      const y = sy - (sy - v.y) * (w / v.w);
-      applyView(clampView({ x, y, w, h: w }));
-    };
-    svg.addEventListener("wheel", onWheel, { passive: false });
-    return () => svg.removeEventListener("wheel", onWheel);
-  }, [geo, applyView]); // Re-attach wheel listener if geo length changes so kids.length matches
-
-  const onPointerDown = (e) => {
-    if (e.button !== 0) return;
-    dragRef.current = { x: e.clientX, y: e.clientY, v: { ...viewRef.current } };
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-  const onPointerMove = (e) => {
-    const d = dragRef.current;
-    if (!d) return;
-    const rect = sysSvgRef.current.getBoundingClientRect();
-    const dx = ((e.clientX - d.x) / rect.width) * d.v.w;
-    const dy = ((e.clientY - d.y) / rect.height) * d.v.h;
-    applyView(clampView({ x: d.v.x - dx, y: d.v.y - dy, w: d.v.w, h: d.v.h }));
-  };
-  const onPointerUp = (e) => {
-    dragRef.current = null;
-    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* noop */ }
-  };
-
-  const zoomBtn = (factor) => {
-    const v = viewRef.current;
-    const sx = v.x + v.w / 2;
-    const sy = v.y + v.h / 2;
-    const w = Math.max(ZOOM_MIN_W, Math.min(ZOOM_MAX_W, v.w * factor));
-    const x = sx - (sx - v.x) * (w / v.w);
-    const y = sy - (sy - v.y) * (w / v.w);
-    applyView(clampView({ x, y, w, h: w }));
-  };
-  const resetView = () => applyView({ x: 0, y: 0, w: SYS.vb, h: SYS.vb });
-
+  // Tooltip: enter/leave change `hover.i` (re-renders only the tooltip); the
+  // cursor-follow drift writes directly to the tooltip DOM node so the 115
+  // orbit circles are not re-rendered on every mousemove.
   const onMoonEnter = (i, e) => {
     const rect = e.currentTarget.ownerSVGElement.parentElement.getBoundingClientRect();
     setHover({ i, x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
-  // Tooltip drift follows the cursor via direct DOM writes (no per-move re-render
-  // of the 115 orbit circles — only enter/leave change `hover.i`).
   const onMoonMove = (e) => {
     const tip = tipRef.current;
     if (!tip) return;
@@ -348,13 +279,13 @@ export default function Jupiter() {
     tip.style.top = e.clientY - rect.top + 14 + "px";
   };
 
-  const polyPoints = GRS_POINTS.map((p) => `${p.x},${p.y}`).join(" ");
-  const moreMoons = Math.max(0, count - HERO_MOONS.length);
-
   const fmtA = (a) =>
     a >= 1e6 ? (a / 1e6).toFixed(2) + " млн км" : spacer(Math.round(a)) + " км";
   const fmtP = (p) => (p < 1 ? (p * 24).toFixed(1) + " год" : p.toFixed(2) + " діб");
   const hm = hover != null ? geo[hover.i] : null;
+
+  const polyPoints = GRS_POINTS.map((p) => `${p.x},${p.y}`).join(" ");
+  const moreMoons = Math.max(0, count - HERO_MOONS.length);
 
   return (
     <>
@@ -462,7 +393,7 @@ export default function Jupiter() {
               <div className="moon-card" key={k}>
                 <div className="photo">
                   <img
-                    src={`/moons/${k}.jpg`}
+                    src={`/moons/${k}.png`}
                     alt={t("jupiter.moons." + k + ".name")}
                     style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                   />
@@ -489,25 +420,43 @@ export default function Jupiter() {
           />
           <div className="jup-sys-wrap orbit-wrap">
             <svg
-              ref={sysSvgRef}
               className="jup-sys-svg"
-              viewBox={`${viewRef.current.x} ${viewRef.current.y} ${viewRef.current.w} ${viewRef.current.h}`}
+              viewBox={`0 0 ${SYS.vb} ${SYS.vb}`}
               xmlns="http://www.w3.org/2000/svg"
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
+              role="img"
+              aria-label={t("jupiter.system.title")}
             >
-              {/* faint orbit circle per moon, at its real (log-compressed) radius;
-                  highlighted when hovered */}
+              {/* faint orbit circle per moon, at its true linear radius
+                  (simplified — semi-major axis as a circle); highlighted when
+                  hovered. Each ring is a pair: a visible thin circle
+                  (pointer-events none) + an invisible wider hit circle that
+                  drives hover/click so the orbit is easy to grab (a 1 px stroke
+                  alone is nearly impossible to hover). Hovering or clicking the
+                  ring sets hover.i, thickening the visible ring and showing the
+                  moon's tooltip — same as interacting with the dot itself. */}
               {geo.map((m, i) => (
-                <circle
-                  key={m.name + "o"}
-                  className={"jup-orbit" + (hover && hover.i === i ? " hl" : "")}
-                  cx={SYS.cx} cy={SYS.cy} r={m.r}
-                  stroke={m.color}
-                  vectorEffect="non-scaling-stroke"
-                />
+                <g key={m.name + "og"}>
+                  <circle
+                    className={"jup-orbit" + ((hover && hover.i === i) || selectedI === i ? " hl" : "")}
+                    cx={SYS.cx} cy={SYS.cy} r={m.r}
+                    stroke={m.color}
+                    vectorEffect="non-scaling-stroke"
+                    pointerEvents="none"
+                  />
+                  <circle
+                    cx={SYS.cx} cy={SYS.cy} r={m.r}
+                    fill="none"
+                    stroke="transparent"
+                    strokeWidth="10"
+                    vectorEffect="non-scaling-stroke"
+                    pointerEvents="stroke"
+                    style={{ cursor: "help" }}
+                    onMouseEnter={(e) => onMoonEnter(i, e)}
+                    onMouseMove={onMoonMove}
+                    onClick={(e) => { onMoonEnter(i, e); setSelectedI((p) => (p === i ? null : i)); }}
+                    onMouseLeave={() => setHover(null)}
+                  />
+                </g>
               ))}
               <circle cx={SYS.cx} cy={SYS.cy} r={discR} fill="#C99B60" />
               <circle cx={SYS.cx} cy={SYS.cy} r={discR} fill="none" stroke="#8B5A2B" strokeWidth="1.5" opacity=".6" vectorEffect="non-scaling-stroke" />
@@ -516,13 +465,14 @@ export default function Jupiter() {
                 {geo.map((m, i) => (
                   <circle
                     key={m.name}
-                    className={"jup-moon-dot" + (m.prograde ? "" : " retro")}
-                    r={(m.size * (viewRef.current.w / SYS.vb)).toFixed(2)}
+                    className={"jup-moon-dot" + (m.prograde ? "" : " retro") + (selectedI === i ? " sel" : "")}
+                    r={m.size}
                     fill={m.color}
-                    stroke="transparent" strokeWidth={(8 * (viewRef.current.w / SYS.vb)).toFixed(2)}
+                    stroke="transparent" strokeWidth="8"
                     vectorEffect="non-scaling-stroke"
                     onMouseEnter={(e) => onMoonEnter(i, e)}
                     onMouseMove={onMoonMove}
+                    onClick={() => setSelectedI((p) => (p === i ? null : i))}
                     onMouseLeave={() => setHover(null)}
                   />
                 ))}
@@ -545,11 +495,16 @@ export default function Jupiter() {
               </div>
             )}
             {!geo.length && <div className="jup-sys-loading">{t("jupiter.system.loading")}</div>}
-            <div className="jup-sys-controls">
-              <button type="button" onClick={() => zoomBtn(0.8)} aria-label={t("jupiter.system.zoomIn")}>＋</button>
-              <button type="button" onClick={() => zoomBtn(1.25)} aria-label={t("jupiter.system.zoomOut")}>－</button>
-              <button type="button" onClick={resetView} aria-label={t("jupiter.system.zoomReset")}>↺</button>
-            </div>
+            <button
+              type="button"
+              className="jup-sys-cta"
+              onClick={() => setShowFullscreen(true)}
+              aria-label={t("jupiter.system.fullscreen")}
+              title={t("jupiter.system.fullscreenHint", { count: count || 0 })}
+            >
+              <span className="jup-sys-cta-ico">⛶</span>
+              <span className="jup-sys-cta-tip">{t("jupiter.system.fullscreenHint", { count: count || 0 })}</span>
+            </button>
           </div>
           <div className="jupiter-legend jup-legend">
             {GROUPS.map((g) => (
@@ -559,7 +514,6 @@ export default function Jupiter() {
               </div>
             ))}
           </div>
-          <p className="jupiter-moons-note">{t("jupiter.system.scaleNote")}</p>
         </div>
       </section>
 
@@ -714,6 +668,10 @@ export default function Jupiter() {
           </div>
         </div>
       </section>
+
+      {showFullscreen && (
+        <JupiterMoonSystemFullscreen onClose={() => setShowFullscreen(false)} />
+      )}
 
       {modalIdx !== null && (
         <div className="photo-modal open" onClick={() => setModalIdx(null)}>
