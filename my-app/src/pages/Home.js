@@ -1,19 +1,21 @@
 // Homepage (index.html): hero with the sky-dome, tonight's sky events,
-// space-weather strip, ISS passes, launches table, and the section grid.
+// space-weather strip, ISS passes, launches calendar, and the section grid.
+// Block bodies ported from the orbit-light design sample (SVG visualizations,
+// live countdowns, day-grouped launches, full section grid).
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { BOT_URL } from "../lib/constants";
 import LocalizedLink from "../components/primitives/LocalizedLink";
 import { useLoc, locCity } from "../context/LocationContext";
 import SectionHead from "../components/primitives/SectionHead";
-import FeatureCard from "../components/primitives/FeatureCard";
 import LocationPill from "../components/LocationPill";
 import SkyDome from "../components/SkyDome";
-import SkyEvents from "../components/home/SkyEvents";
 import ApodCard from "../components/home/ApodCard";
+import TonightPanel from "../components/home/TonightPanel";
 import WeatherCards from "../components/home/WeatherCards";
 import IssPassCards from "../components/home/IssPassCards";
-import LaunchesTable from "../components/launches/LaunchesTable";
+import LaunchCalendar from "../components/home/LaunchCalendar";
+import SectionsGrid from "../components/home/SectionsGrid";
 
 export default function Home() {
   const { t } = useTranslation();
@@ -50,7 +52,7 @@ export default function Home() {
             lat: Math.abs(Math.round(loc ? loc.lat : 50)),
             ns: ((loc ? loc.lat : 50) >= 0) ? t("common.latN") : t("common.latS"),
           })}</p>
-          <SkyEvents />
+          <TonightPanel />
         </div>
       </section>
 
@@ -74,7 +76,7 @@ export default function Home() {
         <div className="wrap">
           <SectionHead eyebrow={t("home.launches.eyebrow")} title={t("home.launches.title")}
             linkTo="launches" linkLabel={t("home.launches.link")} />
-          <LaunchesTable />
+          <LaunchCalendar />
         </div>
       </section>
 
@@ -82,14 +84,7 @@ export default function Home() {
         <div className="wrap">
           <SectionHead eyebrow={t("home.sections.eyebrow")} title={t("home.sections.title")}
             sub={t("home.sections.sub")} />
-          <div className="fcards">
-            <FeatureCard to="iss" icon="🛰️" title={t("home.sections.issTitle")}>
-              {t("home.sections.issBody")}
-            </FeatureCard>
-            <FeatureCard to="sky" icon="🔭" title={t("home.sections.skyTitle")}>
-              {t("home.sections.skyBody")}
-            </FeatureCard>
-          </div>
+          <SectionsGrid />
         </div>
       </section>
     </>

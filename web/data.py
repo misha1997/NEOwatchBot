@@ -522,7 +522,15 @@ def _sky_raw(lat: float, lon: float, lang: str = DEFAULT_LANG) -> dict:
     except Exception as e:
         logger.error("sky moon: %s", e)
 
-    return {"lat": lat, "lon": lon, "events": events}
+    # Tonight's darkness window (sunset → dusk → astronomical dark → dawn).
+    # Optional: the frontend hides the track when this is missing.
+    sun_times = None
+    try:
+        sun_times = PlanetsAPI.compute_sun_times(lat, lon)
+    except Exception as e:
+        logger.error("sky sun times: %s", e)
+
+    return {"lat": lat, "lon": lon, "events": events, "sun": sun_times}
 
 
 async def get_sky(lat: float, lon: float, lang: str = DEFAULT_LANG) -> dict:

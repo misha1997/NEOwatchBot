@@ -1594,6 +1594,277 @@ h2.section-title {
   color: var(--teal)
 }
 
+/* ======================================================================
+   Homepage blocks (orbit-light port)
+   ====================================================================== */
+.tabular { font-variant-numeric: tabular-nums }
+
+/* ---------- Tonight panel ---------- */
+.tonight-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 16px;
+  align-items: start
+}
+.tonight-events { list-style: none; display: flex; flex-direction: column; gap: 12px }
+.tonight-evt {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 16px;
+  transition: border-color .2s
+}
+.tonight-evt:hover { border-color: rgba(79, 209, 197, .3) }
+.tonight-evt .ic {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+  background: rgba(232, 185, 77, .08);
+  border: 1px solid rgba(232, 185, 77, .2)
+}
+.tonight-evt .ic.teal {
+  background: rgba(79, 209, 197, .08);
+  border-color: rgba(79, 209, 197, .2)
+}
+.tonight-evt .ic.coral {
+  background: rgba(255, 107, 74, .08);
+  border-color: rgba(255, 107, 74, .2)
+}
+.tonight-evt .ic.live {
+  background: rgba(79, 209, 197, .1);
+  border-color: rgba(79, 209, 197, .35);
+  box-shadow: 0 0 10px rgba(79, 209, 197, .15)
+}
+.tonight-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px }
+.tonight-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; align-items: baseline }
+.tonight-top h4 { font-size: 15px; font-weight: 600 }
+.tonight-time {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  white-space: nowrap
+}
+.tonight-body p { font-size: 13px; line-height: 1.5; color: var(--text-dim) }
+
+.tonight-side { display: flex; flex-direction: column; gap: 16px }
+.moon-card {
+  display: flex; align-items: center; gap: 16px;
+  border: 1px solid var(--border); background: var(--panel);
+  border-radius: 12px; padding: 16px
+}
+.moon-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.moon-eyebrow {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--text-dim)
+}
+.moon-name { font-weight: 600; font-size: 15px; line-height: 1.2 }
+.moon-illum { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim) }
+
+.darkness-track {
+  display: flex; flex-direction: column; gap: 12px;
+  border: 1px solid var(--border); background: var(--panel);
+  border-radius: 12px; padding: 16px
+}
+.dt-head { display: flex; align-items: center; gap: 8px }
+.dt-icon { font-size: 15px }
+.dt-label {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--text-dim)
+}
+.dt-bar {
+  position: relative; height: 8px; width: 100%;
+  border-radius: 99px; background: rgba(237, 238, 245, .06);
+  overflow: hidden
+}
+.dt-fill { position: absolute; inset-block: 0; border-radius: 99px }
+.dt-fill.dusk { background: rgba(79, 209, 197, .3) }
+.dt-fill.dark { background: var(--teal) }
+.dt-marks { display: flex; justify-content: space-between; gap: 8px }
+.dt-mark { display: flex; flex-direction: column; gap: 2px }
+.dt-t { font-family: var(--font-mono); font-size: 11px; color: var(--text) }
+.dt-name { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim) }
+
+/* ---------- Space-weather metrics ---------- */
+.weather-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px
+}
+.wmetric {
+  display: flex; flex-direction: column; gap: 16px;
+  border: 1px solid var(--border); background: var(--panel);
+  border-radius: 14px; padding: 18px;
+  transition: border-color .25s
+}
+.wmetric:hover { border-color: rgba(232, 185, 77, .25) }
+.wmetric-top { display: flex; flex-direction: column; gap: 8px }
+.wmetric-k {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--text-dim)
+}
+.wmetric-v {
+  font-family: var(--font-mono); font-weight: 500; font-size: 30px;
+  line-height: 1; color: var(--text)
+}
+.wmetric-v.teal { color: var(--teal) }
+.wmetric-v.gold { color: var(--gold) }
+.wmetric-unit { font-size: 13px; color: var(--text-dim); margin-left: 4px; font-weight: 400 }
+.wmetric-viz { display: flex; align-items: flex-end; min-height: 42px }
+.wmetric-viz .kp-gauge { max-width: 132px }
+.wmetric-viz .sparkline { width: 100%; height: 40px }
+.wmetric-note {
+  border-top: 1px solid var(--border); padding-top: 12px;
+  font-size: 12.5px; line-height: 1.5; color: var(--text-dim)
+}
+.kp-bars { display: flex; width: 100%; height: 40px; align-items: flex-end; gap: 3px }
+.kp-bar { flex: 1; border-radius: 2px; background: rgba(232, 185, 77, .7); min-height: 4px }
+
+/* ---------- ISS pass cards ---------- */
+.pass-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px
+}
+.pass-card {
+  display: flex; flex-direction: column; gap: 16px;
+  border: 1px solid var(--border); background: var(--panel);
+  border-radius: 14px; padding: 18px;
+  transition: border-color .25s
+}
+.pass-card:hover { border-color: rgba(232, 185, 77, .25) }
+.pass-card.first { border-color: rgba(79, 209, 197, .4) }
+.pass-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start }
+.pass-when { display: flex; flex-direction: column; gap: 4px }
+.pass-day {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-dim)
+}
+.pass-time { font-size: 24px; font-weight: 700; line-height: 1 }
+.pass-countdown {
+  font-family: var(--font-mono); font-size: 11px;
+  border: 1px solid rgba(79, 209, 197, .3); background: rgba(79, 209, 197, .1);
+  color: var(--teal); border-radius: 6px; padding: 4px 8px;
+  white-space: nowrap
+}
+.pass-relative {
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  white-space: nowrap
+}
+.pass-arc { width: 100%; max-width: 168px; height: 74px }
+.pass-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  border-top: 1px solid var(--border); padding-top: 12px;
+  font-family: var(--font-mono); font-size: 11px
+}
+.pass-stats div { display: flex; flex-direction: column; gap: 2px }
+.pass-stats dt { color: var(--text-dim) }
+.pass-stats dd { color: var(--text) }
+.pass-quality {
+  font-family: var(--font-mono); font-size: 11px;
+  text-transform: uppercase; letter-spacing: .1em
+}
+.pass-quality.good { color: var(--teal) }
+.pass-quality.moderate { color: var(--gold) }
+.pass-quality.low { color: var(--text-dim) }
+
+/* ---------- Launch calendar ---------- */
+.lc-cal { display: flex; flex-direction: column; gap: 24px }
+.lc-day { display: flex; flex-direction: column; gap: 10px }
+.lc-day-head { display: flex; align-items: center; gap: 12px }
+.lc-day-date { font-family: var(--font-mono); font-size: 13px; font-weight: 500; color: var(--gold) }
+.lc-day-weekday {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--text-dim)
+}
+.lc-day-line { flex: 1; height: 1px; background: var(--border) }
+.lc-day-count { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-dim) }
+.lc-rows { list-style: none; display: flex; flex-direction: column; gap: 8px }
+.lc-row {
+  display: flex; flex-direction: column; gap: 12px;
+  border: 1px solid var(--border); background: var(--panel);
+  border-radius: 12px; padding: 16px;
+  transition: border-color .2s
+}
+.lc-row:hover { border-color: rgba(232, 185, 77, .25) }
+.lc-time-col { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0 }
+.lc-time { font-size: 18px; font-weight: 700; line-height: 1 }
+.lc-countdown { font-size: 11px; color: var(--text-dim) }
+.lc-mission { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px }
+.lc-mission h4 { font-size: 15px; font-weight: 600; line-height: 1.3 }
+.lc-sub {
+  display: flex; flex-wrap: wrap; gap: 4px 14px;
+  font-size: 11px; color: var(--text-dim)
+}
+.lc-rocket { color: rgba(237, 238, 245, .9) }
+.lc-pad { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.lc-end { display: flex; align-items: center; gap: 12px }
+.lc-country { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim) }
+/* desktop: time column + mission + status on one row */
+@media (min-width: 720px) {
+  .lc-row { flex-direction: row; align-items: center; gap: 20px }
+  .lc-time-col { width: 130px; flex-shrink: 0 }
+  .lc-end { flex-shrink: 0 }
+}
+.status-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 5px;
+  border: 1px solid var(--border); color: var(--text-dim);
+  background: rgba(237, 238, 245, .04); white-space: nowrap
+}
+.status-chip.go { border-color: rgba(232, 185, 77, .3); background: rgba(232, 185, 77, .1); color: var(--gold) }
+.status-chip.go .status-dot { background: var(--gold) }
+.status-chip.success { border-color: rgba(79, 209, 197, .3); background: rgba(79, 209, 197, .1); color: var(--teal) }
+.status-chip.fail { border-color: rgba(255, 107, 74, .3); background: rgba(255, 107, 74, .1); color: var(--coral) }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim) }
+.status-dot.dim { opacity: .6 }
+
+/* ---------- Sections grid ---------- */
+.sections-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px
+}
+.section-tile {
+  display: flex; align-items: flex-start; gap: 14px;
+  border: 1px solid var(--border); background: var(--panel);
+  border-radius: 12px; padding: 16px;
+  transition: border-color .2s, background .2s
+}
+.section-tile:hover { border-color: rgba(232, 185, 77, .35); background: rgba(232, 185, 77, .04) }
+.st-ic {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+  background: rgba(237, 238, 245, .04);
+  border: 1px solid var(--border)
+}
+.st-body { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.st-title {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 600; font-size: 15px
+}
+.st-arrow {
+  font-family: var(--font-mono); font-size: 14px; color: var(--gold);
+  opacity: 0; transform: translateX(-4px); transition: .2s
+}
+.section-tile:hover .st-arrow { opacity: 1; transform: translateX(0) }
+.st-desc { font-size: 13px; line-height: 1.45; color: var(--text-dim) }
+
+/* ---------- homepage block responsive ---------- */
+@media (max-width: 900px) {
+  .tonight-grid { grid-template-columns: 1fr }
+  .weather-grid { grid-template-columns: repeat(2, 1fr) }
+  .sections-grid { grid-template-columns: repeat(2, 1fr) }
+}
+@media (max-width: 640px) {
+  .pass-grid { grid-template-columns: 1fr }
+  .weather-grid { grid-template-columns: 1fr }
+  .sections-grid { grid-template-columns: 1fr }
+  .lc-row { padding: 14px }
+}
+
 /* ---------- table (passes/launches) ---------- */
 table.data {
   width: 100%;

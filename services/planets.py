@@ -207,6 +207,64 @@ class PlanetsAPI:
         }
 
     @staticmethod
+    def compute_sun_times(lat, lon):
+        """Tonight's darkness window as ISO-8601 UTC strings.
+
+        Locates the Sun's altitude-threshold crossings over the next 30 hours
+        with ``skyfield.almanac.find_discrete`` and returns the upcoming
+        ``{sunset (0°), dusk (-6° civil), dark_from (-18° astronomical),
+        dawn (-18° rising)}``. Any crossing not found in the window is
+        ``None``. Forward-looking — always describes the next darkness window
+        from now, so it stays valid whether it is currently day or night.
+        Raises on hard failure; the caller wraps in try/except.
+        """
+        from skyfield import almanac
+        eph, ts, wgs84, cm, latin = _get_skyfield()
+        earth, sun = eph[399], eph[10]
+        observer = earth + wgs84.latlon(lat, lon)
+        t0 = ts.now()
+        t1 = ts.tt_jd(t0.tt + 30.0 / 24.0)
+
+        def sun_alt(t):
+            return observer.at(t).observe(sun).apparent().altaz()[0].degrees
+
+        def crossings(threshold):
+            def f(t):
+                return sun_alt(t) > threshold
+            # Sample roughly hourly; find_discrete refines each crossing to
+            # high precision. step_days is required by skyfield's search loop.
+            f.step_days = 0.04
+            times, vals = almanac.find_discrete(t0, t1, f)
+            out = []
+            for tm, val in zip(times, vals):
+                # `val` is the function value AFTER the transition: True = rose
+                # above the threshold, False = dropped below it.
+                out.append((tm, "rising" if val else "falling"))
+            return out
+
+        def next_falling(evts):
+            for tm, d in evts:
+                if d == "falling":
+                    return tm
+            return None
+
+        def next_rising(evts):
+            for tm, d in evts:
+                if d == "rising":
+                    return tm
+            return None
+
+        def iso_z(tm):
+            return tm.utc_strftime("%Y-%m-%dT%H:%M:%SZ") if tm is not None else None
+
+        return {
+            "sunset": iso_z(next_falling(crossings(0.0))),
+            "dusk": iso_z(next_falling(crossings(-6.0))),
+            "dark_from": iso_z(next_falling(crossings(-18.0))),
+            "dawn": iso_z(next_rising(crossings(-18.0))),
+        }
+
+    @staticmethod
     def get_visible(lat, lon, lang=DEFAULT_LANG):
         """Format the visible-planets message for the user."""
         try:

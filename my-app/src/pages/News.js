@@ -42,20 +42,6 @@ export default function News() {
 
   const featured = items[0];
 
-  // Most frequent category among the loaded items (the "top category" stat).
-  const topCat = useMemo(() => {
-    const counts = {};
-    for (const it of items) {
-      const c = it.category || "missions";
-      counts[c] = (counts[c] || 0) + 1;
-    }
-    let best = "missions", n = 0;
-    for (const [c, k] of Object.entries(counts)) {
-      if (k > n) { best = c; n = k; }
-    }
-    return { cat: best, n };
-  }, [items]);
-
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((it) => {
@@ -128,33 +114,6 @@ export default function News() {
             )}
           </div>
         ) : null}
-      </section>
-
-      <section className="section" style={{ paddingTop: 8 }}>
-        {/* Stat cards — reuse the shared .grid.cols-3 + .card (k/v/foot). */}
-        <div className="grid cols-3">
-          <div className="card">
-            <div className="k">{t("news.stats.count")}</div>
-            <div className="v">{loading ? "—" : items.length}</div>
-            <div className="foot">{t("news.stats.countFoot")}</div>
-          </div>
-          <div className="card">
-            <div className="k">{t("news.stats.topCat")}</div>
-            <div className="v" style={{ fontSize: 20 }}>
-              {loading ? "—" : catLabel(topCat.cat)}
-            </div>
-            <div className="foot">
-              {t("news.stats.topCatFoot", { n: topCat.n })}
-            </div>
-          </div>
-          <div className="card">
-            <div className="k">{t("news.stats.lastUpdate")}</div>
-            <div className="v" style={{ fontSize: 20 }}>
-              {loading || !items.length ? "—" : items[0].date}
-            </div>
-            <div className="foot">{t("news.stats.lastUpdateFoot")}</div>
-          </div>
-        </div>
       </section>
 
       <section className="section" style={{ paddingTop: 8 }}>

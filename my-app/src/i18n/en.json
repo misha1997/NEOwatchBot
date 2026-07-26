@@ -64,6 +64,17 @@
     "latS": "S",
     "kyiv": "Kyiv"
   },
+  "liveTime": {
+    "now": "now",
+    "inPrefix": "in",
+    "dAbbr": "d",
+    "hrAbbr": "h",
+    "minAbbr": "m",
+    "day_one": "day",
+    "day_other": "days",
+    "min_one": "min",
+    "min_other": "min"
+  },
   "cookies": {
     "text": "We use cookies to keep the site working and to improve your experience. With your consent, we also use them to analyze traffic.",
     "accept": "Accept all",
@@ -470,7 +481,16 @@
       "eyebrow": "Tonight",
       "title": "Highlights over {{city}}",
       "link": "Detailed forecast →",
-      "sub": "Approximate for latitude {{lat}}° {{ns}}. Times in UTC+3."
+      "sub": "Events sorted by time. Naked-eye objects are marked separately. Times in UTC+3.",
+      "phase": "Phase",
+      "illum": "illumination {{pct}}%",
+      "darkWindow": "Darkness window",
+      "marks": {
+        "sunset": "Sunset",
+        "dusk": "Dusk",
+        "dark": "Dark",
+        "dawn": "Dawn"
+      }
     },
     "apod": {
       "eyebrow": "NASA Picture of the Day",
@@ -488,12 +508,24 @@
     "iss": {
       "eyebrow": "ISS",
       "title": "Upcoming station passes",
-      "link": "ISS page →"
+      "link": "ISS page →",
+      "quality": {
+        "good": "excellent pass",
+        "moderate": "moderate pass",
+        "low": "low pass"
+      },
+      "stats": {
+        "alt": "altitude",
+        "dur": "duration",
+        "mag": "magnitude"
+      }
     },
     "launches": {
       "eyebrow": "Rocket launches",
       "title": "This week's launch calendar",
-      "link": "All launches (Launch Library 2) →"
+      "link": "All launches (Launch Library 2) →",
+      "count_one": "launch",
+      "count_other": "launches"
     },
     "sections": {
       "eyebrow": "Sections",
@@ -504,7 +536,45 @@
       "skyTitle": "Sky for observer",
       "skyBody": "Planets, Moon phase, tips for amateur astronomy.",
       "communityTitle": "Community",
-      "communityBody": "Forum, photo gallery, quizzes and observer rankings."
+      "communityBody": "Forum, photo gallery, quizzes and observer rankings.",
+      "items": {
+        "iss": "ISS & satellites",
+        "issDesc": "Where the station is now and when it passes over you.",
+        "sky": "Sky for observer",
+        "skyDesc": "Planets, Moon phase, tips for amateur astronomy.",
+        "satellites": "Satellites",
+        "satellitesDesc": "Live map of Starlink and other satellite groups.",
+        "weather": "Space weather",
+        "weatherDesc": "Kp, solar wind, aurora chances.",
+        "launches": "Rocket launches",
+        "launchesDesc": "Launch calendar and live streams.",
+        "meteors": "Meteor showers",
+        "meteorsDesc": "Peak calendar, ZHR and radiants.",
+        "events": "Astronomical events",
+        "eventsDesc": "Eclipses, conjunctions, weekly calendar.",
+        "constellations": "Constellations",
+        "constellationsDesc": "Interactive star chart.",
+        "asteroids": "Asteroids",
+        "asteroidsDesc": "Closest approaches to Earth.",
+        "comets": "Comets",
+        "cometsDesc": "What's currently observable.",
+        "exoplanets": "Exoplanets",
+        "exoplanetsDesc": "Confirmed worlds and their stars.",
+        "galaxies": "Galaxies",
+        "galaxiesDesc": "Deep-sky catalog with maps.",
+        "deep": "Deep space",
+        "deepDesc": "Missions beyond Earth orbit.",
+        "voyager": "Voyager",
+        "voyagerDesc": "Where both probes are and what they transmit.",
+        "mast": "MAST archive",
+        "mastDesc": "Hubble & JWST imagery and light curves.",
+        "news": "Space news",
+        "newsDesc": "Industry digest and articles.",
+        "gallery": "Photo gallery",
+        "galleryDesc": "NASA APOD archive by date.",
+        "planetarium": "Planetarium",
+        "planetariumDesc": "The solar system: planets and their moons."
+      }
     },
     "skyEvents": {
       "issTitle": "ISS pass",
