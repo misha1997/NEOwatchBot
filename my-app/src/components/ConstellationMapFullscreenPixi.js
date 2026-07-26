@@ -377,10 +377,11 @@ export default function ConstellationMapFullscreenPixi({
     domeGraphicsRef.current = domeGraphics;
 
     const containers = [
-      new PIXI.Container(),
-      new PIXI.Container(),
-      new PIXI.Container(),
-      new PIXI.Container()
+      new PIXI.Container(), // Bin 0: mag <= 5.0 (always visible)
+      new PIXI.Container(), // Bin 1: 5.0 < mag <= 6.5 (fades in)
+      new PIXI.Container(), // Bin 2: 6.5 < mag <= 7.5 (fades in)
+      new PIXI.Container(), // Bin 3: 7.5 < mag <= 8.5 (fades in)
+      new PIXI.Container()  // Bin 4: 8.5 < mag <= 10.5 (fades in)
     ];
     containers.forEach((c) => world.addChild(c));
     starsContainersRef.current = containers;
@@ -438,6 +439,7 @@ export default function ConstellationMapFullscreenPixi({
       containers[1].alpha = Math.max(0.0, Math.min(1.0, (z - 1.5) / 1.3));
       containers[2].alpha = Math.max(0.0, Math.min(1.0, (z - 2.8) / 2.2));
       containers[3].alpha = Math.max(0.0, Math.min(1.0, (z - 5.0) / 3.0));
+      containers[4].alpha = Math.max(0.0, Math.min(1.0, (z - 10.0) / 8.0));
       labelsContainer.alpha = Math.max(0.0, Math.min(1.0, 1.0 - (z - 5.5) / 2.5));
     };
     app.ticker.add(updateLOD);
@@ -475,7 +477,7 @@ export default function ConstellationMapFullscreenPixi({
       const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
 
       const prevZoom = zoomRef.current;
-      const nextZoom = Math.max(1.0, Math.min(600.0, prevZoom * zoomFactor));
+      const nextZoom = Math.max(1.0, Math.min(6000.0, prevZoom * zoomFactor));
       zoomRef.current = nextZoom;
 
       const ratio = 1 - nextZoom / prevZoom;
@@ -582,8 +584,8 @@ export default function ConstellationMapFullscreenPixi({
       // Set a comfortable hit testing area of 14px radius on screen
       sprite.hitArea = new PIXI.Circle(0, 0, Math.max(10, 140 / r));
       
-      // Base opacity based on magnitude
-      const baseAlpha = 0.22 + (8.5 - s[3]) * 0.12;
+      // Base opacity based on magnitude (scaled dynamically to 10.5)
+      const baseAlpha = 0.15 + (10.5 - s[3]) * 0.08;
       sprite.alpha = Math.max(0.1, Math.min(1.0, baseAlpha));
 
       // TINT COLORING matching mini-map active/season states
@@ -643,8 +645,10 @@ export default function ConstellationMapFullscreenPixi({
         containers[1].addChild(sprite);
       } else if (mag <= 7.5) {
         containers[2].addChild(sprite);
-      } else {
+      } else if (mag <= 8.5) {
         containers[3].addChild(sprite);
+      } else {
+        containers[4].addChild(sprite);
       }
     });
 
@@ -943,7 +947,7 @@ export default function ConstellationMapFullscreenPixi({
     if (!world) return;
 
     const prevZoom = zoomRef.current;
-    const nextZoom = zoomIn ? Math.min(600.0, prevZoom * 1.3) : Math.max(1.0, prevZoom * 0.75);
+    const nextZoom = zoomIn ? Math.min(6000.0, prevZoom * 1.3) : Math.max(1.0, prevZoom * 0.75);
     zoomRef.current = nextZoom;
 
     panOffsetRef.current = {
