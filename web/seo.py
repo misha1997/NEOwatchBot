@@ -31,6 +31,7 @@ from __future__ import annotations
 import html
 import json
 import re
+import time
 from pathlib import Path
 
 import os
@@ -38,6 +39,21 @@ import os
 SITE_URL = os.getenv("SITE_URL", "https://orbitlight.space").rstrip("/")
 DEFAULT_LANG = "uk"
 LANGS = ("uk", "en")
+
+
+def _today_iso() -> str:
+    from datetime import date
+    return date.today().isoformat()
+
+
+# Stable lastmod for the pages sitemap + sitemap index. Computed ONCE at import
+# so every sitemap request in the process lifetime reports the same date,
+# instead of ``date.today()`` per request — which made Google see "every page
+# modified today" every day and devalued the lastmod signal. A redeploy
+# restarts the process → new date, which correctly reflects "content may have
+# changed since the last crawl". Set ``SITEMAP_LASTMOD`` explicitly for full
+# control (e.g. pin to a known content-update date across restarts).
+_LASTMOD = os.getenv("SITEMAP_LASTMOD") or _today_iso()
 
 # Internal language code (ISO 639-1, used for hreflang values + i18n dict keys)
 # → URL path prefix. Ukrainian's URL prefix is ``ua`` (the spec's /ua/...),
@@ -179,6 +195,7 @@ def _loc(name: str, lang: str) -> str:
 
 
 _OG_IMAGE = SITE_URL + "/web-app-manifest-512x512.png"
+_OG_IMAGE_ALT = {"uk": "OrbitLight — лого", "en": "OrbitLight — logo"}
 
 
 def _render_webpage_jsonld(name: str, lang: str) -> str:
@@ -279,7 +296,7 @@ def render_head(name: str, lang: str, extra_jsonld: str = "",
         f'    <meta property="og:image:type" content="image/png" />\n'
         f'    <meta property="og:image:width" content="512" />\n'
         f'    <meta property="og:image:height" content="512" />\n'
-        f'    <meta property="og:image:alt" content="OrbitLight — лого" />\n'
+        f'    <meta property="og:image:alt" content="{e(_OG_IMAGE_ALT.get(lang, _OG_IMAGE_ALT["en"]))}" />\n'
         f'    <meta name="twitter:card" content="summary_large_image" />\n'
         f'    <meta name="twitter:title" content="{e(title)}" />\n'
         f'    <meta name="twitter:description" content="{e(desc)}" />\n'
@@ -319,11 +336,11 @@ def render_html(index_html: str, name: str, lang: str, extra_jsonld: str = "",
 
 
 def build_sitemap_index_xml() -> str:
-    """sitemap-index pointing at the pages + news sitemaps."""
-    today = _today()
+    """sitemap-index pointing at the pages + news + images sitemaps."""
     subs = [
-        (f"{SITE_URL}/sitemap-pages.xml", today),
-        (f"{SITE_URL}/sitemap-news.xml", today),
+        (f"{SITE_URL}/sitemap-pages.xml", _LASTMOD),
+        (f"{SITE_URL}/sitemap-images.xml", _LASTMOD),
+        (f"{SITE_URL}/sitemap-news.xml", _LASTMOD),
     ]
     items = "\n".join(
         f"  <sitemap>\n    <loc>{html.escape(loc)}</loc>\n    <lastmod>{lm}</lastmod>\n  </sitemap>"
@@ -345,8 +362,12 @@ def _priority_changefreq(name: str) -> tuple[str, str]:
 
 
 def build_sitemap_pages_xml() -> str:
-    """Sitemap for the static pages — both languages, with hreflang alternates."""
-    today = _today()
+    """Sitemap for the static pages — both languages, with hreflang alternates.
+
+    Uses the stable ``_LASTMOD`` (import-time date) for every URL so the
+    lastmod signal is consistent and trustworthy, not "today" on every crawl.
+    """
+    today = _LASTMOD
     urls = []
     for name in _SITEMAP_NAMES:
         if name == "home":
@@ -397,7 +418,6 @@ def build_sitemap_news_xml() -> str:
     the DB is unavailable so the site never 500s on /sitemap-news.xml. Article
     slugs are language-neutral (one slug per article, shared across prefixes).
     """
-    today = _today()
     urls: list[str] = []
     try:
         from database import get_news_articles  # local import — avoid hard DB dep at import
@@ -412,8 +432,8 @@ def build_sitemap_news_xml() -> str:
         if not slug or slug in seen:
             continue
         seen.add(slug)
-        pub = a.get("published_date") or a.get("fetched_at") or today
-        pub_iso = pub.isoformat() if hasattr(pub, "isoformat") else str(pub) if pub else today
+        pub = a.get("published_date") or a.get("fetched_at")
+        pub_iso = pub.isoformat() if hasattr(pub, "isoformat") else str(pub) if pub else _LASTMOD
         title_uk = a.get("title_uk") or a.get("title") or ""
         title_en = a.get("title") or ""
         for lang in LANGS:
@@ -434,7 +454,7 @@ def build_sitemap_news_xml() -> str:
             url = (
                 f"  <url>\n"
                 f"    <loc>{html.escape(loc)}</loc>\n"
-                f"    <lastmod>{today}</lastmod>\n"
+                f"    <lastmod>{pub_iso}</lastmod>\n"
                 f"    {news_block}"
                 f'    <xhtml:link rel="alternate" hreflang="uk" href="{html.escape(uk_alt)}" />\n'
                 f'    <xhtml:link rel="alternate" hreflang="en" href="{html.escape(en_alt)}" />\n'
@@ -458,11 +478,130 @@ def build_robots_txt() -> str:
         "User-agent: *\n"
         "Allow: /ua/\n"
         "Allow: /en/\n"
+        "Allow: /apod-img/\n"
+        "Allow: /galaxy-img/\n"
         "Disallow: /api/\n"
         "Disallow: /admin/\n"
         "Disallow: /*?lang=\n"
         f"\nSitemap: {SITE_URL}/sitemap.xml\n"
     )
+
+
+# --- Image sitemap ------------------------------------------------------------
+#
+# The site hosts a lot of indexable imagery that's mirrored locally:
+# ``data/apod/YYYY/MM/DD-full.<ext>`` (APOD gallery) and
+# ``data/galaxies/<key>/<nasa_id>-full.<ext>`` (per-galaxy galleries). An image
+# sitemap exposes these to Google Images so they can be discovered and indexed
+# for image search — valuable for an astronomy site. Each ``<url>`` points at
+# the real page that hosts the images (the gallery index for APOD, the
+# per-galaxy page for galaxies) in both languages.
+
+_APOD_IMG_DIR = Path(__file__).resolve().parent.parent / "data" / "apod"
+_GAL_IMG_DIR = Path(__file__).resolve().parent.parent / "data" / "galaxies"
+_IMG_SITEMAP_TTL = 3600  # cache the disk scan for an hour
+_img_sitemap_cache: tuple[float, str] | None = None
+
+
+def _collect_apod_images() -> list[str]:
+    """URLs of locally-mirrored APOD ``*-full`` images (the canonical hi-res)."""
+    out: list[str] = []
+    if not _APOD_IMG_DIR.is_dir():
+        return out
+    for full in sorted(_APOD_IMG_DIR.rglob("*-full.*")):
+        rel = full.relative_to(_APOD_IMG_DIR).as_posix()  # YYYY/MM/DD-full.jpg
+        out.append(f"{SITE_URL}/apod-img/{rel}")
+    return out
+
+
+def _collect_galaxy_images() -> dict[str, list[str]]:
+    """galaxy slug -> [image URLs] for each galaxy's ``*-full`` photos."""
+    out: dict[str, list[str]] = {}
+    if not _GAL_IMG_DIR.is_dir():
+        return out
+    for key_dir in sorted(_GAL_IMG_DIR.iterdir()):
+        if not key_dir.is_dir():
+            continue
+        imgs = [
+            f"{SITE_URL}/galaxy-img/{key_dir.name}/{f.name}"
+            for f in sorted(key_dir.glob("*-full.*"))
+        ]
+        if imgs:
+            out[key_dir.name] = imgs
+    return out
+
+
+def _image_url_entry(page_loc: str, images: list[tuple[str, str]]) -> str:
+    """One ``<url>`` with N ``<image:image>`` children. ``images`` is a list of
+    (image_url, title) tuples."""
+    blocks = "\n".join(
+        "    <image:image>\n"
+        f"      <image:loc>{html.escape(loc)}</image:loc>\n"
+        f"      <image:title>{html.escape(title)}</image:title>\n"
+        "    </image:image>"
+        for loc, title in images
+    )
+    return (
+        "  <url>\n"
+        f"    <loc>{html.escape(page_loc)}</loc>\n"
+        f"{blocks}\n"
+        "  </url>"
+    )
+
+
+def build_sitemap_images_xml() -> str:
+    """Image sitemap for mirrored APOD + galaxy photos, both languages.
+
+    Cached in-process for an hour so a sitemap fetch never re-scans the disk.
+    Returns a valid (possibly empty) image urlset if the dirs are absent — a
+    fresh deploy before any ingest must not 500 on /sitemap-images.xml.
+    """
+    global _img_sitemap_cache
+    now = time.time()
+    if _img_sitemap_cache and (now - _img_sitemap_cache[0]) < _IMG_SITEMAP_TTL:
+        return _img_sitemap_cache[1]
+
+    gallery_slug = {lang: slug_for_name("gallery", lang) for lang in LANGS}
+    galaxies_slug = {lang: slug_for_name("galaxies", lang) for lang in LANGS}
+
+    # Galaxy display names (best-effort; degrade to the slug if unavailable).
+    gal_names: dict = {}
+    try:
+        from services.galaxies import GALAXY_BY_SLUG
+        gal_names = GALAXY_BY_SLUG
+    except Exception:  # noqa: BLE001 — never break the sitemap
+        gal_names = {}
+
+    urls: list[str] = []
+    # APOD: the gallery index page hosts every APOD card, so list all mirrored
+    # images under it (one <url> per language). Per-date share pages don't
+    # exist as server routes, so the gallery index is the canonical host.
+    apod_imgs = _collect_apod_images()
+    if apod_imgs:
+        apod_images = [(u, "Astronomy Picture of the Day (APOD)") for u in apod_imgs]
+        for lang in LANGS:
+            page = f"{SITE_URL}/{prefix_for(lang)}/{gallery_slug[lang]}"
+            urls.append(_image_url_entry(page, apod_images))
+
+    # Galaxies: each per-galaxy page hosts that galaxy's photos (one <url> per
+    # galaxy per language).
+    for key, imgs in sorted(_collect_galaxy_images().items()):
+        info = gal_names.get(key, {})
+        name_uk = info.get("name_uk") or info.get("name") or key
+        name_en = info.get("name_en") or info.get("name") or key
+        for lang in LANGS:
+            page = f"{SITE_URL}/{prefix_for(lang)}/{galaxies_slug[lang]}/{key}"
+            title = name_uk if lang == "uk" else name_en
+            urls.append(_image_url_entry(page, [(u, title) for u in imgs]))
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n'
+        '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n'
+        + "\n".join(urls) + "\n</urlset>\n"
+    )
+    _img_sitemap_cache = (now, xml)
+    return xml
 
 
 def _today() -> str:

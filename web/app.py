@@ -32,6 +32,7 @@ from web.seo import (
     DEFAULT_LANG,
     SITE_URL,
     build_robots_txt,
+    build_sitemap_images_xml,
     build_sitemap_index_xml,
     build_sitemap_news_xml,
     build_sitemap_pages_xml,
@@ -281,6 +282,12 @@ async def _sitemap_pages():
 @app.get("/sitemap-news.xml", include_in_schema=False)
 async def _sitemap_news():
     return Response(build_sitemap_news_xml(), media_type="application/xml; charset=utf-8",
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/sitemap-images.xml", include_in_schema=False)
+async def _sitemap_images():
+    return Response(build_sitemap_images_xml(), media_type="application/xml; charset=utf-8",
                     headers={"Cache-Control": "public, max-age=3600"})
 
 
