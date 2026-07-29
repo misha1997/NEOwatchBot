@@ -33,6 +33,8 @@ const GRAD_BY_KEY = {
   antennae: "linear-gradient(150deg,#4d1a1a,#0d0f1c)",
   cartwheel: "linear-gradient(150deg,#4d3a2f,#0d0f1c)",
   lmc: "linear-gradient(150deg,#3a4d1a,#0d0f1c)",
+  bodes: "linear-gradient(150deg,#1f3d4d,#0d0f1c)",
+  m87: "linear-gradient(150deg,#3d2f4d,#0d0f1c)",
 };
 
 // Log-scale distance chart geometry (mirrors the template axis):

@@ -4,7 +4,6 @@
 // home.sections.items.<id>.{title,desc} in the i18n bundles.
 export const HOME_SECTIONS = [
   { to: "iss",            icon: "🛰️", titleKey: "home.sections.items.iss",            descKey: "home.sections.items.issDesc" },
-  { to: "sky",            icon: "🔭", titleKey: "home.sections.items.sky",            descKey: "home.sections.items.skyDesc" },
   { to: "satellites",     icon: "📡", titleKey: "home.sections.items.satellites",     descKey: "home.sections.items.satellitesDesc" },
   { to: "weather",        icon: "🌌", titleKey: "home.sections.items.weather",        descKey: "home.sections.items.weatherDesc" },
   { to: "launches",       icon: "🚀", titleKey: "home.sections.items.launches",       descKey: "home.sections.items.launchesDesc" },

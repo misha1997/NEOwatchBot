@@ -102,7 +102,6 @@ SLUGS: dict[str, dict[str, str]] = {
     "iss":          {"uk": "mks",               "en": "iss"},
     "satellites":   {"uk": "suputnyky",         "en": "satellites"},
     "weather":      {"uk": "kosmichna-pogoda",   "en": "weather"},
-    "sky":          {"uk": "nebo",              "en": "sky"},
     "constellations": {"uk": "suzirya",         "en": "constellations"},
     "mast":         {"uk": "mast",              "en": "mast"},
     "meteors":      {"uk": "meteory",           "en": "meteors"},

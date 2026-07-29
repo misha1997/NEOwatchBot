@@ -12,7 +12,6 @@ import i18next from "../i18n";
 export const NAV_GROUPS = [
   { name: "home", labelKey: "nav.home", end: true },
   { labelKey: "nav.sky_group", items: [
-    { name: "sky", labelKey: "nav.sky" },
     { name: "constellations", labelKey: "nav.constellations" },
     { name: "meteors", labelKey: "nav.meteors" },
     { name: "events", labelKey: "nav.events" },

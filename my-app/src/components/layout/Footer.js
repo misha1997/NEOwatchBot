@@ -35,7 +35,6 @@ export default function Footer() {
           <div>
             <h5>{t("footer.colSky")}</h5>
             <LocalizedLink to="iss">{t("footer.colOrbit")}</LocalizedLink>
-            <LocalizedLink to="sky">{t("footer.colSkyObs")}</LocalizedLink>
             <LocalizedLink to={homeWeather}>{t("footer.colWeather")}</LocalizedLink>
             <LocalizedLink to={homeLaunches}>{t("footer.colLaunches")}</LocalizedLink>
             <LocalizedLink to="comets">{t("footer.colComets")}</LocalizedLink>

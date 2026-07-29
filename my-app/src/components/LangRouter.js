@@ -15,7 +15,6 @@ const Home = lazy(() => import("../pages/Home"));
 const Weather = lazy(() => import("../pages/Weather"));
 const Iss = lazy(() => import("../pages/Iss"));
 const Satellites = lazy(() => import("../pages/Satellites"));
-const Sky = lazy(() => import("../pages/Sky"));
 const Meteors = lazy(() => import("../pages/Meteors"));
 const Asteroids = lazy(() => import("../pages/Asteroids"));
 const Events = lazy(() => import("../pages/Events"));
@@ -43,7 +42,6 @@ const PAGES = {
   weather: Weather,
   iss: Iss,
   satellites: Satellites,
-  sky: Sky,
   meteors: Meteors,
   asteroids: Asteroids,
   events: Events,

@@ -32,7 +32,7 @@ export default function Home() {
               <h1 className="hero-title" dangerouslySetInnerHTML={{ __html: t("home.hero.title") }} />
               <p className="hero-sub">{t("home.hero.sub")}</p>
               <div className="hero-actions">
-                <LocalizedLink to="sky" className="btn primary">{t("home.hero.skyNow")}</LocalizedLink>
+                <LocalizedLink to="constellations" className="btn primary">{t("home.hero.skyNow")}</LocalizedLink>
                 <a href={BOT_URL} className="btn ghost" target="_blank" rel="noopener">{t("home.hero.telegram")}</a>
               </div>
               <LocationPill />
@@ -46,8 +46,7 @@ export default function Home() {
 
       <section className="section" id="tonight">
         <div className="wrap">
-          <SectionHead eyebrow={t("home.tonight.eyebrow")} title={t("home.tonight.title", { city })}
-            linkTo="sky" linkLabel={t("home.tonight.link")} />
+          <SectionHead eyebrow={t("home.tonight.eyebrow")} title={t("home.tonight.title", { city })} />
           <p className="section-sub">{t("home.tonight.sub", {
             lat: Math.abs(Math.round(loc ? loc.lat : 50)),
             ns: ((loc ? loc.lat : 50) >= 0) ? t("common.latN") : t("common.latS"),
