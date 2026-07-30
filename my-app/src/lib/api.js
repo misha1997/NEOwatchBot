@@ -53,6 +53,7 @@ export const getJupiter = () => fetchJSON(API + "/jupiter");
 export const getMercury = () => fetchJSON(API + "/mercury");
 export const getEarth = () => fetchJSON(API + "/earth");
 export const getVenus = () => fetchJSON(API + "/venus");
+export const getNeptune = () => fetchJSON(API + "/neptune");
 // Famous-galaxies hub: 12 cards with a preview thumbnail + live NED
 // redshift/type. {available, items[]}.
 export const getGalaxies = (lang) => fetchJSON(API + "/galaxies" + withLang("", lang));

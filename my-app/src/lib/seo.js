@@ -43,6 +43,7 @@ export const SLUGS = {
   mercury:        { uk: "planetariy/merkuriy", en: "planetarium/mercury" },
   earth:          { uk: "planetariy/zemlya",   en: "planetarium/earth" },
   venus:          { uk: "planetariy/venera",   en: "planetarium/venus" },
+  neptune:        { uk: "planetariy/neptun",   en: "planetarium/neptune" },
 };
 
 // Reverse map: lang -> { slug -> name }.

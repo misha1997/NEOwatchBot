@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Венера — NEOwatch</title>
-<meta name="description" content="Найгарячіша й найяскравіша планета неба: неконтрольований парниковий ефект, зворотне обертання, вулканічна поверхня під хмарами сірчаної кислоти та місії Venera, Magellan і DAVINCI.">
+<title>Нептун — NEOwatch</title>
+<meta name="description" content="Найдальша планета, відкрита математичними розрахунками: найсильніші вітри Сонячної системи, ретроградний Тритон, тьмяні кільця та єдина місія Voyager 2.">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
@@ -936,26 +936,49 @@ h1.page-title{font-family:var(--font-display);font-weight:800;font-size:clamp(28
 <section class="hero">
   <div class="wrap hero-grid">
     <div>
-      <div class="eyebrow">Друга планета · оновлено щойно</div>
-      <h1 class="hero-title">Венера<br><span class="accent">пекло під хмарами</span></h1>
-      <p class="hero-sub">Найяскравіший об'єкт нічного неба після Місяця й найгарячіша планета Сонячної системи — попри те, що Меркурій ближче до Сонця. Винуватець — неконтрольований парниковий ефект у щільній атмосфері з вуглекислого газу.</p>
+      <div class="eyebrow">Восьма планета · найдальша · оновлено щойно</div>
+      <h1 class="hero-title">Нептун<br><span class="accent">знайдений розрахунком</span></h1>
+      <p class="hero-sub">Єдина планета, відкрита не спостереженням, а математикою — її становище передбачили за збуреннями орбіти Урана ще до першого погляду в телескоп. Найвітряніша планета Сонячної системи, з єдиним великим супутником, що рухається у зворотному напрямку.</p>
       <div class="stat-mini" style="margin-top:26px;max-width:420px">
-        <div class="box"><div class="n">42 млн км</div><div class="l">відстань до Землі зараз</div></div>
-        <div class="box"><div class="n">2.3 хв</div><div class="l">час проходження сигналу</div></div>
+        <div class="box"><div class="n">4.3 млрд км</div><div class="l">відстань до Землі зараз</div></div>
+        <div class="box"><div class="n">4 год 10 хв</div><div class="l">час проходження сигналу</div></div>
       </div>
     </div>
     <div class="orbit-wrap">
       <svg viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg">
-      <circle class="mars-orbit-ring" cx="240.0" cy="240.0" r="212.0" opacity=".5"/><text class="mars-moon-label" x="240.0" y="18.0" text-anchor="middle">орбіта Землі (для масштабу)</text><circle class="mars-orbit-ring" cx="240.0" cy="240.0" r="153.6"/><circle cx="240.0" cy="240.0" r="9" fill="#FFD37A"/><circle cx="240.0" cy="240.0" r="16" fill="none" stroke="#FFD37A" stroke-opacity=".3"/><circle id="venusPath" cx="240.0" cy="240.0" r="153.6" fill="none" opacity="0"/><circle r="6" fill="#E8C77A">
-      <animateMotion dur="7s" repeatCount="indefinite" rotate="auto">
-        <mpath href="#venusPath"/>
-      </animateMotion>
-    </circle><text class="mars-moon-label" x="240.0" y="409.6" text-anchor="middle">Орбіта Венери · 108 млн км, майже ідеальне коло</text>
+      <defs>
+      <radialGradient id="nepGrad" cx="35%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#6FA8E8"/>
+        <stop offset="50%" stop-color="#2E5CC9"/>
+        <stop offset="100%" stop-color="#12256E"/>
+      </radialGradient>
+    </defs><ellipse class="mars-orbit-ring" cx="240.0" cy="240.0" rx="76.0" ry="22.8"/><ellipse class="mars-orbit-ring" cx="240.0" cy="240.0" rx="84.0" ry="25.2"/><ellipse class="mars-orbit-ring" cx="240.0" cy="240.0" rx="92.0" ry="27.6"/><ellipse class="mars-orbit-ring" cx="240.0" cy="240.0" rx="102.0" ry="30.6"/><ellipse class="mars-orbit-ring" cx="240.0" cy="240.0" rx="116.0" ry="34.8"/><ellipse class="mars-orbit-ring" cx="240.0" cy="240.0" rx="165.0" ry="49.5"/><ellipse class="mars-orbit-ring" cx="240.0" cy="240.0" rx="205.0" ry="61.5"/><circle cx="240.0" cy="240.0" r="56" fill="url(#nepGrad)"/><ellipse cx="218.0" cy="250.0" rx="10" ry="6" fill="#12256E" opacity=".6"/><ellipse cx="240.0" cy="240.0" rx="86.8" ry="26.0" fill="none" stroke="#9FB8E8" stroke-width="2.5" opacity=".35"/><circle r="5.4" fill="#8A93A0">
+          <animateMotion dur="3s" repeatCount="indefinite" rotate="auto"
+            path="M 316.0,240.0 A 76.0,22.8 0 1,1 164.0,240.0 A 76.0,22.8 0 1,1 316.0,240.0 Z"/>
+        </circle><circle r="5.8" fill="#8A93A0">
+          <animateMotion dur="3s" repeatCount="indefinite" rotate="auto"
+            path="M 324.0,240.0 A 84.0,25.2 0 1,1 156.0,240.0 A 84.0,25.2 0 1,1 324.0,240.0 Z"/>
+        </circle><circle r="6.1" fill="#8A93A0">
+          <animateMotion dur="4s" repeatCount="indefinite" rotate="auto"
+            path="M 332.0,240.0 A 92.0,27.6 0 1,1 148.0,240.0 A 92.0,27.6 0 1,1 332.0,240.0 Z"/>
+        </circle><circle r="6.6" fill="#8A93A0">
+          <animateMotion dur="4s" repeatCount="indefinite" rotate="auto"
+            path="M 342.0,240.0 A 102.0,30.6 0 1,1 138.0,240.0 A 102.0,30.6 0 1,1 342.0,240.0 Z"/>
+        </circle><circle r="7.2" fill="#93A0A8">
+          <animateMotion dur="5s" repeatCount="indefinite" rotate="auto"
+            path="M 356.0,240.0 A 116.0,34.8 0 1,1 124.0,240.0 A 116.0,34.8 0 1,1 356.0,240.0 Z"/>
+        </circle><circle r="9.4" fill="#D9C9A0">
+          <animateMotion dur="9s" repeatCount="indefinite" rotate="auto"
+            path="M 405.0,240.0 A 165.0,49.5 0 1,0 75.0,240.0 A 165.0,49.5 0 1,0 405.0,240.0 Z"/>
+        </circle><circle r="11.2" fill="#7A8290">
+          <animateMotion dur="20s" repeatCount="indefinite" rotate="auto"
+            path="M 445.0,240.0 A 205.0,61.5 0 1,1 35.0,240.0 A 205.0,61.5 0 1,1 445.0,240.0 Z"/>
+        </circle><text class="mars-moon-label" x="240.0" y="209.2" text-anchor="middle" fill="var(--text-dim)">Наяда</text><text class="mars-moon-label" x="240.0" y="206.8" text-anchor="middle" fill="var(--text-dim)">Таласса</text><text class="mars-moon-label" x="240.0" y="204.4" text-anchor="middle" fill="var(--text-dim)">Деспіна</text><text class="mars-moon-label" x="240.0" y="201.4" text-anchor="middle" fill="var(--text-dim)">Галатея</text><text class="mars-moon-label" x="240.0" y="197.2" text-anchor="middle" fill="var(--text-dim)">Ларисса</text><text class="mars-moon-label" x="240.0" y="182.5" text-anchor="middle" fill="var(--coral)">Тритон ↺</text><text class="mars-moon-label" x="240.0" y="170.5" text-anchor="middle" fill="var(--text-dim)">Нереїда</text>
     </svg>
     </div>
   </div>
   <div class="wrap" style="margin-top:8px">
-    <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);text-align:center">Орбіта Венери — найкругліша серед усіх планет (ексцентриситет лише 0.007) і найближча до Землі точка з усіх планет Сонячної системи</p>
+    <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);text-align:center">Тритон (позначений ↺) — єдиний великий супутник Сонячної системи, що обертається у зворотному напрямку відносно обертання своєї планети</p>
   </div>
 </section>
 
@@ -963,30 +986,30 @@ h1.page-title{font-family:var(--font-display);font-weight:800;font-size:clamp(28
   <div class="wrap">
     <div class="section-head">
       <div>
-        <div class="eyebrow">Akatsuki · моніторинг атмосфери</div>
-        <h2 class="section-title">Венера просто зараз</h2>
+        <div class="eyebrow">Voyager 2 · єдині прямі дані</div>
+        <h2 class="section-title">Нептун просто зараз</h2>
       </div>
     </div>
     <div class="grid cols-4">
       <div class="card">
-        <div class="k">Температура поверхні</div>
-        <div class="v">465<span class="unit">°C</span></div>
-        <div class="foot">Гарячіше за Меркурій, попри більшу відстань до Сонця</div>
+        <div class="k">Швидкість вітру</div>
+        <div class="v">2 100<span class="unit">км/год</span></div>
+        <div class="foot">Найсильніші вітри серед усіх планет Сонячної системи</div>
       </div>
       <div class="card">
-        <div class="k">Тиск на поверхні</div>
-        <div class="v">92<span class="unit">атм</span></div>
-        <div class="foot">Як на глибині 900 м в океані Землі</div>
-      </div>
-      <div class="card">
-        <div class="k">Швидкість хмар</div>
-        <div class="v">360<span class="unit">км/год</span></div>
-        <div class="foot">Атмосфера обертається у 60 разів швидше за саму планету</div>
+        <div class="k">Температура хмар</div>
+        <div class="v">−201<span class="unit">°C</span></div>
+        <div class="foot">Планета випромінює вдвічі більше тепла, ніж отримує від Сонця</div>
       </div>
       <div class="card">
         <div class="k">Період обертання</div>
-        <div class="v">243<span class="unit">земних доби</span></div>
-        <div class="foot">Найповільніше й у зворотному напрямку</div>
+        <div class="v">16 год 06<span class="unit">хв</span></div>
+        <div class="foot">Схожий на Юпітер і Сатурн, попри крижаний склад</div>
+      </div>
+      <div class="card">
+        <div class="k">Перший повний оберт</div>
+        <div class="v">2011<span class="unit"></span></div>
+        <div class="foot">Відколи Нептун відкрили 1846-го — лише один рік Нептуна тому</div>
       </div>
     </div>
   </div>
@@ -996,88 +1019,128 @@ h1.page-title{font-family:var(--font-display);font-weight:800;font-size:clamp(28
   <div class="wrap">
     <div class="section-head">
       <div>
-        <div class="eyebrow">Венера проти Землі</div>
-        <h2 class="section-title">"Сестра" тільки за розміром</h2>
+        <div class="eyebrow">Нептун проти Землі</div>
+        <h2 class="section-title">Наскільки все інакше</h2>
       </div>
     </div>
     <table class="data">
-      <tr><th>Параметр</th><th>Венера</th><th>Земля</th></tr>
-      <tr><td>Тривалість доби (соняч.)</td><td class="mono">117 земних діб</td><td class="mono">24 год 00 хв</td></tr>
-      <tr><td>Тривалість року</td><td class="mono">225 земних діб</td><td class="mono">365 днів</td></tr>
-      <tr><td>Сила тяжіння</td><td class="mono">8.87 м/с² (90%)</td><td class="mono">9.81 м/с²</td></tr>
-      <tr><td>Діаметр</td><td class="mono">12 104 км (95%)</td><td class="mono">12 742 км</td></tr>
-      <tr><td>Середня температура</td><td class="mono">+465°C</td><td class="mono">+15°C</td></tr>
-      <tr><td>Атмосфера</td><td class="mono">96.5% CO₂, хмари H₂SO₄</td><td class="mono">78% N₂, 21% O₂</td></tr>
-      <tr><td>Супутники</td><td class="mono">0</td><td class="mono">1 (Місяць)</td></tr>
+      <tr><th>Параметр</th><th>Нептун</th><th>Земля</th></tr>
+      <tr><td>Тривалість доби</td><td class="mono">16 год 06 хв</td><td class="mono">24 год 00 хв</td></tr>
+      <tr><td>Тривалість року</td><td class="mono">164.8 земних роки</td><td class="mono">1 рік</td></tr>
+      <tr><td>Сила тяжіння (на хмарах)</td><td class="mono">11.15 м/с² (1.14×)</td><td class="mono">9.81 м/с²</td></tr>
+      <tr><td>Діаметр</td><td class="mono">49 244 км (3.9×)</td><td class="mono">12 742 км</td></tr>
+      <tr><td>Відстань до Сонця</td><td class="mono">30.1 а.о.</td><td class="mono">1 а.о.</td></tr>
+      <tr><td>Густина</td><td class="mono">1.638 г/см³</td><td class="mono">5.51 г/см³</td></tr>
+      <tr><td>Підтверджені супутники</td><td class="mono">16</td><td class="mono">1</td></tr>
     </table>
-    <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:12px">За розміром, масою й гравітацією Венера справді схожа на Землю — тому її й називають "сестрою-близнючкою". Але на цьому подібність закінчується.</p>
   </div>
 </section>
 
-<section class="section" id="retrograde">
+<section class="section" id="discovery">
   <div class="wrap">
     <div class="section-head">
       <div>
-        <div class="eyebrow">Унікальна серед планет</div>
-        <h2 class="section-title">Обертається у зворотному напрямку</h2>
+        <div class="eyebrow">23 вересня 1846</div>
+        <h2 class="section-title">Планета, знайдена на папері</h2>
       </div>
     </div>
     <div class="grid cols-2" style="align-items:center">
-      <div style="display:flex;justify-content:center">
-        <svg viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg"><g>
-      <circle cx="130.0" cy="130.0" r="58" fill="#D9A24B"/><ellipse cx="116.0" cy="114.0" rx="22" ry="7" fill="#B87B2E" opacity=".55" transform="rotate(20 116.0 114.0)"/><ellipse cx="140.0" cy="140.0" rx="20" ry="6" fill="#B87B2E" opacity=".55" transform="rotate(-15 140.0 140.0)"/><ellipse cx="124.0" cy="150.0" rx="16" ry="5" fill="#B87B2E" opacity=".55" transform="rotate(35 124.0 150.0)"/><ellipse cx="146.0" cy="116.0" rx="14" ry="5" fill="#B87B2E" opacity=".55" transform="rotate(-25 146.0 116.0)"/><circle cx="182.0" cy="130.0" r="4" fill="#FFF3D6"/>
-      <animateTransform attributeName="transform" type="rotate" from="0 130.0 130.0" to="-360 130.0 130.0" dur="14s" repeatCount="indefinite"/>
-    </g><text x="130.0" y="254" text-anchor="middle" class="mars-moon-label" fill="var(--coral)">↺ обертання назад (ретроградне)</text></svg>
-      </div>
       <div>
         <p style="color:var(--text-dim);font-size:14px;line-height:1.75">
-          Якщо дивитись на Сонячну систему згори з боку Північного полюса Землі, майже всі планети обертаються навколо своєї осі проти годинникової стрілки — так само, як вони рухаються по орбітах. Венера — виняток: вона обертається за годинниковою стрілкою, у протилежному напрямку.
+          Нептун — єдина планета Сонячної системи, знайдена завдяки математичному передбаченню, а не випадковому спостереженню. Астрономи Урбен Лев'є́ і Джон Кауч Адамс незалежно розрахували, де має бути невідома планета, аналізуючи невеликі відхилення в русі Урана від очікуваної орбіти.
         </p>
         <p style="color:var(--text-dim);font-size:14px;line-height:1.75;margin-top:14px">
-          Найімовірніша причина — масивне зіткнення на ранніх етапах формування планети, яке буквально перевернуло її обертання. Через це на Венері Сонце сходить на заході й заходить на сході — якби крізь щільні хмари його взагалі можна було побачити неозброєним оком з поверхні.
+          Йоганн Галле в Берлінській обсерваторії навів телескоп на розраховану точку неба — і того ж вечора знайшов планету менш ніж за один градус від передбаченого положення.
         </p>
       </div>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="greenhouse">
-  <div class="wrap">
-    <div class="section-head">
-      <div>
-        <div class="eyebrow">Неконтрольований парниковий ефект</div>
-        <h2 class="section-title">Крізь хмари сірчаної кислоти до поверхні</h2>
-      </div>
-    </div>
-    <p class="section-sub">96.5% вуглекислого газу в атмосфері утримують тепло настільки ефективно, що поверхня розжарена сильніше за поверхню Меркурія, який утричі ближче до Сонця. Це найяскравіший приклад неконтрольованого парникового ефекту в Сонячній системі — і застереження для розуміння клімату Землі.</p>
-    <div class="depth-wrap" style="margin-top:10px">
-      <div class="depth-bar" style="background:linear-gradient(to bottom,#F0D9A0,#D9A24B 30%,#B8621F 62%,#7A2E10 85%,#3D1408)"></div>
-      <div class="depth-marks">
-        <div class="pmark" style="top:2%"><span class="txt">70 км · верхівки хмар сірчаної кислоти, −45°C</span><span class="ln"></span></div><div class="pmark" style="top:22%"><span class="txt">50 км · зона "придатної" температури (+27°C), проте кислотні хмари</span><span class="ln"></span></div><div class="pmark" style="top:48%"><span class="txt">30 км · тиск наростає, +200°C</span><span class="ln"></span></div><div class="pmark hl" style="top:78%"><span class="txt">0 км · поверхня, +465°C</span><span class="ln"></span></div><div class="pmark hl" style="top:96%"><span class="txt">92 атм · тиск на поверхні (як на 900 м під водою)</span><span class="ln"></span></div>
+      <div class="card" style="padding:26px">
+        <div class="k">Час від відкриття</div>
+        <div class="v" style="font-size:26px">179<span class="unit">років</span></div>
+        <div class="foot">Нептун встиг зробити трохи більше одного повного оберту навколо Сонця відтоді</div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="section" id="surface">
+<section class="section" id="dark-spot">
   <div class="wrap">
     <div class="section-head">
       <div>
-        <div class="eyebrow">Magellan · радарне картографування</div>
-        <h2 class="section-title">Вулканічна поверхня під хмарами</h2>
+        <div class="eyebrow">На відміну від Великої Червоної Плями Юпітера</div>
+        <h2 class="section-title">Темні плями, що зникають</h2>
       </div>
     </div>
-    <p class="section-sub">Оптичні камери не бачать поверхню Венери крізь суцільний шар хмар — усі карти рельєфу отримані радаром, який "просвічує" атмосферу.</p>
-    <div class="gal">
-      <div class="rover-photo" style="background:linear-gradient(160deg,#d9a24b,#5c3a1a)"><div class="info">Радарна карта · Magellan</div></div>
-      <div class="rover-photo" style="background:linear-gradient(160deg,#e8c77a,#6b4520)"><div class="info">Вулкан Маат Монс</div></div>
-      <div class="rover-photo" style="background:linear-gradient(160deg,#c98a3e,#4a2e14)"><div class="info">Рівнина Лакшмі</div></div>
-      <div class="rover-photo" style="background:linear-gradient(160deg,#b87b2e,#3d2610)"><div class="info">Ударний кратер Меад</div></div>
+    <p class="section-sub">Voyager 2 сфотографував Велику Темну Пляму 1989 року — шторм розміром із Землю. Але коли за ним у 1994 році спостерігав космічний телескоп Габбл, пляма зникла безслідно. Відтоді з'являлись і зникали нові темні плями — на відміну від багатовікової стабільності Великої Червоної Плями Юпітера.</p>
+    <div class="grid cols-3" style="margin-top:20px">
+      <div class="card"><div class="k">Виявлено</div><div class="v" style="font-size:20px">1989</div><div class="foot">Voyager 2, під час єдиного прольоту повз Нептун</div></div>
+      <div class="card"><div class="k">Зникла</div><div class="v" style="font-size:20px">до 1994</div><div class="foot">Підтверджено телескопом Габбл</div></div>
+      <div class="card"><div class="k">Тривалість штормів</div><div class="v" style="font-size:20px">роки, не сторіччя</div><div class="foot">На відміну від сотень років у Юпітера</div></div>
     </div>
-    <div class="grid cols-3" style="margin-top:22px">
-      <div class="card"><div class="k">Кількість вулканів</div><div class="v" style="font-size:20px">1 600+</div><div class="foot">Більше, ніж на будь-якій іншій планеті Сонячної системи</div></div>
-      <div class="card"><div class="k">Тектоніка плит</div><div class="v" style="font-size:20px">Відсутня</div><div class="foot">Єдина суцільна кора, на відміну від Землі</div></div>
-      <div class="card"><div class="k">Вік поверхні</div><div class="v" style="font-size:20px">~500 млн р.</div><div class="foot">Ймовірно, повністю "перезаписана" вулканізмом</div></div>
+  </div>
+</section>
+
+<section class="section" id="rings">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Названі на честь першовідкривачів</div>
+        <h2 class="section-title">П'ять тьмяних кілець</h2>
+      </div>
+    </div>
+    <p class="section-sub">Кільця Галле, Ле Вер'є, Лассела, Араго та Адамса — тьмяні й пилові, з незвичайними згустками ("дугами") у кільці Адамса, стабільність яких досі остаточно не пояснено гравітаційними моделями.</p>
+  </div>
+</section>
+
+<section class="section" id="triton">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Найдивовижніший супутник системи</div>
+        <h2 class="section-title">Тритон: захоплений і приречений</h2>
+      </div>
+    </div>
+    <div class="grid cols-3">
+      <div class="card"><div class="k">Ретроградна орбіта</div><div class="v" style="font-size:20px">↺ єдиний такий</div><div class="foot">Обертається проти напрямку обертання Нептуна — сильний доказ, що це захоплений об'єкт пояса Койпера</div></div>
+      <div class="card"><div class="k">Кріовулкани</div><div class="v" style="font-size:20px">азотні гейзери</div><div class="foot">Voyager 2 сфотографував активні виверження льодяного азоту</div></div>
+      <div class="card"><div class="k">Майбутнє</div><div class="v" style="font-size:20px">~3.6 млрд років</div><div class="foot">Приливні сили поступово затягнуть Тритон усередину — і він розпадеться на нове кільце</div></div>
+    </div>
+    <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:14px">Поверхня Тритона — одна з найхолодніших виміряних у Сонячній системі, приблизно −235°C</p>
+  </div>
+</section>
+
+<section class="section" id="moon-system">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">16 підтверджених супутників</div>
+        <h2 class="section-title">Повна система місяців Нептуна</h2>
+      </div>
+    </div>
+    <p class="section-sub">Окрім Тритона, у Нептуна є сім крихітних супутників серед кілець, ексцентрична Нереїда на дивній витягнутій орбіті та сім далеких неправильних супутників — здебільшого захоплені об'єкти на ретроградних орбітах.</p>
+    <div class="orbit-wrap">
+      <svg viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
+      <circle class="mars-orbit-ring" cx="320.0" cy="320.0" r="55.0"/><circle class="mars-orbit-ring" cx="320.0" cy="320.0" r="105.0"/><circle class="mars-orbit-ring" cx="320.0" cy="320.0" r="145.0"/><circle class="mars-orbit-ring" cx="320.0" cy="320.0" r="220.0"/><circle cx="320.0" cy="320.0" r="7" fill="#6FA8E8"/><circle cx="373.8" cy="292.5" r="2" fill="var(--teal)" opacity=".85"/><circle cx="359.0" cy="288.7" r="2" fill="var(--teal)" opacity=".85"/><circle cx="274.7" cy="290.4" r="2" fill="var(--teal)" opacity=".85"/><circle cx="270.3" cy="310.5" r="2" fill="var(--teal)" opacity=".85"/><circle cx="339.4" cy="370.8" r="2" fill="var(--teal)" opacity=".85"/><circle cx="329.9" cy="373.6" r="2" fill="var(--teal)" opacity=".85"/><circle cx="369.4" cy="327.8" r="2" fill="var(--teal)" opacity=".85"/><circle cx="294.1" cy="219.2" r="2" fill="var(--coral)" opacity=".85"/><circle cx="172.7" cy="308.3" r="2" fill="var(--teal)" opacity=".85"/><circle cx="184.2" cy="486.3" r="2" fill="var(--coral)" opacity=".85"/><circle cx="365.6" cy="103.7" r="2" fill="var(--coral)" opacity=".85"/><circle cx="198.9" cy="134.6" r="2" fill="var(--coral)" opacity=".85"/><circle cx="534.7" cy="280.1" r="2" fill="var(--coral)" opacity=".85"/><circle cx="333.4" cy="102.0" r="2" fill="var(--coral)" opacity=".85"/><circle cx="120.4" cy="222.9" r="2" fill="var(--coral)" opacity=".85"/><circle cx="235.4" cy="517.7" r="2" fill="var(--coral)" opacity=".85"/><text class="mars-moon-label" x="320.0" y="256.0" text-anchor="middle" fill="var(--teal)">Внутрішні кільцеві · 7</text><text class="mars-moon-label" x="320.0" y="206.0" text-anchor="middle" fill="var(--coral)">Тритон (ретроградний) · 1</text><text class="mars-moon-label" x="320.0" y="166.0" text-anchor="middle" fill="var(--teal)">Нереїда · 1</text><text class="mars-moon-label" x="320.0" y="91.0" text-anchor="middle" fill="var(--coral)">Далекі неправильні · 7</text>
+    </svg>
+    </div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin-top:6px">
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--teal)"></span> Прямий рух</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--coral)"></span> Ретроградний рух (захоплені об'єкти)</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="magnetic">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Ще один перекошений гігант</div>
+        <h2 class="section-title">Магнітне поле, як в Урана</h2>
+      </div>
+    </div>
+    <div class="grid cols-3">
+      <div class="card"><div class="k">Кут нахилу поля</div><div class="v" style="font-size:20px">47°</div><div class="foot">Відносно осі обертання</div></div>
+      <div class="card"><div class="k">Зміщення від центру</div><div class="v" style="font-size:20px">значне</div><div class="foot">Як і в Урана — обидва крижані гіганти мають цю особливість</div></div>
+      <div class="card"><div class="k">Можлива причина</div><div class="v" style="font-size:20px">шар електропровідної рідини</div><div class="foot">Не глибоке металеве ядро, як у газових гігантів, а мантія з іонної "океанічної" води й аміаку</div></div>
     </div>
   </div>
 </section>
@@ -1086,42 +1149,38 @@ h1.page-title{font-family:var(--font-display);font-weight:800;font-size:clamp(28
   <div class="wrap">
     <div class="section-head">
       <div>
-        <div class="eyebrow">Хто досліджував і досліджує</div>
-        <h2 class="section-title">Місії до Венери</h2>
+        <div class="eyebrow">Хто досліджував і планує досліджувати</div>
+        <h2 class="section-title">Місії до Нептуна</h2>
       </div>
     </div>
     <div class="card" style="padding:8px 22px">
-      <div class="mission-row"><span class="dot live"></span><span class="nm">Akatsuki</span><span class="ag">JAXA</span><span class="yr">2010</span><span class="st active">На орбіті</span></div>
-      <div class="mission-row"><span style="width:7px;height:7px;border-radius:50%;background:var(--text-dim);display:inline-block"></span><span class="nm">Venera 7–14</span><span class="ag">СРСР</span><span class="yr">1970–81</span><span class="st retired">Перші успішні посадки на іншу планету</span></div>
-      <div class="mission-row"><span style="width:7px;height:7px;border-radius:50%;background:var(--text-dim);display:inline-block"></span><span class="nm">Magellan</span><span class="ag">NASA</span><span class="yr">1990</span><span class="st retired">Повна радарна карта поверхні · завершено 1994</span></div>
-      <div class="mission-row"><span style="width:7px;height:7px;border-radius:50%;background:var(--text-dim);display:inline-block"></span><span class="nm">Venus Express</span><span class="ag">ESA</span><span class="yr">2006</span><span class="st retired">Завершено 2014</span></div>
-      <div class="mission-row"><span class="dot live"></span><span class="nm">DAVINCI</span><span class="ag">NASA</span><span class="yr">заплановано 2029</span><span class="st active">У розробці · зонд занурення в атмосферу</span></div>
-      <div class="mission-row"><span class="dot live"></span><span class="nm">VERITAS</span><span class="ag">NASA</span><span class="yr">заплановано 2031</span><span class="st active">У розробці · радарне картографування</span></div>
+      <div class="mission-row"><span style="width:7px;height:7px;border-radius:50%;background:var(--text-dim);display:inline-block"></span><span class="nm">Voyager 2 (єдиний проліт)</span><span class="ag">NASA</span><span class="yr">1989</span><span class="st retired">Єдині прямі дані про планету, кільця й Тритон</span></div>
+      <div class="mission-row"><span style="width:7px;height:7px;border-radius:50%;background:var(--text-dim);display:inline-block"></span><span class="nm">Trident (пропозиція)</span><span class="ag">NASA</span><span class="yr">запропоновано 2019</span><span class="st retired">Не обрано для фінансування у 2021 році</span></div>
     </div>
-    <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:12px">Найдовше з усіх апаратів на поверхні Венери протримався Venera 13 — 127 хвилин, перш ніж тиск і температура вивели електроніку з ладу.</p>
+    <p style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);margin-top:12px">Усе, що відомо про Нептун із прямих спостережень, отримано за одну добу єдиного прольоту Voyager 2 у серпні 1989 року — це була фінальна зупинка "Великого туру" зонда.</p>
   </div>
 </section>
 
-<section class="section" id="observe">
+<section class="section" id="opposition">
   <div class="wrap">
     <div class="section-head">
       <div>
         <div class="eyebrow">Пов'язано з sky.html</div>
-        <h2 class="section-title">Найяскравіша зараз на небі</h2>
+        <h2 class="section-title">Наступне протистояння Нептуна</h2>
       </div>
     </div>
     <div class="grid cols-2" style="align-items:center">
       <div class="card" style="padding:26px">
-        <div class="k">До найбільшої яскравості</div>
+        <div class="k">До найкращого моменту спостереження</div>
         <div class="clock" style="margin-top:14px">
-          <div class="seg"><div class="n">42</div><span class="u">дні</span></div>
-          <div class="seg"><div class="n">11</div><span class="u">годин</span></div>
+          <div class="seg"><div class="n">01</div><span class="u">місяць</span></div>
+          <div class="seg"><div class="n">18</div><span class="u">днів</span></div>
         </div>
-        <div class="foot" style="margin-top:14px">Venus зараз — "ранкова зоря", видима перед світанком на сході</div>
+        <div class="foot" style="margin-top:14px">Потрібен телескоп — неозброєним оком не видно</div>
       </div>
       <div class="card" style="padding:26px">
-        <div class="k">Фази Венери</div>
-        <p style="color:var(--text-dim);font-size:13.5px;margin-top:10px;line-height:1.7">У телескоп Венера показує фази, подібні до місячних — від тонкого серпа до майже повного диска. Саме спостереження цих фаз Галілеєм 1610 року стало одним із перших прямих доказів на користь геліоцентричної моделі Коперника.</p>
+        <div class="k">Як його знайти</div>
+        <p style="color:var(--text-dim);font-size:13.5px;margin-top:10px;line-height:1.7">Зоряна величина Нептуна — близько 7.8m, що вдвічі тьмяніше за межу видимості неозброєним оком. Потрібен бінокль або невеликий телескоп і точна карта позиції серед зір Водолія чи сусідніх сузір'їв.</p>
       </div>
     </div>
   </div>
@@ -1132,24 +1191,24 @@ h1.page-title{font-family:var(--font-display);font-weight:800;font-size:clamp(28
     <div class="section-head">
       <div>
         <div class="eyebrow">Цікаві факти</div>
-        <h2 class="section-title">Венера рекордів</h2>
+        <h2 class="section-title">Нептун рекордів</h2>
       </div>
     </div>
     <div class="grid cols-3">
       <div class="card">
-        <div class="k">Найяскравіша планета</div>
-        <div class="v" style="font-size:20px">−4.6m</div>
-        <div class="foot">Третій за яскравістю об'єкт неба після Сонця й Місяця</div>
+        <div class="k">Найдальша планета</div>
+        <div class="v" style="font-size:20px">30.1 а.о.</div>
+        <div class="foot">Після виключення Плутона з переліку планет 2006 року</div>
       </div>
       <div class="card">
-        <div class="k">Транзит по диску Сонця</div>
-        <div class="v" style="font-size:20px">8 червня 2117</div>
-        <div class="foot">Пари транзитів трапляються раз на понад 100 років</div>
+        <div class="k">Найсильніші вітри</div>
+        <div class="v" style="font-size:20px">2 100 км/год</div>
+        <div class="foot">Рекорд Сонячної системи, попри мінімум сонячної енергії</div>
       </div>
       <div class="card">
-        <div class="k">День довший за рік</div>
-        <div class="v" style="font-size:20px">243 &gt; 225</div>
-        <div class="foot">Оберт навколо осі триває довше за оберт навколо Сонця</div>
+        <div class="k">Знайдений математикою</div>
+        <div class="v" style="font-size:20px">1846</div>
+        <div class="foot">Передбачений розрахунками до першого спостереження</div>
       </div>
     </div>
   </div>
@@ -1172,6 +1231,11 @@ h1.page-title{font-family:var(--font-display);font-weight:800;font-size:clamp(28
         <a href="jupiter.html">Юпітер</a>
         <a href="mercury.html">Меркурій</a>
         <a href="venus.html">Венера</a>
+        <a href="earth.html">Земля</a>
+        <a href="saturn.html">Сатурн</a>
+        <a href="uranus.html">Уран</a>
+        <a href="neptune.html">Нептун</a>
+        <a href="galaxies.html">Знамениті галактики</a>
         <a href="apod.html">Фото дня (APOD)</a>
         <a href="gallery.html">Фотоархів NASA</a>
         <a href="news.html">Космічні новини</a>

@@ -39,6 +39,7 @@ from services.debris import SpaceDebrisAPI
 from services.jupiter import get_jupiter as _build_jupiter
 from services.mercury import get_mercury as _build_mercury
 from services.venus import get_venus as _build_venus
+from services.neptune import get_neptune as _build_neptune
 from services.grb_alerts import GRBAlertAPI
 from services.comets import CometAPI
 from services.exoplanets import ExoplanetAPI
@@ -1769,6 +1770,21 @@ def _mercury_raw() -> dict:
 
 async def get_mercury() -> dict:
     return await asyncio.to_thread(get_or_fetch, "mercury", MERCURY_TTL, _mercury_raw)
+
+
+NEPTUNE_TTL = 300
+
+
+def _neptune_raw() -> dict:
+    try:
+        return _build_neptune()
+    except Exception as e:
+        logger.error("neptune: %s", e)
+        return {}
+
+
+async def get_neptune() -> dict:
+    return await asyncio.to_thread(get_or_fetch, "neptune", NEPTUNE_TTL, _neptune_raw)
 
 
 EARTH_TTL = 300

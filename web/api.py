@@ -221,6 +221,12 @@ async def mercury():
     return await data.get_mercury()
 
 
+@router.get("/neptune")
+async def neptune():
+    """Live Earth-Neptune distance and next opposition date."""
+    return await data.get_neptune()
+
+
 @router.get("/earth")
 async def earth():
     """Live Earth climate vital signs (CO2, temperature anomaly) and real-time earthquake data."""

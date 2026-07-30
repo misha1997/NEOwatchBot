@@ -52,6 +52,11 @@ const HERO_MOONS = [
 // every other moon's duration is a true multiple of its real period.
 const HERO_SCALE = 3 / 0.294779;
 
+// The eight moons shown in the moon-cards grid (and cycled by the detail
+// modal prev/next). Keys match the `jupiter.moons.<key>` i18n entries and the
+// lowercased catalog `name` from /api/jupiter.
+const MOON_CARDS = ["metis", "adrastea", "amalthea", "thebe", "io", "europa", "ganymede", "callisto"];
+
 // Radiation rows: Io, Europa, Ganymede, Callisto. `level` picks the dot color
 // (warn=coral, gold, teal) and is read straight from the i18n entry.
 const RADIATION = ["io", "europa", "ganymede", "callisto"];
@@ -140,6 +145,9 @@ export default function Jupiter() {
   const [now, setNow] = useState(() => Date.now());
   const [modalIdx, setModalIdx] = useState(null);
   const [showFullscreen, setShowFullscreen] = useState(false);
+  // Moon detail modal (click a moon card) + the moon to focus in fullscreen.
+  const [detailKey, setDetailKey] = useState(null);
+  const [focusKey, setFocusKey] = useState(null);
   // Pinned moon selection in the mini-map: clicking a dot or its orbit keeps
   // that orbit highlighted (independent of hover). Toggle — click again to clear.
   const [selectedI, setSelectedI] = useState(null);
@@ -166,6 +174,30 @@ export default function Jupiter() {
       document.body.style.overflow = "";
     };
   }, [modalIdx]);
+
+  // Moon detail modal: resolve live moon data for a card key (catalog name
+  // lowercased equals the i18n card key).
+  const moonByKey = (k) => moons.find((m) => m.name.toLowerCase() === k);
+
+  // Moon detail modal keyboard nav + body scroll lock (mirrors the lightbox).
+  useEffect(() => {
+    if (detailKey === null) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setDetailKey(null);
+      else if (e.key === "ArrowLeft")
+        setDetailKey((k) =>
+          k == null ? null : MOON_CARDS[(MOON_CARDS.indexOf(k) - 1 + MOON_CARDS.length) % MOON_CARDS.length]);
+      else if (e.key === "ArrowRight")
+        setDetailKey((k) =>
+          k == null ? null : MOON_CARDS[(MOON_CARDS.indexOf(k) + 1) % MOON_CARDS.length]);
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [detailKey]);
   const { days, hours, mins, passed } = useMemo(() => {
     const iso = data?.opposition_next_iso;
     const target = iso ? new Date(iso + "T00:00:00Z").getTime() : 0;
@@ -389,22 +421,63 @@ export default function Jupiter() {
         <div className="wrap">
           <SectionHead eyebrow={t("jupiter.moons.eyebrow")} title={t("jupiter.moons.title")} sub={t("jupiter.moons.sub", { count: count || 95 })} />
           <div className="grid cols-4">
-            {["metis", "adrastea", "amalthea", "thebe", "io", "europa", "ganymede", "callisto"].map((k) => (
-              <div className="moon-card" key={k}>
-                <div className="photo">
-                  <img
-                    src={`/moons/${k}.png`}
-                    alt={t("jupiter.moons." + k + ".name")}
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                  />
-                  <span className="tag">{t("jupiter.moons." + k + ".tag")}</span>
+            {MOON_CARDS.map((k) => {
+              const md = moonByKey(k);
+              const pro = md?.prograde !== false;
+              return (
+                <div
+                  className="moon-card"
+                  key={k}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setDetailKey(k)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetailKey(k); } }}
+                >
+                  <div className="photo">
+                    <img
+                      src={`/moons/${k}.png`}
+                      alt={t("jupiter.moons." + k + ".name")}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+                    <span className="tag">{t("jupiter.moons." + k + ".tag")}</span>
+                    <span
+                      className="moon-dir"
+                      style={{ color: pro ? "var(--teal)" : "var(--coral)" }}
+                      title={pro ? t("jupiter.moons.stat.dirPro") : t("jupiter.moons.stat.dirRetro")}
+                    >
+                      {pro ? "↻" : "↺"}
+                    </span>
+                  </div>
+                  <div className="body">
+                    <div className="moon-head">
+                      <h4>{t("jupiter.moons." + k + ".name")}</h4>
+                      {md && <span className="moon-group">{t("jupiter.system." + md.group)}</span>}
+                    </div>
+                    {md && (
+                      <div className="moon-stats">
+                        <div className="moon-stat">
+                          <div className="l">{t("jupiter.moons.stat.diameter")}</div>
+                          <div className="v">{md.diameter_km != null ? spacer(Math.round(md.diameter_km)) + " км" : t("jupiter.tooltip.dash")}</div>
+                        </div>
+                        <div className="moon-stat">
+                          <div className="l">{t("jupiter.moons.stat.orbit")}</div>
+                          <div className="v">{fmtA(md.a_km)}</div>
+                        </div>
+                        <div className="moon-stat">
+                          <div className="l">{t("jupiter.moons.stat.ecc")}</div>
+                          <div className="v">{md.e.toFixed(3)}</div>
+                        </div>
+                        <div className="moon-stat">
+                          <div className="l">{t("jupiter.moons.stat.incl")}</div>
+                          <div className="v">{md.i_deg.toFixed(1)}°</div>
+                        </div>
+                      </div>
+                    )}
+                    <p>{t("jupiter.moons." + k + ".desc")}</p>
+                  </div>
                 </div>
-                <div className="body">
-                  <h4>{t("jupiter.moons." + k + ".name")}</h4>
-                  <p>{t("jupiter.moons." + k + ".desc")}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <p className="jupiter-moons-note">{t("jupiter.moons.note")}</p>
         </div>
@@ -670,7 +743,10 @@ export default function Jupiter() {
       </section>
 
       {showFullscreen && (
-        <JupiterMoonSystemFullscreen onClose={() => setShowFullscreen(false)} />
+        <JupiterMoonSystemFullscreen
+          onClose={() => { setShowFullscreen(false); setFocusKey(null); }}
+          initialMoonKey={focusKey}
+        />
       )}
 
       {modalIdx !== null && (
@@ -700,6 +776,50 @@ export default function Jupiter() {
           </div>
         </div>
       )}
+
+      {/* moon detail lightbox (click a moon card) */}
+      {detailKey !== null && (() => {
+        const md = moonByKey(detailKey);
+        const pro = md?.prograde !== false;
+        return (
+          <div className="photo-modal open" onClick={() => setDetailKey(null)}>
+            <div className="photo-modal-inner" onClick={(e) => e.stopPropagation()}>
+              <div className="photo-modal-img"
+                style={{ backgroundImage: `url("/moons/${detailKey}.png")` }}>
+                <button className="photo-modal-close" onClick={() => setDetailKey(null)}
+                  aria-label={t("mars.rovers.lightbox.close")}>✕</button>
+                <button className="photo-modal-nav prev"
+                  onClick={() => setDetailKey((k) => MOON_CARDS[(MOON_CARDS.indexOf(k) - 1 + MOON_CARDS.length) % MOON_CARDS.length])}
+                  aria-label={t("mars.rovers.lightbox.prev")}>‹</button>
+                <button className="photo-modal-nav next"
+                  onClick={() => setDetailKey((k) => MOON_CARDS[(MOON_CARDS.indexOf(k) + 1) % MOON_CARDS.length])}
+                  aria-label={t("mars.rovers.lightbox.next")}>›</button>
+              </div>
+              <div className="photo-modal-info">
+                <div className="cat">{md ? t("jupiter.system." + md.group) : "—"}</div>
+                <h3>{t("jupiter.moons." + detailKey + ".name")}</h3>
+                <div className="d" style={{ color: pro ? "var(--teal)" : "var(--coral)" }}>
+                  {pro ? "↻" : "↺"} {pro ? t("jupiter.moons.stat.dirPro") : t("jupiter.moons.stat.dirRetro")}
+                </div>
+                <p>{t("jupiter.moons." + detailKey + ".desc")}</p>
+                {md && (
+                  <>
+                    <div className="dl-row"><span className="lbl">{t("jupiter.tooltip.diameter")}</span><span className="val">{md.diameter_km != null ? spacer(Math.round(md.diameter_km)) + " км" : t("jupiter.tooltip.dash")}</span></div>
+                    <div className="dl-row"><span className="lbl">{t("jupiter.tooltip.a")}</span><span className="val">{fmtA(md.a_km)}</span></div>
+                    <div className="dl-row"><span className="lbl">{t("jupiter.tooltip.period")}</span><span className="val">{fmtP(md.period_d)}</span></div>
+                    <div className="dl-row"><span className="lbl">{t("jupiter.tooltip.eccentricity")}</span><span className="val">{md.e.toFixed(3)}</span></div>
+                    <div className="dl-row"><span className="lbl">{t("jupiter.tooltip.inclination")}</span><span className="val">{md.i_deg.toFixed(1)}°</span></div>
+                  </>
+                )}
+                <button type="button" className="moon-open-system"
+                  onClick={() => { setFocusKey(detailKey); setDetailKey(null); setShowFullscreen(true); }}>
+                  {t("jupiter.moons.stat.openFullscreen")} <span aria-hidden="true">↗</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }

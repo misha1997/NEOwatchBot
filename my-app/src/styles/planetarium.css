@@ -133,6 +133,8 @@
 
 /* Mars orbit + moons (hero SVG) */
 .mars-orbit-ring { fill: none; stroke: var(--grid-line); stroke-width: 1; stroke-dasharray: 3 4; }
+/* Neptune planetary rings — stylized hint on the hero mini-map (not to scale). */
+.neptune-ring { fill: none; stroke: #6FA8E8; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .mars-moon-label { font-family: var(--font-mono); font-size: 9.5px; fill: var(--text-dim); }
 .mars-disc-img { filter: drop-shadow(0 8px 28px rgba(0,0,0,.55)); }
 .jupiter-disc-img { filter: drop-shadow(0 8px 28px rgba(0,0,0,.55)); }
@@ -283,6 +285,29 @@
   line-height: 1.7;
 }
 .photo-modal-info .dl-row { margin-top: 14px; }
+/* "Show in moon system" primary action in the moon detail lightbox. */
+.moon-open-system {
+  appearance: none;
+  display: inline-flex; align-items: center; gap: 7px;
+  align-self: flex-start;
+  margin-top: 22px;
+  padding: 10px 16px;
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: .02em;
+  color: var(--teal);
+  background: rgba(79,209,197,.08);
+  border: 1px solid rgba(79,209,197,.45);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease, color .2s ease, transform .15s ease;
+}
+.moon-open-system:hover {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: var(--bg);
+  transform: translateY(-1px);
+}
+.moon-open-system:active { transform: translateY(0); }
+.moon-open-system:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 @media (max-width: 900px) {
   .photo-modal-inner { flex-direction: column; max-height: 92vh; }
   .photo-modal-img { min-height: 220px; }
@@ -404,27 +429,67 @@
   line-height: 1.4;
 }
 
-/* moon cards (Jupiter eight-moon grid) */
-.moon-card {
+/* moon cards (Jupiter eight-moon grid + Neptune moon grid).
+   Scoped under #moons: a global `.moon-card` in neowatch.css (TonightPanel) uses
+   display:flex (photo left of meta); we need photo ABOVE text here, so these
+   rules outrank it via the id selector and reset to block layout. */
+#moons .moon-card {
+  display: block;
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
   background: rgba(237,238,245,.02);
+  cursor: pointer;
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
 }
-.moon-card .photo {
+#moons .moon-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(79,209,197,.45);
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+}
+#moons .moon-card .photo {
   aspect-ratio: 1/1;
   position: relative;
+  overflow: hidden;
   background: radial-gradient(circle, #101222 0%, #05060d 100%);
 }
-.moon-card .photo .tag {
+#moons .moon-card .photo img {
+  transition: transform .4s ease;
+}
+#moons .moon-card:hover .photo img {
+  transform: scale(1.06);
+}
+#moons .moon-card .photo .tag {
   position: absolute; top: 10px; left: 10px;
   font-family: var(--font-mono); font-size: 9.5px; color: var(--gold);
   background: rgba(9,10,20,.6); border: 1px solid rgba(232,185,77,.3);
   padding: 2px 7px; border-radius: 20px;
 }
-.moon-card .body { padding: 16px; }
-.moon-card h4 { font-size: 14px; font-weight: 600; }
-.moon-card p { font-size: 12px; color: var(--text-dim); margin-top: 8px; line-height: 1.55; }
+#moons .moon-card .photo .moon-dir {
+  position: absolute; top: 10px; right: 10px;
+  font-family: var(--font-mono); font-size: 11px; line-height: 1;
+  padding: 3px 7px; border-radius: 20px;
+  background: rgba(9,10,20,.6); border: 1px solid currentColor;
+}
+#moons .moon-card .body { padding: 16px; }
+#moons .moon-card .moon-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+#moons .moon-card .moon-group {
+  font-size: 10.5px; color: var(--text-dim); white-space: nowrap;
+  letter-spacing: .02em;
+}
+#moons .moon-card h4 { font-size: 14px; font-weight: 600; }
+#moons .moon-card .moon-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 12px;
+}
+#moons .moon-card .moon-stat .l {
+  font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-dim);
+}
+#moons .moon-card .moon-stat .v {
+  font-family: var(--font-mono); font-size: 12px; margin-top: 2px; color: var(--text);
+}
+#moons .moon-card p { font-size: 12px; color: var(--text-dim); margin-top: 10px; line-height: 1.55; }
 .moon-radiation-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 
 /* ---------- Great Red Spot shrinkage chart ---------- */
@@ -443,9 +508,12 @@
 .jup-sys-wrap { position: relative; max-width: 640px; margin: 0 auto; }
 .jup-sys-wrap svg { width: 100%; height: auto; display: block; }
 .jup-sys-svg { touch-action: none; cursor: default; }
-/* faint per-moon orbit circle (true linear radius); highlighted on hover */
-.jup-orbit { fill: none; stroke-width: 1; opacity: .08; transition: opacity .15s; }
-.jup-orbit.hl { opacity: .6; stroke-width: 2.5; }
+/* per-moon orbit circle (true linear radius); highlighted on hover.
+   The mini-map renders at ~460–640px where an 0.08 stroke (the fullscreen's
+   default) reads as nearly invisible, so the baseline is raised to match the
+   fullscreen's effective on-screen visibility; hovered/selected stays brighter. */
+.jup-orbit { fill: none; stroke-width: 1; opacity: .28; transition: opacity .15s; }
+.jup-orbit.hl { opacity: .75; stroke-width: 2.5; }
 /* moon dot: tiny fill + a transparent wide stroke enlarges the hover hit area
    without changing the visible size (keeps one element per moon for the rAF
    loop to drive via cx/cy) */

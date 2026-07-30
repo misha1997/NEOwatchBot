@@ -32,6 +32,7 @@ const Jupiter = lazy(() => import("../pages/Jupiter"));
 const Mercury = lazy(() => import("../pages/Mercury"));
 const Earth = lazy(() => import("../pages/Earth"));
 const Venus = lazy(() => import("../pages/Venus"));
+const Neptune = lazy(() => import("../pages/Neptune"));
 const Galaxies = lazy(() => import("../pages/Galaxies"));
 const Galaxy = lazy(() => import("../pages/Galaxy"));
 const News = lazy(() => import("../pages/News"));
@@ -59,6 +60,7 @@ const PAGES = {
   mercury: Mercury,
   earth: Earth,
   venus: Venus,
+  neptune: Neptune,
   galaxies: Galaxies,
   news: News,
 };

@@ -197,6 +197,7 @@
     "mercury": "Mercury — OrbitLight",
     "earth": "Earth — OrbitLight",
     "venus": "Venus — OrbitLight",
+    "neptune": "Neptune — OrbitLight",
     "news": "Space news — NEOwatch"
   },
   "seo": {
@@ -227,6 +228,7 @@
       "mercury": "Mercury up close: extreme temperature swings, the 3:2 spin-orbit resonance, Caloris Basin, the MESSENGER and BepiColombo missions and best times to observe.",
       "earth": "The only planet known to host life: interior structure, atmosphere, magnetosphere, plate tectonics, the Earth-Moon system and Earth-observation satellites.",
       "venus": "Venus up close: runaway greenhouse effect, sulfuric acid clouds, retrograde rotation, Magellan radar mapping and the Venera and Akatsuki missions.",
+      "neptune": "Neptune up close: the strongest winds in the system, dark spots, five faint rings, the retrograde moon Triton with cryovolcanoes, and a history discovered 'on paper'.",
       "news": "The top spaceflight stories in Ukrainian — translated and summarized coverage from SpaceflightNow, NASA, ESA and other sources, updated daily."
     }
   },
@@ -1947,6 +1949,15 @@
         "tag": "⚫ 16.7 days · orbit",
         "grad": "linear-gradient(150deg,#6e6459,#2b2721)",
         "desc": "The most heavily cratered object in the Solar System — its surface has been unchanged for billions of years."
+      },
+      "stat": {
+        "diameter": "Diameter",
+        "orbit": "Orbit",
+        "ecc": "Ecc.",
+        "incl": "Incl.",
+        "dirPro": "Prograde",
+        "dirRetro": "Retrograde",
+        "openFullscreen": "Show in moon system"
       }
     },
     "system": {
@@ -2646,6 +2657,253 @@
       "c3_key": "Day longer than year",
       "c3_val": "243 > 225",
       "c3_foot": "Rotation around its axis lasts longer than its orbit around the Sun"
+    }
+  },
+  "neptune": {
+    "hero": {
+      "eyebrow": "Eighth planet · farthest · updated just now",
+      "title": "Neptune<br><span class=\"accent\">found by calculation</span>",
+      "sub": "The only planet discovered by math rather than direct observation — its position was predicted from perturbations in Uranus's orbit before it was ever seen in a telescope. The windiest planet in the Solar System, with a single large retrograde moon.",
+      "distL": "distance to Earth now",
+      "distUnit": "billion km",
+      "signalL": "signal travel time",
+      "footnote": "Triton (marked ↺) is the only large moon in the Solar System that orbits in the opposite direction of its planet's rotation."
+    },
+    "weather": {
+      "eyebrow": "Voyager 2 · only direct data",
+      "title": "Neptune right now",
+      "speedK": "Wind speed",
+      "speedV": "2,100",
+      "speedUnit": "km/h",
+      "speedFoot": "The strongest winds of any planet in the Solar System",
+      "tempK": "Cloud temperature",
+      "tempV": "-201",
+      "tempUnit": "°C",
+      "tempFoot": "The planet radiates twice as much heat as it receives from the Sun",
+      "rotK": "Rotation period",
+      "rotV": "16h 06",
+      "rotUnit": "m",
+      "rotFoot": "Similar to Jupiter and Saturn, despite its icy composition",
+      "revK": "First full orbit",
+      "revV": "2011",
+      "revUnit": "",
+      "revFoot": "Since Neptune was discovered in 1846 — just one Neptunian year ago"
+    },
+    "compare": {
+      "eyebrow": "Neptune vs Earth",
+      "title": "How different it is",
+      "p": {
+        "day": "Day length",
+        "year": "Year length",
+        "gravity": "Gravity (at clouds)",
+        "diameter": "Diameter",
+        "dist": "Distance to Sun",
+        "density": "Density",
+        "moons": "Confirmed moons"
+      },
+      "v": {
+        "day": {
+          "neptune": "16h 06m",
+          "earth": "24h 00m"
+        },
+        "year": {
+          "neptune": "164.8 Earth years",
+          "earth": "1 year"
+        },
+        "gravity": {
+          "neptune": "11.15 m/s² (1.14x)",
+          "earth": "9.81 m/s²"
+        },
+        "diameter": {
+          "neptune": "49,244 km (3.9x)",
+          "earth": "12,742 km"
+        },
+        "dist": {
+          "neptune": "30.1 AU",
+          "earth": "1 AU"
+        },
+        "density": {
+          "neptune": "1.638 g/cm³",
+          "earth": "5.51 g/cm³"
+        },
+        "moons": {
+          "neptune": "16",
+          "earth": "1"
+        }
+      }
+    },
+    "discovery": {
+      "eyebrow": "September 23, 1846",
+      "title": "A planet found on paper",
+      "p1": "Neptune is the only planet in the Solar System discovered by mathematical prediction rather than by chance observation. Astronomers Urbain Le Verrier and John Couch Adams independently calculated where the unknown planet should be by analyzing perturbations in Uranus's orbit.",
+      "p2": "Johann Galle at the Berlin Observatory pointed his telescope at the calculated sky position and found the planet that same night, less than one degree from the predicted location.",
+      "timeK": "Time since discovery",
+      "timeV": "179",
+      "timeUnit": "years",
+      "timeFoot": "Neptune has completed just over one full orbit around the Sun since then"
+    },
+    "darkSpot": {
+      "eyebrow": "Unlike Jupiter's Great Red Spot",
+      "title": "Disappearing dark spots",
+      "sub": "Voyager 2 photographed the Great Dark Spot in 1989—a storm the size of Earth. But when the Hubble Space Telescope observed it in 1994, the spot had vanished. Since then, new dark spots have appeared and faded, unlike the centuries-long stability of Jupiter's Great Red Spot.",
+      "c1": {
+        "title": "Discovered",
+        "val": "1989",
+        "foot": "By Voyager 2 during its only flyby of Neptune"
+      },
+      "c2": {
+        "title": "Disappeared",
+        "val": "by 1994",
+        "foot": "Confirmed by the Hubble Space Telescope"
+      },
+      "c3": {
+        "title": "Storm duration",
+        "val": "years, not centuries",
+        "foot": "Unlike the hundreds of years of Jupiter's spot"
+      }
+    },
+    "rings": {
+      "eyebrow": "Named after discoverers",
+      "title": "Five faint rings",
+      "sub": "Galle, Le Verrier, Lassell, Arago, and Adams rings—faint and dusty, with unusual clumps (\"arcs\") in the Adams ring, whose stability is still not fully explained by gravitational models."
+    },
+    "triton": {
+      "eyebrow": "The system's most amazing moon",
+      "title": "Triton: captured and doomed",
+      "c1": {
+        "title": "Retrograde orbit",
+        "val": "↺ only such one",
+        "foot": "Orbits in the opposite direction of Neptune's rotation—strong evidence that it is a captured Kuiper Belt object"
+      },
+      "c2": {
+        "title": "Cryovolcanoes",
+        "val": "nitrogen geysers",
+        "foot": "Voyager 2 photographed active eruptions of freezing nitrogen"
+      },
+      "c3": {
+        "title": "Future",
+        "val": "~3.6 billion years",
+        "foot": "Tidal forces will gradually drag Triton inward until it breaks apart into a new ring"
+      },
+      "footnote": "Triton's surface is one of the coldest measured in the Solar System, at approximately -235°C"
+    },
+    "moons": {
+      "eyebrow": "16 confirmed moons",
+      "title": "Neptune's complete moon system",
+      "sub": "Besides Triton, Neptune hosts seven tiny moons among the rings, eccentric Nereid on a strange elongated orbit, and seven outer irregular moons—mostly captured objects in retrograde orbits.",
+      "title_block": "The World of Neptune's Moons",
+      "sub_block": "Aside from the massive retrograde Triton, Neptune is orbited by a family of small inner moons within its rings and distant irregular satellites.",
+      "note": "Triton contains 99.5% of the mass of all Neptune's satellites and rings, highlighting its unique outer-system origin.",
+      "legend": {
+        "prograde": "Prograde motion",
+        "retrograde": "Retrograde motion (captured objects)"
+      },
+      "naiad": {
+        "name": "Naiad",
+        "tag": "7h · orbit",
+        "desc": "Neptune's innermost moon. Its orbit is so low that tidal forces will eventually pull it apart into a new ring."
+      },
+      "thalassa": {
+        "name": "Thalassa",
+        "tag": "7.5h · orbit",
+        "desc": "Orbits extremely close to Naiad in a unique orbital resonance that maintains their separation."
+      },
+      "despina": {
+        "name": "Despina",
+        "tag": "8h · orbit",
+        "desc": "Located within Neptune's faint rings, acting as a shepherd moon stabilizing the Le Verrier ring."
+      },
+      "galatea": {
+        "name": "Galatea",
+        "tag": "10.3h · orbit",
+        "desc": "Interacts gravitationally with the outermost Adams ring, shaping its dust clumps and arcs."
+      },
+      "larissa": {
+        "name": "Larissa",
+        "tag": "13.3h · orbit",
+        "desc": "An irregular, heavily cratered moon, originally discovered during a stellar occultation in 1981."
+      },
+      "proteus": {
+        "name": "Proteus",
+        "tag": "1.1d · orbit",
+        "desc": "Neptune's second largest moon, shaped like an irregular polyhedron—the size limit for non-spherical bodies."
+      },
+      "triton": {
+        "name": "Triton",
+        "tag": "↺ 5.9d · orbit",
+        "desc": "An icy world with cryovolcanoes and a nitrogen atmosphere. Orbits retrograde, proving its Kuiper Belt capture."
+      },
+      "nereid": {
+        "name": "Nereid",
+        "tag": "360d · orbit",
+        "desc": "Possesses one of the most eccentric orbits in the Solar System, swinging out as far as 9.6 million km."
+      }
+    },
+    "magnetic": {
+      "eyebrow": "Another skewed giant",
+      "title": "Magnetic field like Uranus",
+      "c1": {
+        "title": "Field tilt angle",
+        "val": "47°",
+        "foot": "Relative to the rotation axis"
+      },
+      "c2": {
+        "title": "Offset from center",
+        "val": "significant",
+        "foot": "Like Uranus, both ice giants share this unique feature"
+      },
+      "c3": {
+        "title": "Possible cause",
+        "val": "conductive fluid layer",
+        "foot": "Not a deep metallic core like gas giants, but a mantle of ionic \"oceanic\" water and ammonia"
+      }
+    },
+    "missions": {
+      "eyebrow": "Who explored and plans to explore",
+      "title": "Missions to Neptune",
+      "v2": "Voyager 2 (only flyby)",
+      "v2st": "The only direct data on the planet, rings, and Triton",
+      "trident": "Trident (proposal)",
+      "tridentst": "Not selected for funding in 2021",
+      "footnote": "Everything known about Neptune from direct observations was obtained during one day of Voyager 2's single flyby in August 1989—the final stop of the probe's \"Grand Tour\"."
+    },
+    "opposition": {
+      "eyebrow": "Linked with constellations",
+      "title": "Neptune's next opposition",
+      "until": "Until the best observation window",
+      "days": "days",
+      "months": "month",
+      "foot": "Telescope required—not visible to the naked eye",
+      "findK": "How to find it",
+      "findBody": "Neptune's magnitude is around 7.8m, which is twice as faint as the naked-eye limit. You will need binoculars or a small telescope and a precise star map to find it in Aquarius or neighboring constellations."
+    },
+    "system": {
+      "eyebrow": "All {{count}} known moons",
+      "title": "Neptune's complete moon system",
+      "sub": "Four dynamic groups of Neptune's moons — from inner ring group near the planet to distant irregulars. Prograde moons are teal, retrograde are coral. Hover for details.",
+      "inner": "Inner ring group",
+      "triton": "Triton",
+      "nereid": "Nereid",
+      "outer": "Distant irregulars",
+      "scaleNote": "Orbits are drawn to true linear scale by real semi-major axes: from 48k km (Naiad) to ~50M km (outer irregulars) — a ~1000x span, so the inner moons cluster tightly near the planet. Time is sped up (1s ≈ 0.1 days); relative speeds are real. Orbits are Keplerian: real eccentricity and variable speed. Deep zoom is available in the fullscreen viewer.",
+      "fullscreen": "Fullscreen",
+      "fullscreenHint": "Open immersive fullscreen explorer — deep zoom, real photos, and detail cards for each of the {{count}} moons",
+      "openFullscreen": "Explore all {{count}} moons in fullscreen",
+      "fullscreenTitle": "Full Neptune moon system",
+      "loading": "Loading moon system…"
+    },
+    "records": {
+      "eyebrow": "Interesting facts",
+      "title": "Neptune of records",
+      "c1_key": "Farthest planet",
+      "c1_val": "30.1 AU",
+      "c1_foot": "After Pluto was excluded from the list of planets in 2006",
+      "c2_key": "Strongest winds",
+      "c2_val": "2,100 km/h",
+      "c2_foot": "Solar System record, despite minimum solar energy",
+      "c3_key": "Found by math",
+      "c3_val": "1846",
+      "c3_foot": "Predicted by calculations before the first observation"
     }
   }
 }

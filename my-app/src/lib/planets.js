@@ -62,7 +62,7 @@ export const PLANETS = [
   },
   {
     key: "neptune", labelKey: "nav.neptune", to: "neptune",
-    disabled: true, accent: "#4F7FD9", img: "/planets/Neptune.png",
+    disabled: false, accent: "#4F7FD9", img: "/planets/Neptune.png",
     grad: ["#7FA6E8", "#4F7FD9", "#2E5FA8"],
     facts: { dia: "49 244", day: "16.1", year: "164.8", gravity: "11.15", moons: "16", temp: "−214 °C" },
     blurbKey: "planetarium.blurbs.neptune",

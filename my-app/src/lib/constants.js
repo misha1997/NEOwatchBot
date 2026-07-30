@@ -31,7 +31,7 @@ export const NAV_GROUPS = [
     { name: "jupiter", labelKey: "nav.jupiter" },
     { name: "saturn", labelKey: "nav.saturn", disabled: true },
     { name: "uranus", labelKey: "nav.uranus", disabled: true },
-    { name: "neptune", labelKey: "nav.neptune", disabled: true },
+    { name: "neptune", labelKey: "nav.neptune" },
   ]},
   { labelKey: "nav.bodies_group", items: [
     { name: "asteroids", labelKey: "nav.asteroids" },
