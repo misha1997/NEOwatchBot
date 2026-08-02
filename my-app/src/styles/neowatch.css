@@ -2328,24 +2328,38 @@ table.data tr:hover td {
   box-shadow: inset -6px -4px 30px rgba(0, 0, 0, .5);
 }
 
-/* ---------- gallery ---------- */
+/* ---------- gallery (masonry via CSS columns) ---------- */
 .gal {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px
+  column-count: 4;
+  column-gap: 12px
 }
 
 .gal .ph {
-  aspect-ratio: 4/5;
+  break-inside: avoid;
+  margin-bottom: 12px;
   border-radius: 12px;
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--border)
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: block;
+  background: #0a0c16
 }
 
-.gal .ph .grad {
-  position: absolute;
-  inset: 0
+.gal .ph img {
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: 0;
+  transition: opacity .35s ease, transform .4s ease
+}
+
+.gal .ph img.loaded {
+  opacity: 1
+}
+
+.gal .ph:hover img.loaded {
+  transform: scale(1.03)
 }
 
 .gal .ph .info {
@@ -2355,7 +2369,13 @@ table.data tr:hover td {
   bottom: 0;
   padding: 12px;
   font-size: 12px;
-  background: linear-gradient(to top, rgba(0, 0, 0, .75), transparent)
+  background: linear-gradient(to top, rgba(0, 0, 0, .82), transparent);
+  opacity: 0;
+  transition: opacity .2s
+}
+
+.gal .ph:hover .info {
+  opacity: 1
 }
 
 .gal .ph .info b {
@@ -2786,7 +2806,7 @@ footer a:hover {
   }
 
   .gal {
-    grid-template-columns: repeat(2, 1fr)
+    column-count: 3
   }
 
   .fcards {

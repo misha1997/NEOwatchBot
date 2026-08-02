@@ -828,3 +828,89 @@
   0%, 100% { transform: scale(0.95); filter: brightness(0.9); }
   50% { transform: scale(1.05); filter: brightness(1.15); }
 }
+
+/* ---------- galaxy sky-position mini-map ---------- */
+.sky-map { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: #0a0c16; }
+.sky-map svg { display: block; width: 100%; height: auto; }
+.sky-map .sky-dot circle:first-child { animation: skyDotPulse 2.4s ease-in-out infinite; transform-origin: center; }
+.sky-map-cap {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  padding: 10px 14px; border-top: 1px solid var(--border);
+}
+@keyframes skyDotPulse {
+  0%, 100% { opacity: .18; r: 9; }
+  50% { opacity: .42; r: 15; }
+}
+
+/* ---------- interactive sky-position map (zoomed finder) ---------- */
+.sky-map.sky-map-interactive { cursor: crosshair; }
+.sky-map svg { width: 100%; height: auto; display: block; }
+.sky-map-toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(9,10,20,.4);
+}
+.sky-layer {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  background: transparent;
+  cursor: pointer;
+  transition: .18s;
+}
+.sky-layer:hover { color: var(--text); border-color: rgba(237,238,245,.25); }
+.sky-layer.on {
+  color: var(--gold);
+  border-color: rgba(232,185,77,.4);
+  background: rgba(232,185,77,.08);
+}
+.sky-map-foot {
+  border-top: 1px solid var(--border);
+  padding: 9px 14px;
+  background: rgba(9,10,20,.4);
+}
+.sky-readout {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--gold);
+  letter-spacing: .03em;
+}
+/* galaxy marker pulse (zoomed chart) */
+.sky-map-interactive .sky-dot circle:first-child {
+  animation: skyDotPulse 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* zoom button group (toolbar) */
+.sky-zoom-group { display: inline-flex; gap: 4px; margin-left: auto; }
+.sky-zoom-btn {
+  width: 30px; height: 30px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 15px; font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(9,10,20,.4);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: .18s;
+  line-height: 1;
+}
+.sky-zoom-btn:hover { color: var(--gold); border-color: rgba(232,185,77,.4); background: rgba(232,185,77,.08); }
+.sky-zoom-btn:active { transform: translateY(1px); }
+.sky-zoom-reset { font-size: 14px; }
+
+/* footer hint + readout layout */
+.sky-map-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.sky-hint { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); opacity: .75; }
+
+/* touch devices: hide the wheel hint (no scroll-to-zoom) */
+@media (hover: none) {
+  .sky-hint { display: none; }
+  .sky-map.sky-map-interactive { cursor: grab; }
+}

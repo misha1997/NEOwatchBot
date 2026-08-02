@@ -55,7 +55,7 @@ export const PLANETS = [
   },
   {
     key: "uranus", labelKey: "nav.uranus", to: "uranus",
-    disabled: true, accent: "#9FD9E0", img: "/planets/Uranus.png",
+    disabled: false, accent: "#9FD9E0", img: "/planets/Uranus.png",
     grad: ["#C6ECF0", "#9FD9E0", "#6FB5C0"],
     facts: { dia: "50 724", day: "17.2", year: "84", gravity: "8.69", moons: "28", temp: "−224 °C" },
     blurbKey: "planetarium.blurbs.uranus",

@@ -44,7 +44,7 @@ GALAXIES: list[dict] = [
         "name_uk": "Чумацький Шлях", "name_en": "Milky Way",
         "dist_text_uk": "ми в ній", "dist_text_en": "we are inside it",
         "dist_ly": 0, "diameter_ly": "~100 000–200 000 св. р.", "magnitude": "—",
-        "ra": 266.4167, "dec": -29.0078, "nasa_query": "Milky Way galaxy",
+        "ra": 266.4167, "dec": -29.0078, "nasa_query": "Milky Way airglow",
         "description_uk": "Наш рідний зоряний дім: смуга з понад 100–400 мільярдів зір, \
 об'єднаних гравітацією у великий спіральний диск із перемичкою. У центрі \
 — супермасивна чорна діра Стрілець A* масою близько 4,3 мільйона мас Сонця. \
@@ -63,7 +63,7 @@ at ~26,000 light-years, completing one revolution in ~230 million years.",
         "name_uk": "Андромеда", "name_en": "Andromeda",
         "dist_text_uk": "2.5 млн св. р.", "dist_text_en": "2.5 Mly",
         "dist_ly": 2_500_000, "diameter_ly": "~152 000 св. р.", "magnitude": "3.4m",
-        "ra": 10.6847, "dec": 41.26875, "nasa_query": "Andromeda Galaxy",
+        "ra": 10.6847, "dec": 41.26875, "nasa_query": "Andromeda Galaxy Hubble",
         "description_uk": "Найближча велика галактика до Чумацького Шляху й найвіддаленіший \
 об'єкт, який можна побачити неозброєним оком. Перетнута спіральна галактика \
 діаметром близько 152 000 світлових років, що містить понад трильйон зір — \
@@ -276,7 +276,7 @@ region — the most active star-forming zone in the Local Group.",
         "name_uk": "Галактика Боде", "name_en": "Bode's Galaxy",
         "dist_text_uk": "12 млн св. р.", "dist_text_en": "12 Mly",
         "dist_ly": 12_000_000, "diameter_ly": "~90 000 св. р.", "magnitude": "6.9m",
-        "ra": 148.8882, "dec": 69.0653, "nasa_query": "Bodes Galaxy M81",
+        "ra": 148.8882, "dec": 69.0653, "nasa_query": "M81 galaxy",
         "description_uk": "Велика спіральна галактика в сузір'ї Великої Ведмедиці, відкрита Йоганном Боде у 1774 році. Завдяки близькому розташуванню до Землі та високій яскравості є популярним об'єктом для аматорських спостережень. Має чітку симетричну спіральну структуру та надмасивну чорну діру в центрі масою близько 70 мільйонів мас Сонця.",
         "description_en": "A grand design spiral galaxy in the constellation Ursa Major, discovered by Johann Bode in 1774. Due to its proximity to Earth and high brightness, it is a popular target for amateur astronomers. It features a nearly perfect symmetric spiral structure and hosts a central supermassive black hole of about 70 million solar masses.",
         "fact_uk": "Майже ідеальна симетрична спіральна структура, відкрита Йоганном Боде в 1774 році.",
@@ -293,6 +293,90 @@ region — the most active star-forming zone in the Local Group.",
         "description_en": "A supergiant elliptical galaxy in the constellation Virgo, one of the most massive galaxies in our local universe. Its core hosts a supermassive black hole of 6.5 billion solar masses, which became the first black hole in history to be imaged by the Event Horizon Telescope. It is also famous for a prominent relativistic plasma jet ejecting from its active core.",
         "fact_uk": "Перша в історії чорна діра, яку сфотографували (маса ~6.5 млрд M☉); потужний релятивістський джет.",
         "fact_en": "First black hole ever directly imaged (~6.5 billion M☉); features a powerful relativistic jet.",
+    },
+    {
+        "key": "ngc-1300", "slug": "ngc-1300", "category": "spiral",
+        "designation": "NGC 1300",
+        "name_uk": "NGC 1300", "name_en": "NGC 1300",
+        "dist_text_uk": "61 млн св. р.", "dist_text_en": "61 Mly",
+        "dist_ly": 61_000_000, "diameter_ly": "~110 000 св. р.", "magnitude": "10.4m",
+        "ra": 49.921, "dec": -19.411, "nasa_query": "NGC 1300",
+        "description_uk": "Еталонна спіральна галактика з перемичкою в сузір'ї Ерідана. Її виразна S-подібна спіральна структура зробила її одним із найвідоміших об'єктів для вивчення динамики спіральних галактик з перемичкою. У центрі галактики знаходиться надмасивна чорна діра масою близько 7 мільйонів мас Сонця.",
+        "description_en": "A textbook barred spiral galaxy in the constellation Eridanus. Its striking S-shaped spiral structure has made it one of the most studied examples of barred spiral dynamics. Its core hosts a supermassive black hole of about 7 million solar masses.",
+        "fact_uk": "Еталон спіральної галактики з перемичкою — класичний зразок S-подібної структури.",
+        "fact_en": "A textbook barred spiral — the classic example of an S-shaped spiral structure.",
+    },
+    {
+        "key": "m106", "slug": "m106", "category": "spiral",
+        "designation": "M106 / NGC 4258",
+        "name_uk": "Мессьє 106", "name_en": "Messier 106",
+        "dist_text_uk": "24 млн св. р.", "dist_text_en": "24 Mly",
+        "dist_ly": 24_000_000, "diameter_ly": "~135 000 св. р.", "magnitude": "8.4m",
+        "ra": 184.7396, "dec": 47.3038, "nasa_query": "M106 galaxy",
+        "description_uk": "Спіральна галактика з активним ядром (сейфертовська) у сузір'ї Гончих Псів. Одна з найбільших й найяскравіших галактик у групі М106. Вона має два аномальні радіоспіральні рукави, що складаються з релятивістського газу, ймовірно викинутого струменем надмасивної чорної діри в її центрі.",
+        "description_en": "A spiral galaxy with an active Seyfert nucleus in Canes Venatici. One of the largest and brightest members of the M106 group. It has two anomalous radio spiral arms made of relativistic gas, likely ejected by the jet of its central supermassive black hole.",
+        "fact_uk": "Має аномальні радіоспіральні рукави — релятивістський газ із джету чорної діри.",
+        "fact_en": "Hosts anomalous radio spiral arms — relativistic gas from its black hole's jet.",
+    },
+    {
+        "key": "m74", "slug": "m74", "category": "spiral",
+        "designation": "M74 / NGC 628",
+        "name_uk": "Мессьє 74", "name_en": "Messier 74",
+        "dist_text_uk": "32 млн св. р.", "dist_text_en": "32 Mly",
+        "dist_ly": 32_000_000, "diameter_ly": "~95 000 св. р.", "magnitude": "9.7m",
+        "ra": 24.174, "dec": 15.783, "nasa_query": "M74 galaxy",
+        "description_uk": "Гранд-дизайн спіральна галактика в сузір'ї Риб, обличчям до Землі. Її майже ідеально симетричні спіральні рукави, в яких активно утворюються зорі, роблять її одним із найефектніших зразків спіральних галактик. Розсіяний блиск робить її помітною лише в темному небі.",
+        "description_en": "A grand design spiral galaxy in Pisces, seen face-on. Its nearly perfectly symmetric, actively star-forming spiral arms make it one of the finest examples of a spiral galaxy. Its diffuse glow makes it a challenge except under a dark sky.",
+        "fact_uk": "Гранд-дизайн спіраль обличчям до нас — один із найсиметричніших зразків.",
+        "fact_en": "A face-on grand design spiral — one of the most symmetric examples known.",
+    },
+    {
+        "key": "ngc-4565", "slug": "ngc-4565", "category": "spiral",
+        "designation": "NGC 4565 / Caldwell 38",
+        "name_uk": "Голкова галактика", "name_en": "Needle Galaxy",
+        "dist_text_uk": "40 млн св. р.", "dist_text_en": "40 Mly",
+        "dist_ly": 40_000_000, "diameter_ly": "~150 000 св. р.", "magnitude": "10.0m",
+        "ra": 189.0864, "dec": 25.9876, "nasa_query": "NGC 4565",
+        "description_uk": "Голкова галактика — спіральна галактика з ребра у сузір'ї Волосся Вероніки. Її вузький, витягнутий профіль з темною пиловою смугою, що перетинає диск, нагадує голку, звідки й назва. За розміром вона більша за Чумацький Шлях.",
+        "description_en": "The Needle Galaxy — an edge-on spiral in Coma Berenices. Its narrow, elongated profile with a dark dust lane cutting across the disk gives it a needle-like shape and its name. It is larger than the Milky Way.",
+        "fact_uk": "Видна з ребра, з чіткою темною пиловою смугою; більша за Чумацький Шлях.",
+        "fact_en": "Seen edge-on with a sharp dust lane; larger than the Milky Way.",
+    },
+    {
+        "key": "ngc-2207", "slug": "ngc-2207", "category": "peculiar",
+        "designation": "NGC 2207 / IC 2163",
+        "name_uk": "NGC 2207 та IC 2163", "name_en": "NGC 2207 & IC 2163",
+        "dist_text_uk": "80 млн св. р.", "dist_text_en": "80 Mly",
+        "dist_ly": 80_000_000, "diameter_ly": "~120 000 св. р.", "magnitude": "12.2m",
+        "ra": 93.7446, "dec": -21.2267, "nasa_query": "NGC 2207",
+        "description_uk": "Пара взаємодіючих спіральних галактик у сузір'ї Великого Пса. Їхня гравітаційна боротьба вже виправила рукави IC 2163 у вигляді припливних хвостів та очей, а згодом вони зольються в одну еліптичну галактику. У них спостерігається висока активність зореутворення.",
+        "description_en": "A pair of interacting spiral galaxies in Canis Major. Their gravitational tug has already bent IC 2163's arms into tidal tails and eyelid shapes, and they will eventually merge into a single elliptical galaxy. They show intense star formation.",
+        "fact_uk": "Припливні «очі» та хвости від гравітаційної взаємодії; зореутворення вибухнуло.",
+        "fact_en": "Tidal 'eyelids' and tails from the gravitational encounter; star formation has ignited.",
+    },
+    {
+        "key": "arp-273", "slug": "arp-273", "category": "peculiar",
+        "designation": "Arp 273 / UGC 1810+1813",
+        "name_uk": "Арп 273", "name_en": "Arp 273",
+        "dist_text_uk": "300 млн св. р.", "dist_text_en": "300 Mly",
+        "dist_ly": 300_000_000, "diameter_ly": "~100 000 св. р.", "magnitude": "13.5m",
+        "ra": 32.7075, "dec": 39.2589, "nasa_query": "Arp 273",
+        "description_uk": "Арп 273 — взаємодіюча пара галактик у сузір'ї Андромеди, відзначена Гальтоном Арпом у його атласі пекулярних галактик. Велика спіраль UGC 1810, деформована меншою UGC 1813, утворює форму рози — звідси її поетична назва «Галактична троянда».",
+        "description_en": "Arp 273 is an interacting pair of galaxies in Andromeda, catalogued by Halton Arp in his atlas of peculiar galaxies. The larger spiral UGC 1810, distorted by the smaller UGC 1813, forms a rose-like shape — hence its poetic name 'Galactic Rose'.",
+        "fact_uk": "«Галактична троянда» — спіраль, деформована в форма квітки гравітацією сусідки.",
+        "fact_en": "The 'Galactic Rose' — a spiral bent into a flower shape by a neighbour's gravity.",
+    },
+    {
+        "key": "stephans-quintet", "slug": "stephans-quintet", "category": "peculiar",
+        "designation": "Hickson 92 / NGC 7317–7320",
+        "name_uk": "Квінтет Стефана", "name_en": "Stephan's Quintet",
+        "dist_text_uk": "290 млн св. р.", "dist_text_en": "290 Mly",
+        "dist_ly": 290_000_000, "diameter_ly": "~140 000 св. р.", "magnitude": "13.4m",
+        "ra": 339.149, "dec": 33.967, "nasa_query": "Stephans Quintet",
+        "description_uk": "Квінтет Стефана — щільна група з п'яти галактик у сузір'ї Пегаса, відкрита Едуаром Стефаном 1877 року. Чотири з них фізично взаємодіють на відстані ~290 млн св. р., а NGC 7320 — набагато ближчий прийшлець на передньому плані (~40 млн св. р.). Їхні зіткнення породжують гігантські шокові хвилі водню.",
+        "description_en": "Stephan's Quintet is a compact group of five galaxies in Pegasus, discovered by Édouard Stephan in 1877. Four of them physically interact at ~290 Mly, while NGC 7320 is a much closer foreground interloper (~40 Mly). Their collisions drive enormous hydrogen shock waves.",
+        "fact_uk": "Перша відкрита щільна група галактик (1877); шокові хвилі від їхніх зіткнень.",
+        "fact_en": "The first compact galaxy group ever found (1877); shock waves from their collisions.",
     },
 ]
 
@@ -370,20 +454,38 @@ def _asset_url(nasa_id: str, size: str) -> str:
 
 
 def _photo_score(item: dict, query: str) -> int:
-    """Heuristic: prefer optical Hubble/Webb shots of the galaxy itself."""
+    """Heuristic: prefer real photos of the queried subject.
+
+    The strongest signal is the subject's name appearing in the image's own
+    *title* — NASA Image Library search surfaces many tangentially-keyworded
+    items (e.g. a "Monitoring the Arctic" Earth photo keyed to "Milky Way", or
+    a "History of Hubble" documentary) that match the query in keywords but
+    don't depict it. A title match (+5) dominates the optical-imaging bonus
+    (+2 for Hubble/Webb/ESO/NOAO) so those off-topic items no longer outrank
+    genuine photos. Query words >=3 chars minus generic stop words ("galaxy",
+    "the", ...) so Messier designations like "m33"/"m81" still match.
+    """
     d = (item.get("data") or [{}])[0]
     title = (d.get("title") or "").lower()
     desc = (d.get("description") or "").lower()
-    keys = (d.get("keywords") or [])
+    keys = d.get("keywords") or []
     kstr = " ".join(keys).lower()
     blob = f"{title} {desc} {kstr}"
+    _STOP = {
+        "galaxy", "galaxies", "the", "and", "for", "of", "in", "a", "at",
+        "by", "near", "imaged", "image", "images", "space", "way",
+    }
+    qwords = [w for w in (query or "").lower().split() if len(w) >= 3 and w not in _STOP]
     score = 0
+    # Subject named in the title — the image actually depicts/labels it.
+    score += 5 * sum(1 for w in qwords if w in title)
+    # Optical telescope imaging bonus (lighter, so a title match dominates).
     if any(k in blob for k in ("hubble", "hst", "jwst", "webb", "eso", "noao")):
-        score += 3  # optical / iconic imaging
-    # Galaxy common-name words from the query.
-    for w in (query or "").lower().split():
-        if len(w) > 3 and w in blob:
-            score += 2
+        score += 2
+    # Subject mentioned anywhere (description / keywords).
+    for w in qwords:
+        if w in blob:
+            score += 1
             break
     if any(k in blob for k in ("chart", "map", "diagram", "schematic", "plot", "table")):
         score -= 3  # not a photo
@@ -462,6 +564,106 @@ def build_galaxy_records() -> list[dict]:
     return records
 
 
+# Wikimedia Commons category per galaxy (the primary photo source — far more
+# precise than NASA Image Library keyword search; every file in a curated
+# ``Category:<Galaxy>`` genuinely depicts that object). None → NASA fallback.
+COMMONS_CATEGORY = {
+    "milky-way": "Milky Way Galaxy",
+    "andromeda": "Andromeda Galaxy",
+    "triangulum": "Triangulum Galaxy",
+    "whirlpool": "Whirlpool Galaxy",
+    "sombrero": "Sombrero Galaxy",
+    "centaurus-a": "Centaurus A",
+    "pinwheel": "Pinwheel Galaxy",
+    "cigar": "Messier 82",        # "Cigar Galaxy" is a redirect; canonical cat is M82
+    "black-eye": "Black Eye Galaxy",
+    "antennae": "Antennae Galaxies",
+    "cartwheel": "Cartwheel Galaxy",
+    "lmc": "Large Magellanic Cloud",
+    "bodes": "Messier 81",
+    "m87": "Messier 87",
+    "ngc-1300": "NGC 1300",
+    "m106": "Messier 106",
+    "m74": "Messier 74",
+    "ngc-4565": "NGC 4565",
+    "ngc-2207": "NGC 2207",
+    "arp-273": "Arp 273",
+    "stephans-quintet": "Stephan's Quintet",
+}
+
+
 def build_galaxy_photos(key: str, query: str, cap: int = PHOTO_CAP) -> list[dict]:
-    """Return up to ``cap`` NASA photos for one galaxy, ingest-ready (no paths)."""
+    """Return up to ``cap`` photos for one galaxy, ingest-ready (no paths).
+
+    Prefers Wikimedia Commons (curated per-galaxy categories — real photos of
+    the actual object, including M64/Black Eye which NASA Image Library lacks).
+    Falls back to the NASA Image Library keyword search if Commons is empty or
+    the galaxy has no category mapped. ``query`` is the NASA fallback term.
+    """
+    from .galaxy_commons import build_commons_photos
+    cat = COMMONS_CATEGORY.get(key)
+    if cat:
+        photos = build_commons_photos(cat, cap=cap)
+        if photos:
+            return photos
+        logger.info("commons empty for %r (%s) -> NASA fallback", key, cat)
     return _nasa_photos(query, cap=cap)
+
+
+# ---------------------------------------------------------------------------
+# Constellation + best-viewing month (RA/Dec → IAU constellation via skyfield).
+#
+# Unlike the planets service, this does NOT need the de440s.bsp ephemeris —
+# skyfield's ``position_of_radec`` builds an ICRF position from RA/Dec directly
+# and ``load_constellation_map()`` resolves it. Only the small timescale +
+# constellation-table files download (into ``data/``), cached in ``_SKY``.
+# ---------------------------------------------------------------------------
+_SKY = None  # (cm, latin) cached lazily
+
+
+def _sky():
+    global _SKY
+    if _SKY is None:
+        from skyfield.api import load, load_constellation_map, load_constellation_names
+        from skyfield.positionlib import position_of_radec
+        cm = load_constellation_map()
+        latin = dict(load_constellation_names())
+        _SKY = (cm, latin, position_of_radec, load.timescale())
+    return _SKY
+
+
+def galaxy_constellation(ra, dec):
+    """IAU 3-letter constellation abbreviation for a J2000 RA/Dec (degrees).
+
+    Returns ``None`` on any failure (the page still renders without it).
+    """
+    if ra is None or dec is None:
+        return None
+    try:
+        cm, _latin, position_of_radec, ts = _sky()
+        pos = position_of_radec(float(ra) / 15.0, float(dec), epoch=ts.J(2000.0))
+        return str(cm(pos))
+    except Exception as e:  # noqa: BLE001 — best-effort
+        logger.warning("galaxy_constellation(%s,%s) failed: %s", ra, dec, e)
+        return None
+
+
+def best_month_from_ra(ra):
+    """Best naked-eye viewing month (1–12) for an object at RA ``ra`` deg.
+
+    An object culminates around local midnight when the Sun is opposite it in
+    RA. The Sun is at RA≈0 at the March equinox (~day 79 of the year), so the
+    best day = 79 + ((ra+180)%360)/360·365.25, mapped to a month index.
+    """
+    if ra is None:
+        return None
+    try:
+        day = (79.0 + (((float(ra) + 180.0) % 360.0) / 360.0) * 365.25) % 365.25
+        # 1-based month: day-of-year → month (mid-month thresholds)
+        thresholds = [0, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
+        for m in range(1, 13):
+            if day < thresholds[m]:
+                return m
+        return 12
+    except Exception:  # noqa: BLE001
+        return None

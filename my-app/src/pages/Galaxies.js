@@ -35,6 +35,13 @@ const GRAD_BY_KEY = {
   lmc: "linear-gradient(150deg,#3a4d1a,#0d0f1c)",
   bodes: "linear-gradient(150deg,#1f3d4d,#0d0f1c)",
   m87: "linear-gradient(150deg,#3d2f4d,#0d0f1c)",
+  "ngc-1300": "linear-gradient(150deg,#2d4d3a,#0d0f1c)",
+  m106: "linear-gradient(150deg,#3a4d2d,#0d0f1c)",
+  m74: "linear-gradient(150deg,#2d3a4d,#0d0f1c)",
+  "ngc-4565": "linear-gradient(150deg,#4d4a2f,#0d0f1c)",
+  "ngc-2207": "linear-gradient(150deg,#4d2d3a,#0d0f1c)",
+  "arp-273": "linear-gradient(150deg,#4d2f4d,#0d0f1c)",
+  "stephans-quintet": "linear-gradient(150deg,#2f4d4d,#0d0f1c)",
 };
 
 // Log-scale distance chart geometry (mirrors the template axis):

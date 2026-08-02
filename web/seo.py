@@ -122,6 +122,7 @@ SLUGS: dict[str, dict[str, str]] = {
     "earth":        {"uk": "planetariy/zemlya", "en": "planetarium/earth"},
     "venus":        {"uk": "planetariy/venera", "en": "planetarium/venus"},
     "neptune":      {"uk": "planetariy/neptun", "en": "planetarium/neptune"},
+    "uranus":       {"uk": "planetariy/uran",   "en": "planetarium/uranus"},
 }
 
 # Reverse map: lang -> {slug -> name}. Built once at import.

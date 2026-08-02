@@ -213,6 +213,7 @@ def init_db():
                 full_path VARCHAR(300),
                 credit VARCHAR(300),
                 date_created VARCHAR(40),
+                source_url VARCHAR(300),
                 sort_order INT DEFAULT 0,
                 UNIQUE KEY idx_gal_photo (galaxy_key, nasa_id),
                 INDEX idx_gp_galaxy (galaxy_key),
@@ -429,6 +430,25 @@ def init_db():
                 logger.info("Widened galaxy nasa_id columns to VARCHAR(180)")
         except Error as e:
             logger.warning(f"galaxy nasa_id widen migration: {e}")
+
+        # galaxy_photos.source_url: added for Wikimedia Commons photos (the
+        # "open original" link — NASA Image Library photos link to
+        # images.nasa.gov/details/<nasa_id> instead). Idempotent: only adds the
+        # column when missing, so existing installs (pre-Commons) pick it up.
+        try:
+            cursor.execute("""
+                SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'galaxy_photos'
+                  AND COLUMN_NAME = 'source_url'
+            """)
+            if not cursor.fetchone():
+                cursor.execute(
+                    "ALTER TABLE galaxy_photos ADD COLUMN source_url VARCHAR(300) AFTER date_created"
+                )
+                conn.commit()
+                logger.info("Added galaxy_photos.source_url column")
+        except Error as e:
+            logger.warning(f"galaxy_photos source_url migration: {e}")
 
         conn.commit()
         logger.info("Database initialized (MySQL)")
@@ -1584,16 +1604,18 @@ def ingest_galaxy_photos(galaxy_key: str, photos: list) -> int:
             cursor.execute(
                 '''INSERT INTO galaxy_photos
                    (galaxy_key, nasa_id, title, description, thumb_path, full_path,
-                    credit, date_created, sort_order)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    credit, date_created, source_url, sort_order)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                    ON DUPLICATE KEY UPDATE
                      title=VALUES(title), description=VALUES(description),
                      credit=VALUES(credit), date_created=VALUES(date_created),
+                     source_url=COALESCE(VALUES(source_url), source_url),
                      sort_order=VALUES(sort_order),
                      thumb_path=COALESCE(VALUES(thumb_path), thumb_path),
                      full_path=COALESCE(VALUES(full_path), full_path)''',
                 (galaxy_key, nasa_id, p.get('title'), p.get('description'),
-                 thumb_rel, full_rel, p.get('credit'), p.get('date_created'), idx)
+                 thumb_rel, full_rel, p.get('credit'), p.get('date_created'),
+                 p.get('source_url'), idx)
             )
             changed += 1
 
@@ -1663,7 +1685,7 @@ def get_galaxy_photos(galaxy_key: str) -> Optional[list]:
     try:
         cursor.execute(
             'SELECT nasa_id, title, description, thumb_path, full_path, '
-            'credit, date_created, sort_order FROM galaxy_photos '
+            'credit, date_created, source_url, sort_order FROM galaxy_photos '
             'WHERE galaxy_key=%s ORDER BY sort_order, id',
             (galaxy_key,)
         )

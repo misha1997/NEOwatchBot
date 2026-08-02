@@ -1,154 +1,107 @@
-// Fullscreen PixiJS view of Neptune's moon system.
+// Fullscreen PixiJS view of Uranus's moon system.
 //
-// This is a separate immersive mode for the existing `/planetarium/neptune` page.
-// The inline SVG widget (`#moon-system` in Neptune.js) is left untouched; this
-// component is opened from a fullscreen button inside that widget's controls.
+// Architecture mirrors `NeptuneMoonSystemFullscreen.js` exactly (stable-ref
+// ticker, camera easing + clamp, wheel/drag/pinch, keyboard nav, starfield,
+// annular orbit hit, LOD-gated constant-screen strokes, planet+moon photo
+// cross-fade, honest "no resolved image" placeholder), parameterized with
+// Uranus data. The inline SVG widget (`#moon-system` in Uranus.js) is left
+// untouched; this component is opened from a fullscreen button inside that
+// widget's controls.
 //
-// Architecture mirrors `JupiterMoonSystemFullscreen.js` exactly (stable-ref ticker,
-// camera easing + clamp, wheel/drag/pinch, keyboard nav, starfield, annular orbit
-// hit, LOD-gated constant-screen strokes, planet+moon photo cross-fade, honest
-// "no resolved image" placeholder), parameterized with Neptune data.
-//
-// Data model (mirrors the backend `services/neptune.py` / the SVG widget):
+// Data model (mirrors the backend `services/uranus.py` / the SVG widget):
 //   moons[]: { name, name_uk, group, a_km, period_d, e, i_deg, prograde,
 //             m0_deg, diameter_km }
-// Coordinate model (same as Neptune.js):
+// Coordinate model (same as Uranus.js / Neptune):
 //   EPOCH_MS = Date.UTC(2000, 0, 1, 12, 0, 0)
 //   daysSinceEpoch = (Date.now() - EPOCH_MS) / 86400000
 //   simDays = ((t - t0) / 1000) * TIME_SCALE
 //   total = daysSinceEpoch + simDays
-//   Keplerian position (see lib/kepler.js):
-//     M = m0_rad + n * total            (mean anomaly; n = 2π / period_d)
-//     E from M = E - e·sin(E)            (Newton iteration)
-//     ν from E                            (true anomaly)
-//     r = a_world * (1 - e·cos E)        (focus distance; a_world = rMax·a/aMax)
-//     angle = sgn * (ν + ω)              (ω = synthetic perihelion arg, 0 if e≈0)
-//     x = SYS.cx + r * cos(angle)
-//     y = SYS.cy - r * sin(angle)
-//   sgn = prograde ? 1 : -1. e = 0 ⇒ a uniform circle (same as the old model).
+//   Keplerian position (see lib/kepler.js): reads m.m0_deg, m.e, m.omega.
 //
 // Scene graph:
 //   app.stage
 //    └─ world (Container)          // camera transform: position + scale
-//        ├─ neptuneDisc (Graphics) // true-scale planet disc
+//        ├─ uranusDisc (Graphics)   // true-scale planet disc
 //        ├─ orbits (Container)     // Keplerian orbit ellipses (positioned +
-//        │                          //   rotated Graphics; strokes redrawn/LOD)
+//        │                         //   rotated Graphics; strokes redrawn/LOD)
 //        └─ moons (Container)      // one Container per moon
 //            └─ moon[i]: Container { dot, label, photoSprite, placeholder }
-//
-// LOD (level of detail) by camera.zoom:
-//   - far:    colored dot only
-//   - medium: dot + name label
-//   - close:  real photo Sprite if one exists (Triton), otherwise an honest
-//             placeholder stating that no resolved image is available.
-//
-// Lifecycle notes:
-//   - Pixi Application is created on mount and destroyed (`app.destroy(true, ...)`)
-//     on unmount to avoid WebGL context leaks when the modal is opened/closed
-//     repeatedly.
-//   - `app.ticker` runs while the component is mounted and visible; it is
-//     stopped on `document.visibilitychange` when the tab goes to background.
-//   - Orbit Graphics are drawn once; only moon positions are updated each frame.
 //
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import * as PIXI from "pixi.js";
 import { useApi } from "../hooks/useApi";
-import { getNeptune } from "../lib/api";
+import { getUranus } from "../lib/api";
 import { perihelionArg, orbitEllipse, keplerXY } from "../lib/kepler";
 import "../styles/planetarium.css";
 
 // ---------------------------------------------------------------------------
-// Constants shared with the SVG widget in Neptune.js
+// Constants shared with the SVG widget in Uranus.js
 // ---------------------------------------------------------------------------
 const SYS = { vb: 640, cx: 320, cy: 320, rMin: 32, rMax: 300 };
 const EPOCH_MS = Date.UTC(2000, 0, 1, 12, 0, 0);
 const TIME_SCALE = 0.1; // 1 real second ≈ 0.1 simulated days
-const NEPTUNE_RADIUS_KM = 24622;
+const URANUS_RADIUS_KM = 25362;
 
 // Group order used by the SVG widget (and by prev/next navigation here).
-const GROUPS = ["inner", "triton", "nereid", "outer"];
+const GROUPS = ["inner", "major", "outer"];
 
 // ---------------------------------------------------------------------------
 // Fullscreen-specific visual constants
 // ---------------------------------------------------------------------------
-// Margin around the world when fitting to the viewport.
 const FIT_MARGIN = 0.92;
-// The default (initial + reset) view sits this many times closer than the
-// full-system fit zoom (≈69% in) so the inner system reads clearly on open.
 const DEFAULT_VIEW_BOOST = 1.69;
-// Orbit radius mapping: r = rMax * (a / aMax) ^ ORBIT_POWER. TRUE linear
-// (power 1) is the honest geometry — distances between orbits are correct at
-// every zoom level. Neptune's span is ~1000× (Naiad 48 227 km .. Neso
-// ~48.4M km), so the inner moons cluster tightly at the centre at the default
-// fit zoom; deep zoom (ZOOM_IN_FACTOR) reveals them at true scale.
-const ORBIT_POWER = 1;
+const ORBIT_POWER = 1; // TRUE linear mapping — honest distances at every zoom
 
-// Neptune's faint planetary rings (true radii in km), drawn at the SAME linear
-// world mapping as the moon orbits. Because they sit at 42 000–63 000 km —
-// between the planet (R 24 622 km) and the inner moons (Naiad 48 227 km ...) —
-// they map to ~0.26–0.39 world units and only resolve when the camera zooms
-// into the inner system (the small SVG minimap can't show them: at its scale
-// they're sub-pixel, like the planet disc and inner moons). `w_km` is the ring's
-// physical width; it sets the stroke width so broad rings (Galle, Lassell) read
-// as bands at deep zoom while narrow ones stay ~1 px lines. The narrow, brighter
-// rings (Le Verrier, Adams — the one carrying the arcs) get a higher alpha.
-// Sources: NASA NSSDC Neptunian Rings Fact Sheet; Rings of Neptune (Wikipedia).
-const NEPTUNE_RINGS = [
-  { key: "galle",     r_km: 42000, w_km: 2000, alpha: 0.16 },
-  { key: "leverrier", r_km: 53200, w_km: 100,  alpha: 0.50 },
-  { key: "lassell",   r_km: 55200, w_km: 4000, alpha: 0.10 },
-  { key: "arago",     r_km: 57200, w_km: 100,  alpha: 0.34 },
-  { key: "adams",     r_km: 62933, w_km: 50,   alpha: 0.55 },
+// Uranus's planetary rings (true radii in km), drawn at the SAME linear world
+// mapping as the moon orbits. Uranus's rings are narrow and faint (except the
+// bright epsilon ring); the broad dusty rings (zeta, nu, mu) read as bands at
+// deep zoom while the narrow ones stay ~1 px lines. `w_km` is the ring's
+// physical width; it sets the stroke width. The epsilon ring (brightest, most
+// opaque) gets the highest alpha. Sources: NASA Uranian Rings facts; Rings of
+// Uranus (Wikipedia).
+const URANUS_RINGS = [
+  { key: "zeta",      r_km: 38000,  w_km: 3500,  alpha: 0.15 },
+  { key: "ring6",     r_km: 41840,  w_km: 2,     alpha: 0.20 },
+  { key: "ring5",     r_km: 42230,  w_km: 2,     alpha: 0.20 },
+  { key: "ring4",     r_km: 42580,  w_km: 3,     alpha: 0.20 },
+  { key: "alpha",     r_km: 44720,  w_km: 7,     alpha: 0.35 },
+  { key: "beta",      r_km: 45660,  w_km: 8,     alpha: 0.35 },
+  { key: "eta",       r_km: 47170,  w_km: 2,     alpha: 0.30 },
+  { key: "gamma",     r_km: 47630,  w_km: 4,     alpha: 0.40 },
+  { key: "delta",     r_km: 48300,  w_km: 6,     alpha: 0.40 },
+  { key: "lambda",    r_km: 50020,  w_km: 2,     alpha: 0.30 },
+  { key: "epsilon",   r_km: 51149,  w_km: 50,    alpha: 0.60 },
+  { key: "nu",        r_km: 67300,  w_km: 3800,  alpha: 0.15 },
+  { key: "mu",        r_km: 97700,  w_km: 17000, alpha: 0.10 },
 ];
-const RING_COLOR = 0x6fa8e8; // Neptune blue accent (matches the disc outline)
-// Zoom limits, as multiples of the default (fit-system) zoom. Neptune needs a
-// deep max zoom: its inner→outer span is ~1000× (Naiad 48 227 km .. Neso
-// ~48.4M km), so the inner moons orbit at a tiny fraction of the outer radius
-// and only a very deep zoom reveals them at true scale.
-const ZOOM_OUT_FACTOR = 0.85; // farthest: system a bit smaller than fit
-const ZOOM_IN_FACTOR = 800; // closest: very deep zoom to inspect the inner system
-// LOD thresholds, expressed as multiples of the default (fit-system) zoom.
-const LOD_LABEL_FACTOR = 8; // names appear once zoomed in past 8x
-// Photo cross-fade window: as you zoom in, each dot dissolves into a real
-// photo of that moon. Pushed high so photos only appear once Neptune itself
-// is drawn at a comparable-or-larger screen size.
-const LOD_PHOTO_START = 25; // photo begins fading in
-const LOD_PHOTO_END = 50; // photo fully replaces the dot
-// Photo sizing: the sprite is scaled to PHOTO_MULT × the dot's on-screen
-// diameter, clamped to [PHOTO_MIN_PX, PHOTO_MAX_PX].
+const RING_COLOR = 0x9fd9e0; // Uranus pale teal accent (matches the disc outline)
+// Zoom limits, as multiples of the default (fit-system) zoom. Uranus's
+// inner→outer span is ~420× (Cordelia 49 751 km .. Ferdinand ~20.9M km), so the
+// inner moons + rings cluster tightly at the centre at fit zoom; deep zoom
+// reveals them at true scale.
+const ZOOM_OUT_FACTOR = 0.85;
+const ZOOM_IN_FACTOR = 800;
+const LOD_LABEL_FACTOR = 8;
+const LOD_PHOTO_START = 25;
+const LOD_PHOTO_END = 50;
 const PHOTO_MULT = 5;
 const PHOTO_MIN_PX = 26;
 const PHOTO_MAX_PX = 90;
-// Planet photo cross-fade: as you zoom in, the flat Neptune disc dissolves
-// into the real planet image (/planets/Neptune.png). The flat disc fades out
-// 1:1 as the photo fades in.
-const LOD_PLANET_START = 15; // planet photo begins fading in
-const LOD_PLANET_END = 30; // planet photo fully replaces the flat disc
-// Dot sizing: the dot radius in world units is the TRUE body radius on the
-// same scale as the Neptune disc. Clamped on screen to [DOT_MIN_PX, DOT_MAX_PX]
-// so tiny moons stay visible at low zoom while big moons grow realistically.
+const LOD_PLANET_START = 15;
+const LOD_PLANET_END = 30;
 const DOT_MIN_PX = 1.5;
 const DOT_MAX_PX = 14;
-// Neptune disc: drawn at true scale but clamped to a min on-screen radius so
-// the planet stays identifiable at the default fit zoom, and grows to its
-// real relative size as you zoom in.
 const DISC_MIN_PX = 4;
-// Close-up zoom target when flying to a moon (multiples of default zoom).
-// Kept inside [ZOOM_OUT_FACTOR, ZOOM_IN_FACTOR] and past LOD_PHOTO_END so the
-// focused moon's photo is fully resolved on arrival.
 const FOCUS_ZOOM_FACTOR = 150;
-// Camera easing duration (ms).
 const CAMERA_EASE_MS = 700;
-// Easing function: easeInOutCubic.
 const easeInOutCubic = (t) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 // Moon name keys that have unique, specific photographs in `/moons/*.png`.
-// Only Triton has a resolved image; every other moon gets the honest
-// "no resolved image" placeholder.
-const UNIQUE_MOONS = new Set(["naiad", "thalassa", "despina", "galatea", "larissa", "proteus", "triton", "nereid"]);
+// The five major moons were all imaged by Voyager 2.
+const UNIQUE_MOONS = new Set(["miranda", "ariel", "umbriel", "titania", "oberon"]);
 
 function getNameHash(name) {
   const key = name.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -167,8 +120,7 @@ function getMoonTextureUrl(name) {
   return `/moons/default_minor.png`;
 }
 
-
-// Helpers for formatting numeric values (same helpers as Neptune.js).
+// Helpers for formatting numeric values (same helpers as Uranus.js).
 function spacer(n) {
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
@@ -181,12 +133,7 @@ function fmtP(p) {
   return p < 1 ? (p * 24).toFixed(1) + " год" : p.toFixed(2) + " діб";
 }
 
-// Annular hit area for an orbit ring: a hit registers only when the pointer is
-// near the ellipse CURVE (within a normalized radial tolerance `tol`), NOT in
-// the interior — so hovering Neptune or the inner system doesn't trigger every
-// nested orbit. `tol` is updated each LOD pass to keep the hit band roughly
-// constant in screen pixels (≈6 px) regardless of zoom. For a circle (a=b=r)
-// this reduces to |distance − r| ≤ tol·r.
+// Annular hit area for an orbit ring (see NeptuneMoonSystemFullscreen).
 function RingHit(a, b) {
   this.a = a;
   this.b = b;
@@ -200,13 +147,6 @@ RingHit.prototype.contains = function (x, y) {
   return Math.abs(rho - 1) <= this.tol;
 };
 
-// Build a high-resolution polygon approximating an ellipse, as a flat
-// [x,y, x,y, ...] number array for `Graphics.drawPolygon`. Pixi's built-in
-// drawCircle/drawEllipse derive their segment count from the WORLD radius
-// (`ceil(2.3·√(rx+ry))`), which collapses to just a handful of segments for
-// the tiny inner orbits (Naiad orbits at ~0.29 world units → an octagon) and
-// shows visible straight edges at deep zoom. Sampling our own polygon with a
-// high, radius-aware segment count keeps every orbit smooth at every zoom.
 function ellipsePolygonPoints(rx, ry) {
   const segs = Math.max(
     480,
@@ -221,9 +161,6 @@ function ellipsePolygonPoints(rx, ry) {
   return pts;
 }
 
-// Draws a high-resolution circle directly into a PIXI.Graphics object,
-// bypassing the default segment count heuristics to prevent visible polygonal
-// edges at deep zooms.
 function drawSmoothCircle(g, cx, cy, r, segments = 256) {
   const pts = new Array(segments * 2);
   for (let i = 0; i < segments; i++) {
@@ -234,8 +171,6 @@ function drawSmoothCircle(g, cx, cy, r, segments = 256) {
   g.drawPolygon(pts);
 }
 
-// Configure an orbit Graphics for the given display mode (see
-// JupiterMoonSystemFullscreen.setupOrbitGraphics for the full contract).
 function setupOrbitGraphics(g, m, mode) {
   g._oc = m.color;
   let rx, ry, ecx, ecy, rot;
@@ -273,38 +208,31 @@ function setupOrbitGraphics(g, m, mode) {
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
-export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = null }) {
+export default function UranusMoonSystemFullscreen({ onClose, initialMoonKey = null }) {
   const { t } = useTranslation();
-  const { data } = useApi(getNeptune, { deps: [] });
+  const { data } = useApi(getUranus, { deps: [] });
 
-  // Root container refs.
   const wrapRef = useRef(null);
   const canvasWrapRef = useRef(null);
-
-  // Pinch tracking (two-finger zoom). Map pointerId -> {x, y}.
   const pinchRef = useRef(new Map());
 
-  // Mutable refs read by the stable Pixi ticker.
   const appRef = useRef(null);
   const worldRef = useRef(null);
   const moonsContainerRef = useRef(null);
   const moonItemsRef = useRef([]);
-  // Tracks which initialMoonKey we've already flown to, so a [geo] rebuild
-  // (data load) doesn't re-trigger the fly-to more than once per open.
   const initialFocusRef = useRef(null);
   const textureCacheRef = useRef({});
-  const starsContainerRef = useRef(null); // screen-space starfield, behind the world
-  const twinkleStarsRef = useRef([]); // bright stars animated each frame
-  const discRef = useRef(null); // Neptune disc Graphics (redrawn each LOD pass)
-  const discRRef = useRef(0); // true-scale disc radius in world units
-  const orbitsRef = useRef(null); // orbit circles Container (strokes redrawn each LOD pass)
-  const ringsRef = useRef(null); // planetary rings Container (redrawn each LOD pass)
-  const discPhotoRef = useRef(null); // Neptune photo Sprite (cross-fades in on zoom)
+  const starsContainerRef = useRef(null);
+  const twinkleStarsRef = useRef([]);
+  const discRef = useRef(null);
+  const discRRef = useRef(0);
+  const orbitsRef = useRef(null);
+  const ringsRef = useRef(null);
+  const discPhotoRef = useRef(null);
   const discPhotoStateRef = useRef({ loaded: false, loading: false, texMax: 1 });
-  const planetGlowRef = useRef(null); // soft halo behind the Neptune photo
+  const planetGlowRef = useRef(null);
   const sizeRef = useRef({ width: 0, height: 0 });
   const defaultZoomRef = useRef(1);
-  // Last camera zoom processed by the LOD pass. NaN forces a refresh next frame.
   const lastZoomRef = useRef(NaN);
   const dragRef = useRef(null);
   const simRef = useRef({ t0: performance.now(), paused: false, pausedAt: 0 });
@@ -321,25 +249,17 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     animStart: null,
   });
 
-  // React state for UI re-renders.
   const [orbitsPaused, setOrbitsPaused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [selectedRingKey, setSelectedRingKey] = useState(null);
   const selectedRingKeyRef = useRef(selectedRingKey);
   selectedRingKeyRef.current = selectedRingKey;
-  // Orbit display mode: "kepler" (real-eccentricity ellipses, variable speed)
-  // or "circle" (simplified circles, uniform speed). Default is "circle" (the
-  // simplified overview); the user can toggle to accurate Keplerian ellipses.
-  // Read by the ticker via the ref so it doesn't have to be re-created on toggle.
   const [orbitMode, setOrbitMode] = useState("circle");
   const orbitModeRef = useRef(orbitMode);
   orbitModeRef.current = orbitMode;
 
-  // Derived geometry. Orbit radii use TRUE linear mapping (ORBIT_POWER=1) so
-  // distances are honest at every zoom. Each moon's dot radius (`dotR`) is on
-  // the SAME true-size scale as the Neptune disc. All 16 Neptune moons carry
-  // a diameter, so dotR is the real body radius; a small fallback covers any
-  // future moon missing one.
+  // Derived geometry. Orbit radii use TRUE linear mapping (ORBIT_POWER=1). Each
+  // moon's dot radius is on the SAME true-size scale as the Uranus disc.
   const moons = useMemo(() => data?.moons ?? [], [data]);
   const geo = useMemo(() => {
     if (!moons.length) return [];
@@ -354,7 +274,8 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       const sgn = m.prograde ? 1 : -1;
       const dotR = SYS.rMax * getBodyR_km(m) / aMax;
       const color = m.prograde ? 0x4fd1c5 : 0xff7f6e; // --teal / --coral as hex
-      const isPhotoMoon = m.name.toLowerCase() === "triton";
+      const key = m.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const isPhotoMoon = UNIQUE_MOONS.has(key);
       const hash = getNameHash(m.name);
       const rot = isPhotoMoon ? 0 : (Math.abs(hash) % 360) * (Math.PI / 180);
       const flipX = isPhotoMoon ? 1 : (hash & 1 ? -1 : 1);
@@ -364,25 +285,21 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       const tints = [0xffffff, 0xf2ebe1, 0xe1e6ec, 0xebebeb, 0xf6ebd8];
       const tint = isPhotoMoon ? 0xffffff : tints[Math.abs(hash) % tints.length];
 
-      const hasPhoto = UNIQUE_MOONS.has(m.name.toLowerCase().replace(/[^a-z0-9]/g, ""));
+      const hasPhoto = isPhotoMoon;
       const omega = (m.e || 0) < 0.001 ? 0 : perihelionArg(m.name);
 
       return { ...m, r, sgn, dotR, color, hasPhoto, omega, rot, flipX, flipY, scaleMult, tint };
     });
   }, [moons]);
 
-  // Mirror geo into a ref so the orbit-mode toggle effect can read the latest
-  // geometry without depending on it.
   const geoRef = useRef(geo);
   geoRef.current = geo;
 
   const discR = useMemo(() => {
-    const aMax = moons.length ? Math.max(...moons.map((m) => m.a_km)) : 50624000;
-    return SYS.rMax * Math.pow(NEPTUNE_RADIUS_KM / aMax, ORBIT_POWER);
+    const aMax = moons.length ? Math.max(...moons.map((m) => m.a_km)) : 20901000;
+    return SYS.rMax * Math.pow(URANUS_RADIUS_KM / aMax, ORBIT_POWER);
   }, [moons]);
 
-  // Sorted index list for prev/next navigation: groups inner→outer, then by
-  // a_km inside each group.
   const orderedIndices = useMemo(() => {
     const order = new Map(GROUPS.map((g, i) => [g, i]));
     return geo
@@ -427,7 +344,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
   };
 
   // -------------------------------------------------------------------------
-  // Initialize / destroy Pixi application
+  // Initialize / destroy Pixi application (mount once)
   // -------------------------------------------------------------------------
   useEffect(() => {
     if (!wrapRef.current) return;
@@ -449,7 +366,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     appRef.current = app;
     canvasWrapRef.current.appendChild(app.view);
 
-    // Allow the stage to receive pointer events for panning (drag background).
     app.stage.eventMode = "static";
     app.stage.hitArea = app.screen;
 
@@ -457,9 +373,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     app.stage.addChild(world);
     worldRef.current = world;
 
-    // Background starfield. Lives in screen space (added behind the world,
-    // never scaled/panned by the camera) so the stars stay fixed while the
-    // moon system is explored. Rebuilt on resize to fill the viewport.
+    // Background starfield (screen space, behind the world).
     const stars = new PIXI.Container();
     stars.name = "stars";
     app.stage.addChildAt(stars, 0);
@@ -498,25 +412,23 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     };
     buildStars(width, height);
 
-    // Neptune disc (true scale, drawn once here; the ticker redraws it each
-    // LOD pass with a min on-screen radius so it stays visible at fit zoom and
-    // grows to its real relative size as you zoom in).
+    // Uranus disc (true scale; ticker redraws it each LOD pass with a min
+    // on-screen radius).
     const planetGlow = new PIXI.Graphics();
     planetGlow.visible = false;
-    world.addChild(planetGlow); // behind the disc → only the outer halo shows
+    world.addChild(planetGlow);
     planetGlowRef.current = planetGlow;
     const disc = new PIXI.Graphics();
-    disc.beginFill(0x2e5cc9);
+    disc.beginFill(0x2e7da8);
     drawSmoothCircle(disc, SYS.cx, SYS.cy, discR);
     disc.endFill();
-    disc.lineStyle(1.5, 0x6fa8e8, 0.6);
+    disc.lineStyle(1.5, 0x9fd9e0, 0.6);
     drawSmoothCircle(disc, SYS.cx, SYS.cy, discR);
     world.addChild(disc);
     discRef.current = disc;
     discRRef.current = discR;
 
-    // Neptune photo sprite: cross-fades in over the flat disc as you zoom in.
-    // Sized each LOD pass to the disc diameter so it tracks the true-scale disc.
+    // Uranus photo sprite: cross-fades in over the flat disc as you zoom in.
     const discPhoto = new PIXI.Sprite(PIXI.Texture.EMPTY);
     discPhoto.anchor.set(0.5);
     discPhoto.position.set(SYS.cx, SYS.cy);
@@ -528,12 +440,12 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       if (st.loading || st.loaded) return;
       st.loading = true;
       try {
-        const tex = await PIXI.Assets.load("/planets/Neptune_no_rings.png");
+        const tex = await PIXI.Assets.load("/planets/Uranus_no_rings.png");
         const dp = discPhotoRef.current;
         if (dp) dp.texture = tex;
         st.texMax = Math.max(tex.width, tex.height) || 1;
         st.loaded = true;
-        lastZoomRef.current = NaN; // force an LOD refresh so the photo shows
+        lastZoomRef.current = NaN;
       } catch {
         /* planet photo is optional — fall back to the flat disc */
       } finally {
@@ -552,9 +464,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     world.addChild(moonsContainer);
     moonsContainerRef.current = moonsContainer;
 
-    // Initial camera: center world on screen. defaultZoomRef is the full-system
-    // fit zoom (the LOD/clamp baseline); the camera starts DEFAULT_VIEW_BOOST
-    // closer so the inner system reads better on open.
+    // Initial camera: center world on screen.
     const fitZoom = Math.min(width, height) / SYS.vb * FIT_MARGIN;
     defaultZoomRef.current = fitZoom;
     const startZoom = fitZoom * DEFAULT_VIEW_BOOST;
@@ -579,7 +489,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
         item.photo.texture = textureCacheRef.current[url];
         item.photoLoaded = true;
         item.photoLoading = false;
-        lastZoomRef.current = NaN; // force an LOD refresh so the photo shows
+        lastZoomRef.current = NaN;
         return;
       }
       try {
@@ -590,7 +500,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
         const maxWorldSize = 24;
         item.photoBaseScale =
           maxWorldSize / Math.max(texture.width, texture.height);
-        lastZoomRef.current = NaN; // force an LOD refresh so the photo shows
+        lastZoomRef.current = NaN;
       } catch (err) {
         console.error("Failed to load moon texture", url, err);
       } finally {
@@ -598,14 +508,12 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       }
     };
 
-    // Ticker: updates star twinkle, moon positions, camera easing, and LOD.
-    // It reads refs only so it never needs to be re-created.
+    // Stable ticker: reads refs only so it never needs to be re-created.
     const ticker = () => {
       const a = appRef.current;
       if (!a) return;
       const now = performance.now();
 
-      // Twinkle the bright background stars.
       const tw = twinkleStarsRef.current;
       if (tw.length) {
         const tt = now / 1000;
@@ -621,7 +529,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       const cam = cameraRef.current;
       const sim = simRef.current;
 
-      // Advance simulation time unless paused.
       let simDays;
       if (sim.paused) {
         simDays = sim.pausedAt;
@@ -632,10 +539,8 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       const daysSinceEpoch = (Date.now() - EPOCH_MS) / 86400000;
       const totalDays = daysSinceEpoch + simDays;
 
-      // Moon positions. "kepler" ⇒ real-eccentricity ellipses with variable
-      // angular speed (2nd law), Neptune at the focus. "circle" ⇒ simplified
-      // uniform circular motion (radius = semi-major axis). e ≈ 0 moons are
-      // identical in both.
+      // Moon positions. "kepler" ⇒ real-eccentricity ellipses (2nd law),
+      // Uranus at the focus. "circle" ⇒ simplified uniform circular motion.
       const kp = [0, 0];
       const circleMode = orbitModeRef.current === "circle";
       for (const item of items) {
@@ -665,9 +570,8 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
         applyCamera();
       }
 
-      // LOD + overlay sizing. Gated on `zoomChanged` (thresholded) so the orbit
-      // ellipses + dots are NOT cleared+redrawn every frame while the zoom is
-      // steady. Moon positions above still update every frame.
+      // LOD + overlay sizing. Gated on `zoomChanged` so orbit ellipses + dots
+      // are NOT cleared+redrawn every frame while zoom is steady.
       const prevLod = lastZoomRef.current;
       const zoomChanged =
         isNaN(prevLod) ||
@@ -680,7 +584,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       const showLabel = zoomNorm >= LOD_LABEL_FACTOR;
       const inv = 1 / cam.zoom;
 
-      // Photo cross-fade alpha across the [LOD_PHOTO_START, LOD_PHOTO_END] window.
       const photoAlpha = Math.max(
         0,
         Math.min(
@@ -689,13 +592,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
         )
       );
 
-      // Orbit rings: redraw with a stroke of `inv` world units so the line
-      // stays a constant ~1 px on screen at any zoom. Drawn as a pre-sampled
-      // high-resolution polygon (g._polyPts) so the curve stays smooth at deep
-      // zoom — drawCircle/drawEllipse would show straight edges here. A hovered
-      // or selected ring (_hl/_sel) gets a thicker, brighter stroke. The
-      // annular hit tolerance is refreshed to ~6 px screen so ring hover/click
-      // stays usable at every zoom.
+      // Orbit rings: constant ~1 px screen stroke.
       const oc = orbitsRef.current;
       if (oc) {
         const kids = oc.children;
@@ -709,10 +606,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
         }
       }
 
-      // Planetary rings: redraw with a stroke of max(inv, physical width) so
-      // each ring stays ≥1 px on screen and the broad rings (Galle, Lassell)
-      // widen into visible bands as you zoom in. Constant screen thickness at
-      // any zoom, same scheme as the orbit strokes above.
+      // Planetary rings.
       const rc = ringsRef.current;
       if (rc) {
         const rkids = rc.children;
@@ -731,9 +625,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
         }
       }
 
-      // Neptune disc: true-scale world radius, clamped to a min on-screen
-      // radius. As the real planet photo fades in (planetAlpha), the flat disc
-      // fades out 1:1 so they cross-fade rather than stack.
+      // Uranus disc: true-scale world radius, clamped to a min on-screen radius.
       const disc = discRef.current;
       const discR0 = discRRef.current;
       const discWorldR =
@@ -747,15 +639,13 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       );
       if (disc) {
         disc.clear();
-        disc.beginFill(0x2e5cc9);
+        disc.beginFill(0x2e7da8);
         drawSmoothCircle(disc, SYS.cx, SYS.cy, discWorldR);
         disc.endFill();
-        disc.lineStyle(1.5 * inv, 0x6fa8e8, 0.6);
+        disc.lineStyle(1.5 * inv, 0x9fd9e0, 0.6);
         drawSmoothCircle(disc, SYS.cx, SYS.cy, discWorldR);
         disc.alpha = 1 - planetAlpha;
       }
-      // Real planet photo: lazy-loads the first time the zoom window opens,
-      // then is scaled each pass to the disc diameter and cross-faded in.
       const dp = discPhotoRef.current;
       const dps = discPhotoStateRef.current;
       if (dp) {
@@ -771,21 +661,19 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
           dp.visible = false;
         }
       }
-      // Soft halo behind the Neptune photo: concentric faint rings (gradient,
-      // not a solid disc) tinted blue. Fades with the photo cross-fade.
       const pg = planetGlowRef.current;
       if (pg) {
         pg.clear();
         if (planetAlpha > 0 && discWorldR > 0) {
           pg.visible = true;
           const cx = SYS.cx, cy = SYS.cy;
-          pg.beginFill(0x6fa8e8, 0.05 * planetAlpha);
+          pg.beginFill(0x9fd9e0, 0.05 * planetAlpha);
           drawSmoothCircle(pg, cx, cy, discWorldR * 1.35);
           pg.endFill();
-          pg.beginFill(0x6fa8e8, 0.07 * planetAlpha);
+          pg.beginFill(0x9fd9e0, 0.07 * planetAlpha);
           drawSmoothCircle(pg, cx, cy, discWorldR * 1.22);
           pg.endFill();
-          pg.beginFill(0x6fa8e8, 0.09 * planetAlpha);
+          pg.beginFill(0x9fd9e0, 0.09 * planetAlpha);
           drawSmoothCircle(pg, cx, cy, discWorldR * 1.12);
           pg.endFill();
         } else {
@@ -796,21 +684,15 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       for (const item of items) {
         const m = item.data;
 
-        // True-size dot, clamped on screen to [DOT_MIN_PX, DOT_MAX_PX].
         const dotScreenPx = Math.max(
           DOT_MIN_PX,
           Math.min(DOT_MAX_PX, m.dotR * cam.zoom)
         );
         const dotRadius = dotScreenPx * inv;
 
-        // Label: constant screen size, shown once zoomed in past the threshold.
         item.label.visible = showLabel;
         item.label.scale.set(inv);
 
-        // Photo: fade in over the zoom window, sized relative to the dot. The
-        // texture loads lazily the first time the window opens; until it
-        // resolves the dot stays fully opaque (no gap). Only moons with a real
-        // photo (Triton) get a sprite; the rest render the placeholder below.
         let pa = 0;
         if (m.hasPhoto) {
           if (item.photoLoaded) pa = photoAlpha;
@@ -828,7 +710,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
             baseScale * m.flipX,
             baseScale * m.flipY
           );
-          // Soft halo behind the moon photo, tinted with the moon's colour.
           const pgm = item.photoGlow;
           if (pgm) {
             pgm.clear();
@@ -849,30 +730,23 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
           item.photoGlow.clear();
         }
 
-        // No-photo moons stay plain dots at every zoom level (matches Jupiter:
-        // the honest "no resolved image" message lives in the detail card, not
-        // on the map).
         item.placeholder.visible = false;
 
-        // Dot fades out as the photo fades in.
         item.dot.visible = true;
         item.dot.alpha = 1 - pa;
         item.dot.clear();
-        // Subtle always-on glow halo — fades with the dot as the photo fades in.
         item.dot.beginFill(m.color, 0.22);
         drawSmoothCircle(item.dot, 0, 0, dotRadius * 1.9);
         item.dot.endFill();
         item.dot.beginFill(m.color);
         drawSmoothCircle(item.dot, 0, 0, dotRadius);
         item.dot.endFill();
-        // Keep the click hit area a constant ~14 px on screen regardless of zoom.
         if (item.dotHit) item.dotHit.radius = 14 * inv;
       }
     };
     app.ticker.add(ticker);
 
-    // Pointer / wheel interactions are attached to the Pixi canvas so that
-    // moon sprites still receive their own pointer events (click to focus).
+    // Pointer / wheel interactions attached to the Pixi canvas.
     const view = app.view;
     const screenToWorld = (sx, sy) => {
       return {
@@ -901,7 +775,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       applyCamera();
     };
 
-    // Drag (single pointer) and pinch (two pointers) handling.
     const doPointerDown = (e) => {
       if (e.button !== 0) return;
       const pointers = pinchRef.current;
@@ -942,7 +815,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
         return;
       }
 
-      // Pinch: compute center and scale change between the two pointers.
       if (pointers.size !== 2) return;
       const pts = Array.from(pointers.values());
       const [p1New, p2New] = pts;
@@ -982,7 +854,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     window.addEventListener("pointerup", doPointerUp);
     window.addEventListener("pointercancel", doPointerUp);
 
-    // Event handlers.
     const onResize = () => {
       if (!wrapRef.current || !appRef.current) return;
       const r = wrapRef.current.getBoundingClientRect();
@@ -1023,7 +894,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       window.removeEventListener("pointerup", doPointerUp);
       window.removeEventListener("pointercancel", doPointerUp);
       app.ticker.remove(ticker);
-      // Destroy the application and all its WebGL resources/children.
       app.destroy(true, { children: true, texture: true, baseTexture: true });
       appRef.current = null;
       worldRef.current = null;
@@ -1045,7 +915,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     const moonsContainer = world.children.find((c) => c.name === "moons");
     const rings = world.children.find((c) => c.name === "rings");
 
-    // Clear old content and free Pixi resources.
     if (orbits) {
       orbits.removeChildren();
       orbits.destroy({ children: true, texture: true, baseTexture: true });
@@ -1063,13 +932,11 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     }
     moonItemsRef.current = [];
 
-    // Recreate orbits container.
     const newOrbits = new PIXI.Container();
     newOrbits.name = "orbits";
     world.addChildAt(newOrbits, 1);
     orbitsRef.current = newOrbits;
 
-    // Clicking a moon opens its description card and flies the camera to it.
     const onMoonTap = (index) => {
       setSelectedRingKey(null);
       setSelectedIndex(index);
@@ -1083,19 +950,17 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     };
 
     // Planetary rings: faint circles at true linear world radii, interleaved
-    // with the inner moon orbits (Galle inside Naiad; Adams between Galatea and
-    // Larissa). Strokes are redrawn each LOD pass to stay a constant screen
-    // thickness; broad rings (Galle, Lassell) widen into bands at deep zoom.
-    // Placed below the moons so dots/photos render on top.
+    // with the inner moon orbits. Placed below the moons so dots/photos render
+    // on top.
     const newRings = new PIXI.Container();
     newRings.name = "rings";
     const aMax = geo.length ? Math.max(...geo.map((m) => m.a_km)) : 1;
-    for (const ring of NEPTUNE_RINGS) {
+    for (const ring of URANUS_RINGS) {
       const rWorld = (SYS.rMax * Math.pow(ring.r_km / aMax, ORBIT_POWER)) || 0.0001;
       const g = new PIXI.Graphics();
       g.position.set(SYS.cx, SYS.cy);
       g._pts = ellipsePolygonPoints(rWorld, rWorld);
-      g._wWorld = (SYS.rMax * ring.w_km) / aMax; // physical width in world units
+      g._wWorld = (SYS.rMax * ring.w_km) / aMax;
       g._color = RING_COLOR;
       g._alpha = ring.alpha;
       g._key = ring.key;
@@ -1124,7 +989,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     world.addChild(newRings);
     ringsRef.current = newRings;
 
-    // Recreate moons container.
     const newMoonsContainer = new PIXI.Container();
     newMoonsContainer.name = "moons";
     world.addChild(newMoonsContainer);
@@ -1133,14 +997,13 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     for (let idx = 0; idx < geo.length; idx++) {
       const m = geo[idx];
 
-      // Orbit ring.
       const g = new PIXI.Graphics();
       g._hl = false;
       g._sel = idx === selectedIndex;
       setupOrbitGraphics(g, m, orbitModeRef.current);
       g.on("pointerover", () => {
         g._hl = true;
-        lastZoomRef.current = NaN; // force a redraw so the thick stroke shows
+        lastZoomRef.current = NaN;
       });
       g.on("pointerout", () => {
         g._hl = false;
@@ -1149,13 +1012,10 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       g.on("pointertap", () => onMoonTap(idx));
       newOrbits.addChild(g);
 
-      // Moon container.
       const mc = new PIXI.Container();
       mc.name = m.name;
       newMoonsContainer.addChild(mc);
 
-      // Dot. hitArea is a reusable Circle whose radius the ticker updates each
-      // LOD pass to keep the click target a constant ~14 px on screen.
       const dotHit = new PIXI.Circle(0, 0, 14);
       const dot = new PIXI.Graphics();
       dot.beginFill(m.color);
@@ -1167,7 +1027,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       dot.on("pointertap", () => onMoonTap(idx));
       mc.addChild(dot);
 
-      // Label.
       const label = new PIXI.Text(m.name_uk || m.name, {
         fontFamily: "var(--font-mono), monospace",
         fontSize: 13,
@@ -1188,10 +1047,9 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       label.on("pointertap", () => onMoonTap(idx));
       mc.addChild(label);
 
-      // Photo sprite (texture loaded lazily).
       const photoGlow = new PIXI.Graphics();
       photoGlow.visible = false;
-      mc.addChild(photoGlow); // behind the photo → only the outer halo shows
+      mc.addChild(photoGlow);
       const photo = new PIXI.Sprite(PIXI.Texture.EMPTY);
       photo.anchor.set(0.5);
       photo.visible = false;
@@ -1202,7 +1060,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       photo.on("pointertap", () => onMoonTap(idx));
       mc.addChild(photo);
 
-      // Placeholder for moons without real photos (honest "no image").
       const placeholder = new PIXI.Container();
       placeholder.visible = false;
       placeholder.eventMode = "static";
@@ -1240,43 +1097,32 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       });
     }
 
-    // Update disc radius in case the data set changed.
     discRRef.current = discR;
     const disc = discRef.current || world.children[0];
     if (disc && disc instanceof PIXI.Graphics) {
       disc.clear();
-      disc.beginFill(0x2e5cc9);
+      disc.beginFill(0x2e7da8);
       drawSmoothCircle(disc, SYS.cx, SYS.cy, discR);
       disc.endFill();
-      disc.lineStyle(1.5, 0x6fa8e8, 0.6);
+      disc.lineStyle(1.5, 0x9fd9e0, 0.6);
       drawSmoothCircle(disc, SYS.cx, SYS.cy, discR);
     }
 
     applyCamera();
-    // Force an LOD pass next frame.
     lastZoomRef.current = NaN;
-    // If opened from a page card with a requested moon, fly to it now that the
-    // scene, moon items and camera baseline are all ready. Guarded so a [geo]
-    // rebuild only fires once per open.
     if (initialMoonKey && geo.length && initialFocusRef.current !== initialMoonKey) {
       const idx = geo.findIndex((m) => m.name.toLowerCase() === initialMoonKey);
       if (idx >= 0) {
         initialFocusRef.current = initialMoonKey;
         setSelectedRingKey(null);
         setSelectedIndex(idx);
-        // Defer one frame: moon containers are created at position (0,0) and are
-        // only placed on their live orbits by the ticker on the next frame.
-        // Without this, flyToMoon would read (0,0) and fly to the world origin.
         requestAnimationFrame(() => flyToMoon(idx));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geo]);
 
-  // Orbit-mode toggle: re-configure the EXISTING orbit Graphics in place (no
-  // container rebuild → no photo reload / label re-raster), then force a LOD
-  // refresh. The moon position loop reads orbitModeRef, so motion switches on
-  // the next frame with no extra work here.
+  // Orbit-mode toggle: re-configure the EXISTING orbit Graphics in place.
   useEffect(() => {
     const oc = orbitsRef.current;
     const garr = geoRef.current;
@@ -1289,8 +1135,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orbitMode]);
 
-  // Keep the SELECTED moon's orbit highlighted (thick) for as long as it is
-  // selected. Forces a LOD refresh so the stroke change shows immediately.
   useEffect(() => {
     const oc = orbitsRef.current;
     if (!oc) return;
@@ -1302,8 +1146,6 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     lastZoomRef.current = NaN;
   }, [selectedIndex]);
 
-  // Keep the SELECTED planetary ring highlighted (thick) for as long as it is
-  // selected. Forces a LOD refresh so the stroke change shows immediately.
   useEffect(() => {
     const rc = ringsRef.current;
     if (!rc) return;
@@ -1315,7 +1157,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
   }, [selectedRingKey]);
 
   // -------------------------------------------------------------------------
-  // Navigation: opens the description card AND flies the camera to the moon.
+  // Navigation
   // -------------------------------------------------------------------------
   const flyToMoon = (index) => {
     const items = moonItemsRef.current;
@@ -1345,7 +1187,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
   const navigateNext = () => {
     if (!orderedIndices.length) return;
     const current =
-      selectedIndex != null ? orderedIndices.indexOf(selectedIndex) : -1;
+      selectedIndex != null ? orderedIndices.indexOf(selectedIndex) : 0;
     const next = (current + 1) % orderedIndices.length;
     const idx = orderedIndices[next];
     setSelectedRingKey(null);
@@ -1377,16 +1219,11 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     setSelectedRingKey(null);
   };
 
-  // Programmatic zoom toward the current screen centre (used by the ＋/－
-  // buttons).
   const zoomBy = (factor) => {
     const cam = cameraRef.current;
     startCameraAnimation(cam.x, cam.y, clampZoom(cam.zoom * factor));
   };
 
-  // -------------------------------------------------------------------------
-  // Body scroll lock while modal is open
-  // -------------------------------------------------------------------------
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -1395,22 +1232,19 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
     };
   }, []);
 
-  // -------------------------------------------------------------------------
-  // Render helpers
-  // -------------------------------------------------------------------------
   const selected = selectedIndex != null ? geo[selectedIndex] : null;
-  const selectedRing = selectedRingKey != null ? NEPTUNE_RINGS.find((r) => r.key === selectedRingKey) : null;
+  const selectedRing = selectedRingKey != null ? URANUS_RINGS.find((r) => r.key === selectedRingKey) : null;
 
   return createPortal(
-    <div ref={wrapRef} className="jms-fullscreen-wrap" role="dialog" aria-modal="true" aria-label={t("neptune.system.fullscreenTitle")}>
+    <div ref={wrapRef} className="jms-fullscreen-wrap" role="dialog" aria-modal="true" aria-label={t("uranus.system.fullscreenTitle")}>
       <div ref={canvasWrapRef} className="jms-canvas-wrap" />
 
       {/* Top-left header / close */}
       <div className="jms-top-bar">
         <div>
-          <div className="jms-title">{t("neptune.system.title")}</div>
+          <div className="jms-title">{t("uranus.system.title")}</div>
           <div className="jms-sub">
-            {t("neptune.system.eyebrow", { count: moons.length || 0 })}
+            {t("uranus.system.eyebrow", { count: moons.length || 0 })}
           </div>
         </div>
         <button className="jms-btn jms-btn-close" onClick={onClose} aria-label={t("jupiter.system.close")}>
@@ -1461,7 +1295,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
         </button>
       </div>
 
-      {/* Selected-moon detail card (HTML overlay for accessibility) */}
+      {/* Selected-moon detail card */}
       {selected && (
         <div className="jms-card" onClick={(e) => e.stopPropagation()}>
           <button className="jms-card-close" onClick={() => setSelectedIndex(null)} aria-label={t("jupiter.system.close")}>✕</button>
@@ -1479,9 +1313,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
                 }}
               />
               <span className="jms-card-photo-cap">
-                {selected.name.toLowerCase() === "triton"
-                  ? t("jupiter.system.photoLabel")
-                  : t("jupiter.system.photoLabelViz")}
+                {t("jupiter.system.photoLabel")}
               </span>
             </div>
           ) : (
@@ -1491,7 +1323,7 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
             </div>
           )}
           <div className="jms-card-rows">
-            <div className="jms-card-row"><span>{t("jupiter.tooltip.group")}</span><b>{t("neptune.system." + selected.group)}</b></div>
+            <div className="jms-card-row"><span>{t("jupiter.tooltip.group")}</span><b>{t("uranus.system." + selected.group)}</b></div>
             <div className="jms-card-row"><span>{t("jupiter.tooltip.a")}</span><b>{fmtA(selected.a_km)}</b></div>
             <div className="jms-card-row"><span>{t("jupiter.tooltip.period")}</span><b>{fmtP(selected.period_d)}</b></div>
             <div className="jms-card-row"><span>{t("jupiter.tooltip.direction")}</span><b>{selected.prograde ? t("jupiter.tooltip.dirPro") : t("jupiter.tooltip.dirRetro")}</b></div>
@@ -1506,15 +1338,15 @@ export default function NeptuneMoonSystemFullscreen({ onClose, initialMoonKey = 
       {selectedRing && (
         <div className="jms-card" onClick={(e) => e.stopPropagation()}>
           <button className="jms-card-close" onClick={() => setSelectedRingKey(null)} aria-label={t("jupiter.system.close")}>✕</button>
-          <h3>{t("neptune.rings." + selectedRing.key + ".name")}</h3>
+          <h3>{t("uranus.rings." + selectedRing.key + ".name")}</h3>
           <div className="jms-card-no-photo">
-            <span>{t("neptune.rings.planetaryRing")}</span>
-            <p>{t("neptune.rings." + selectedRing.key + ".desc")}</p>
+            <span>{t("uranus.rings.planetaryRing")}</span>
+            <p>{t("uranus.rings." + selectedRing.key + ".desc")}</p>
           </div>
           <div className="jms-card-rows">
-            <div className="jms-card-row"><span>{t("neptune.rings.radiusLabel")}</span><b>{spacer(Math.round(selectedRing.r_km))} км</b></div>
-            <div className="jms-card-row"><span>{t("neptune.rings.widthLabel")}</span><b>{spacer(Math.round(selectedRing.w_km))} км</b></div>
-            <div className="jms-card-row"><span>{t("neptune.rings.discovererLabel")}</span><b>{t("neptune.rings." + selectedRing.key + ".discoverer")}</b></div>
+            <div className="jms-card-row"><span>{t("uranus.rings.radiusLabel")}</span><b>{spacer(Math.round(selectedRing.r_km))} км</b></div>
+            <div className="jms-card-row"><span>{t("uranus.rings.widthLabel")}</span><b>{spacer(Math.round(selectedRing.w_km))} км</b></div>
+            <div className="jms-card-row"><span>{t("uranus.rings.discovererLabel")}</span><b>{t("uranus.rings." + selectedRing.key + ".discoverer")}</b></div>
           </div>
         </div>
       )}

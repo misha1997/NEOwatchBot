@@ -171,6 +171,7 @@
     "fbClose": "Close"
   },
   "title": {
+    "404": "Not found — OrbitLight",
     "home": "OrbitLight — space live: ISS, asteroids, meteors, launches",
     "iss": "ISS live — OrbitLight",
     "satellites": "Satellites on map — OrbitLight",
@@ -190,7 +191,6 @@
     "community": "Community — OrbitLight",
     "gallery": "NASA photo archive — OrbitLight",
     "galaxies": "Famous galaxies — OrbitLight",
-    "404": "Not found — OrbitLight",
     "planetarium": "Planetarium — OrbitLight",
     "mars": "Mars — OrbitLight",
     "jupiter": "Jupiter — OrbitLight",
@@ -198,10 +198,12 @@
     "earth": "Earth — OrbitLight",
     "venus": "Venus — OrbitLight",
     "neptune": "Neptune — OrbitLight",
+    "uranus": "Uranus — OrbitLight",
     "news": "Space news — NEOwatch"
   },
   "seo": {
     "desc": {
+      "404": "Page not found — return to the OrbitLight home to track the ISS, asteroids, meteors, space weather and launches live.",
       "home": "Space live on OrbitLight: track the ISS in real time, near-Earth asteroids, meteor showers, space weather, satellites and rocket launches.",
       "iss": "ISS live on OrbitLight: real-time ground-track map, next visible passes over your city, current crew, expedition and orbital parameters.",
       "satellites": "Satellites on a real-time map: track Starlink, ISS, weather and amateur satellites — position, altitude and velocity updated live by SGP4.",
@@ -221,7 +223,6 @@
       "community": "OrbitLight community: forum, photo gallery, observation diaries and local groups.",
       "gallery": "NASA photo archive: the Astronomy Picture of the Day by date — Hubble, James Webb, probes and rovers with Ukrainian descriptions.",
       "galaxies": "Famous galaxies: Andromeda, Whirlpool, Sombrero, M82, Centaurus A and more — live NASA/IPAC NED redshift and type data, photos from the NASA Image Library.",
-      "404": "Page not found — return to the OrbitLight home to track the ISS, asteroids, meteors, space weather and launches live.",
       "planetarium": "OrbitLight planetarium: every solar-system planet — diameter, day and year length, gravity, moons and mean temperature. Mars adds live weather and rover photos.",
       "mars": "Mars weather from InSight, fresh Perseverance and Curiosity rover photos, Phobos and Deimos, Earth comparison, dust storms and the history of Mars exploration.",
       "jupiter": "Jupiter up close: the Great Red Spot, the Galilean moons, a system of 95 moons, radiation, the Juno, Europa Clipper and JUICE missions and next opposition.",
@@ -229,6 +230,7 @@
       "earth": "The only planet known to host life: interior structure, atmosphere, magnetosphere, plate tectonics, the Earth-Moon system and Earth-observation satellites.",
       "venus": "Venus up close: runaway greenhouse effect, sulfuric acid clouds, retrograde rotation, Magellan radar mapping and the Venera and Akatsuki missions.",
       "neptune": "Neptune up close: the strongest winds in the system, dark spots, five faint rings, the retrograde moon Triton with cryovolcanoes, and a history discovered 'on paper'.",
+      "uranus": "Uranus up close: 98° axial tilt, coldest atmosphere, thirteen vertical rings, twenty-eight moons, and the single Voyager 2 flyby.",
       "news": "The top spaceflight stories in Ukrainian — translated and summarized coverage from SpaceflightNow, NASA, ESA and other sources, updated daily."
     }
   },
@@ -2372,19 +2374,49 @@
     "nedName": "Name in NED",
     "designation": "Designation",
     "factLabel": "Did you know",
-    "galleryTitle": "NASA image gallery",
-    "gallerySub": "Photos from the NASA Image Library (EN captions).",
+    "galleryTitle": "Image gallery",
+    "gallerySub": "Photos from Wikimedia Commons and the NASA Image Library.",
     "photoHint": "Click to enlarge",
     "credit": "Credit",
     "date": "Date",
-    "openFull": "Open on NASA",
+    "openFull": "Open source",
     "nav": {
       "prev": "Previous",
       "next": "Next"
     },
     "noData": "Data unavailable.",
     "noPhotos": "Photos have not loaded yet.",
-    "ofN": "of"
+    "ofN": "of",
+    "photosCount": "photos",
+    "constellation": "Constellation",
+    "bestTime": "Best viewed",
+    "skyPosTitle": "Position in the sky",
+    "skyPosSub": "Where to find the galaxy on the night sky",
+    "distanceScale": "Distance in light-years",
+    "scaleLegend": "Milky Way → Andromeda → Virgo cluster",
+    "months": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
+    "layerMW": "Milky Way",
+    "layerEcl": "Ecliptic",
+    "layerGrid": "Grid",
+    "zoomIn": "Click to zoom",
+    "zoomOut": "Click to zoom out · drag to pan",
+    "zoomReset": "Reset zoom",
+    "zoomHint": "Scroll to zoom · drag to pan",
+    "layerNeighbors": "Neighbor constellations",
+    "locator": "whole sky"
   },
   "earth": {
     "hero": {
@@ -2511,7 +2543,7 @@
       "eyebrow": "Interesting facts",
       "title": "Earth of records",
       "c1_key": "Densest planet",
-      "c1_val": "5.51 g/cm\u00b3",
+      "c1_val": "5.51 g/cm³",
       "c1_foot": "The densest of all planets in the Solar System",
       "c2_key": "Temporary \"mini-moons\"",
       "c2_val": "do occur",
@@ -2523,7 +2555,7 @@
     "climate": {
       "eyebrow": "NASA Climate Vital Signs",
       "title": "Earth's Climate Health",
-      "co2": "Carbon Dioxide (CO\u2082)",
+      "co2": "Carbon Dioxide (CO₂)",
       "co2Trend": "Trend:",
       "co2Foot": "Atmospheric concentration, highest in 3 million years",
       "temp": "Temperature Anomaly",
@@ -2571,28 +2603,28 @@
       "r2_v1": "225 Earth days",
       "r2_v2": "365 days",
       "r3": "Gravity",
-      "r3_v1": "8.87 m/s\u00b2 (90%)",
-      "r3_v2": "9.81 m/s\u00b2",
+      "r3_v1": "8.87 m/s² (90%)",
+      "r3_v2": "9.81 m/s²",
       "r4": "Diameter",
       "r4_v1": "12,104 km (95%)",
       "r4_v2": "12,742 km",
       "r5": "Average temperature",
-      "r5_v1": "+465\u00b0C",
-      "r5_v2": "+15\u00b0C",
+      "r5_v1": "+465°C",
+      "r5_v2": "+15°C",
       "r6": "Atmosphere",
-      "r6_v1": "96.5% CO\u2082, H\u2082SO\u2084 clouds",
-      "r6_v2": "78% N\u2082, 21% O\u2082",
+      "r6_v1": "96.5% CO₂, H₂SO₄ clouds",
+      "r6_v2": "78% N₂, 21% O₂",
       "r7": "Moons",
       "r7_v1": "0",
       "r7_v2": "1 (Moon)",
-      "footnote": "In size, mass, and gravity, Venus is indeed similar to Earth \u2014 which is why it is called our \"twin sister\". But the similarity ends there."
+      "footnote": "In size, mass, and gravity, Venus is indeed similar to Earth — which is why it is called our \"twin sister\". But the similarity ends there."
     },
     "retrograde": {
       "eyebrow": "Unique among planets",
       "title": "Rotates in the opposite direction",
       "svgLabel": "Comparison of rotation directions and axial tilts",
-      "p1": "If you look at the Solar System from above Earth's North Pole, almost all planets rotate around their axis counterclockwise \u2014 the same direction they move in their orbits. Venus is the exception: it rotates clockwise, in the opposite direction.",
-      "p2": "The most likely cause is a massive collision during the early stages of the planet's formation that literally flipped its rotation. As a result, the Sun on Venus rises in the west and sets in the east \u2014 if it could be seen through the dense clouds at all with the naked eye from the surface.",
+      "p1": "If you look at the Solar System from above Earth's North Pole, almost all planets rotate around their axis counterclockwise — the same direction they move in their orbits. Venus is the exception: it rotates clockwise, in the opposite direction.",
+      "p2": "The most likely cause is a massive collision during the early stages of the planet's formation that literally flipped its rotation. As a result, the Sun on Venus rises in the west and sets in the east — if it could be seen through the dense clouds at all with the naked eye from the surface.",
       "earthLabel": "Earth (Prograde)",
       "earthDir": "↺ West → East",
       "venusLabel": "Venus (Retrograde)",
@@ -2601,18 +2633,18 @@
     "greenhouse": {
       "eyebrow": "Runaway greenhouse effect",
       "title": "Through sulfuric acid clouds to the surface",
-      "sub": "96.5% carbon dioxide in the atmosphere traps heat so effectively that the surface is hotter than that of Mercury, which is three times closer to the Sun. This is the most striking example of a runaway greenhouse effect in the Solar System \u2014 and a warning for understanding Earth's climate.",
-      "m1": "70 km \u00b7 tops of sulfuric acid clouds, \u221245\u00b0C",
-      "m2": "50 km \u00b7 \"habitable\" temperature zone (+27\u00b0C), but acid clouds",
-      "m3": "30 km \u00b7 pressure building, +200\u00b0C",
-      "m4": "0 km \u00b7 surface, +465\u00b0C",
-      "m5": "92 atm \u00b7 surface pressure (like 900 m underwater)"
+      "sub": "96.5% carbon dioxide in the atmosphere traps heat so effectively that the surface is hotter than that of Mercury, which is three times closer to the Sun. This is the most striking example of a runaway greenhouse effect in the Solar System — and a warning for understanding Earth's climate.",
+      "m1": "70 km · tops of sulfuric acid clouds, −45°C",
+      "m2": "50 km · \"habitable\" temperature zone (+27°C), but acid clouds",
+      "m3": "30 km · pressure building, +200°C",
+      "m4": "0 km · surface, +465°C",
+      "m5": "92 atm · surface pressure (like 900 m underwater)"
     },
     "surface": {
-      "eyebrow": "Magellan \u00b7 radar mapping",
+      "eyebrow": "Magellan · radar mapping",
       "title": "Volcanic surface under the clouds",
-      "sub": "Optical cameras cannot see the surface of Venus through the continuous cloud layer \u2014 all relief maps are obtained by radar, which \"sees through\" the atmosphere.",
-      "p1": "Radar map \u00b7 Magellan",
+      "sub": "Optical cameras cannot see the surface of Venus through the continuous cloud layer — all relief maps are obtained by radar, which \"sees through\" the atmosphere.",
+      "p1": "Radar map · Magellan",
       "p1Desc": "Global radar mosaic of Venus compiled from Magellan data. Colors simulate hues recorded by Soviet Venera 13 and 14 landers.",
       "p2": "Maat Mons volcano",
       "p2Desc": "3D computer-generated perspective of the 8 km high volcano Maat Mons, reconstructed from Magellan radar data.",
@@ -2634,7 +2666,7 @@
       "title": "Missions to Venus",
       "active": "In orbit",
       "retired": "Completed",
-      "footnote": "The longest-surviving spacecraft on Venus' surface was Venera 13 \u2014 127 minutes, before heat and pressure disabled the electronics."
+      "footnote": "The longest-surviving spacecraft on Venus' surface was Venera 13 — 127 minutes, before heat and pressure disabled the electronics."
     },
     "observe": {
       "eyebrow": "Linked with sky.html",
@@ -2643,13 +2675,13 @@
       "unitDays": "days",
       "unitHours": "hours",
       "phases": "Phases of Venus",
-      "phasesBody": "Through a telescope, Venus displays phases similar to the Moon's \u2014 from a thin crescent to a nearly full disc. Galileo's observation of these phases in 1610 was one of the first direct proofs in favor of Copernicus' heliocentric model."
+      "phasesBody": "Through a telescope, Venus displays phases similar to the Moon's — from a thin crescent to a nearly full disc. Galileo's observation of these phases in 1610 was one of the first direct proofs in favor of Copernicus' heliocentric model."
     },
     "records": {
       "eyebrow": "Interesting facts",
       "title": "Venus of records",
       "c1_key": "Brightest planet",
-      "c1_val": "\u22124.6m",
+      "c1_val": "−4.6m",
       "c1_foot": "Third brightest object in the sky after the Sun and Moon",
       "c2_key": "Transit of Venus",
       "c2_val": "June 8, 2117",
@@ -2765,7 +2797,36 @@
     "rings": {
       "eyebrow": "Named after discoverers",
       "title": "Five faint rings",
-      "sub": "Galle, Le Verrier, Lassell, Arago, and Adams rings—faint and dusty, with unusual clumps (\"arcs\") in the Adams ring, whose stability is still not fully explained by gravitational models."
+      "sub": "Galle, Le Verrier, Lassell, Arago, and Adams rings—faint and dusty, with unusual clumps (\"arcs\") in the Adams ring, whose stability is still not fully explained by gravitational models.",
+      "planetaryRing": "Planetary Ring",
+      "radiusLabel": "Orbit radius",
+      "widthLabel": "Ring width",
+      "discovererLabel": "Discovery",
+      "galle": {
+        "name": "Galle Ring",
+        "desc": "The innermost, broad and faint ring named after Johann Gottfried Galle, who first observed Neptune in 1846.",
+        "discoverer": "Voyager 2 (1989)"
+      },
+      "leverrier": {
+        "name": "Le Verrier Ring",
+        "desc": "A narrow ring named after Urbain Le Verrier. Coincides with the orbit of the moon Despina, which acts as a shepherd moon.",
+        "discoverer": "Voyager 2 (1989)"
+      },
+      "lassell": {
+        "name": "Lassell Ring",
+        "desc": "The widest ring in the system, named after William Lassell. It is a broad, faint sheet of dust stretching between Le Verrier and Arago.",
+        "discoverer": "Voyager 2 (1989)"
+      },
+      "arago": {
+        "name": "Arago Ring",
+        "desc": "A narrow, faint ring named after François Arago, located just outside the Lassell ring and inside the Adams ring.",
+        "discoverer": "Voyager 2 (1989)"
+      },
+      "adams": {
+        "name": "Adams Ring",
+        "desc": "The outermost, best-studied ring named after John Couch Adams. It contains five distinct bright clumps of dust called arcs.",
+        "discoverer": "Voyager 2 (1989)"
+      }
     },
     "triton": {
       "eyebrow": "The system's most amazing moon",
@@ -2904,6 +2965,264 @@
       "c3_key": "Found by math",
       "c3_val": "1846",
       "c3_foot": "Predicted by calculations before the first observation"
+    }
+  },
+  "uranus": {
+    "hero": {
+      "eyebrow": "Seventh planet · just updated",
+      "title": "Uranus<br><span class=\"accent\">the rolling planet</span>",
+      "sub": "The only planet in the Solar System whose axis of rotation is tilted so far that it actually lies on its side. An ice giant with the coldest atmosphere in the system—even colder than the more distant Neptune.",
+      "distL": "distance to Earth now",
+      "distUnit": "billion km",
+      "signalL": "signal travel time",
+      "footnote": "Due to the extreme tilt of Uranus's rotation axis, its rings and moon orbits lie nearly perpendicular to the plane of the Solar System."
+    },
+    "weather": {
+      "eyebrow": "Voyager 2 · only direct data",
+      "title": "Uranus right now",
+      "speedK": "Minimum temperature",
+      "speedV": "−224",
+      "speedUnit": "°C",
+      "speedFoot": "The coldest atmosphere among all planets in the system",
+      "tempK": "Axis tilt",
+      "tempV": "97.7",
+      "tempUnit": "°",
+      "tempFoot": "The planet rotates practically \"lying on its side\"",
+      "rotK": "Rotation period",
+      "rotV": "17h 14",
+      "rotUnit": "m",
+      "rotFoot": "In the retrograde direction due to axial tilt",
+      "revK": "Composition",
+      "revV": "Ice giant",
+      "revUnit": "",
+      "revFoot": "Water, ammonia, and methane over a rocky core—not a gas giant"
+    },
+    "compare": {
+      "eyebrow": "Uranus vs Earth",
+      "title": "How different everything is",
+      "p": {
+        "day": "Day duration",
+        "year": "Year duration",
+        "gravity": "Gravity (on cloud tops)",
+        "diameter": "Diameter",
+        "dist": "Distance to Sun",
+        "density": "Density",
+        "moons": "Confirmed moons"
+      },
+      "v": {
+        "day": {
+          "uranus": "17h 14m",
+          "earth": "24h 00m"
+        },
+        "year": {
+          "uranus": "84 Earth years",
+          "earth": "1 year"
+        },
+        "gravity": {
+          "uranus": "8.69 m/s² (89%)",
+          "earth": "9.81 m/s²"
+        },
+        "diameter": {
+          "uranus": "50,724 km (4.0x)",
+          "earth": "12,742 km"
+        },
+        "dist": {
+          "uranus": "19.2 AU",
+          "earth": "1 AU"
+        },
+        "density": {
+          "uranus": "1.270 g/cm³",
+          "earth": "5.51 g/cm³"
+        },
+        "moons": {
+          "uranus": "28",
+          "earth": "1"
+        }
+      }
+    },
+    "tilt": {
+      "eyebrow": "Unique among planets",
+      "title": "Why Uranus lies on its side",
+      "earthLabel": "Earth · 23.4°",
+      "uranusLabel": "Uranus · 97.7°",
+      "p1": "Most planets have moderately tilted rotation axes (like Earth's 23.4°). Uranus is the exception: its tilt is 97.7°, meaning its axis of rotation lies almost in its orbital plane. The most likely cause is a catastrophic collision with a Earth-sized body during the planet's early formation stages.",
+      "p2": "The result is extreme seasons: each pole receives 42 years of continuous sunlight, followed by 42 years of complete darkness. The rings and moons orbit in the same tilted plane, which is why they appear nearly vertical to us."
+    },
+    "rings": {
+      "eyebrow": "Discovered by accident in 1977",
+      "title": "Faint vertical rings",
+      "sub": "Uranus's rings were not discovered directly by telescope, but through stellar occultation—while observing Uranus pass in front of a distant star, astronomers noticed brief eclipses before and after the planet itself passed.",
+      "planetaryRing": "Planetary Ring",
+      "radiusLabel": "Orbit radius",
+      "widthLabel": "Ring width",
+      "discovererLabel": "Discovery",
+      "zeta": {
+        "name": "Zeta Ring",
+        "desc": "The closest broad, extremely faint dust ring surrounding Uranus.",
+        "discoverer": "Voyager 2 (1986)"
+      },
+      "ring6": {
+        "name": "Ring 6",
+        "desc": "The innermost narrow ring, the first of three numbered rings found during stellar occultation.",
+        "discoverer": "James Elliot et al. (1977)"
+      },
+      "ring5": {
+        "name": "Ring 5",
+        "desc": "The second of the numbered rings. Very narrow and faint, located between Ring 6 and Ring 4.",
+        "discoverer": "James Elliot et al. (1977)"
+      },
+      "ring4": {
+        "name": "Ring 4",
+        "desc": "The third of the numbered rings. Features sharp edges and low dust content.",
+        "discoverer": "James Elliot et al. (1977)"
+      },
+      "alpha": {
+        "name": "Alpha Ring",
+        "desc": "One of the most distinct inner rings of Uranus, found among the planet's first nine rings.",
+        "discoverer": "James Elliot et al. (1977)"
+      },
+      "beta": {
+        "name": "Beta Ring",
+        "desc": "A bright inner ring, similar in structure and width to the neighboring Alpha Ring.",
+        "discoverer": "James Elliot et al. (1977)"
+      },
+      "eta": {
+        "name": "Eta Ring",
+        "desc": "A complex ring system containing a narrow, bright core and a wide, faint dust sheet.",
+        "discoverer": "James Elliot et al. (1977)"
+      },
+      "gamma": {
+        "name": "Gamma Ring",
+        "desc": "A very narrow and bright ring with low dust content and high particle density.",
+        "discoverer": "James Elliot et al. (1977)"
+      },
+      "delta": {
+        "name": "Delta Ring",
+        "desc": "A circular ring showing pronounced brightness asymmetry, indicating uneven material distribution.",
+        "discoverer": "James Elliot et al. (1977)"
+      },
+      "lambda": {
+        "name": "Lambda Ring",
+        "desc": "A thin and faint dust ring located just inside the prominent Epsilon Ring.",
+        "discoverer": "Voyager 2 (1986)"
+      },
+      "epsilon": {
+        "name": "Epsilon Ring",
+        "desc": "The brightest, widest, and densest ring of Uranus. Its width varies from 20 to 100 km along its orbit.",
+        "discoverer": "James Elliot et al. (1977)"
+      },
+      "nu": {
+        "name": "Nu Ring",
+        "desc": "A broad, reddish outer ring located in the orbital zone of the small moon Portia.",
+        "discoverer": "Hubble Space Telescope (2003)"
+      },
+      "mu": {
+        "name": "Mu Ring",
+        "desc": "The outermost broad, blue dust ring, whose material is supplied by the tiny moon Mab.",
+        "discoverer": "Hubble Space Telescope (2003)"
+      }
+    },
+    "moons": {
+      "eyebrow": "28 confirmed moons",
+      "title": "Complete moon system of Uranus",
+      "sub": "Besides the five major moons, Uranus hosts 13 tiny moons among the rings and another 10 distant irregular retrograde moons—likely asteroids captured by Uranus's gravity.",
+      "title_block": "World of Uranus's Moons",
+      "sub_block": "Uranus is surrounded by 28 moons: from inner ring moons to the big five Shakespearean worlds and distant irregular bodies.",
+      "note": "All moons of Uranus are named after characters from the works of William Shakespeare and Alexander Pope.",
+      "legend": {
+        "prograde": "Prograde motion",
+        "retrograde": "Retrograde motion (captured objects)"
+      },
+      "miranda": {
+        "name": "Miranda",
+        "tag": "🌋 Most bizarre world",
+        "desc": "Features a chaotic surface with Verona Rupes cliff ~20 km high. The surface looks like it was stitched from different pieces."
+      },
+      "ariel": {
+        "name": "Ariel",
+        "tag": "❄️ Brightest moon",
+        "desc": "The brightest moon of Uranus, with a network of deep canyons—signs of ancient geological activity."
+      },
+      "umbriel": {
+        "name": "Umbriel",
+        "tag": "⚫ Darkest moon",
+        "desc": "The darkest of the major moons, heavily cratered—geologically the quietest of the five."
+      },
+      "titania": {
+        "name": "Titania",
+        "tag": "🪐 Largest moon",
+        "desc": "Uranus's largest moon, with giant canyons. It might host a thin subsurface water mantle."
+      },
+      "oberon": {
+        "name": "Oberon",
+        "tag": "🌑 Outermost major moon",
+        "desc": "The outermost of the major moons, covered in ancient craters—there are signs of past cryovolcanism on the surface."
+      }
+    },
+    "magnetic": {
+      "eyebrow": "Most chaotic in the system",
+      "title": "Tilted magnetic field",
+      "c1": {
+        "title": "Field tilt angle",
+        "val": "59°",
+        "foot": "Relative to the rotation axis—highly skewed"
+      },
+      "c2": {
+        "title": "Offset from center",
+        "val": "~30% of radius",
+        "foot": "The magnetic field does not pass through the center of the planet"
+      },
+      "c3": {
+        "title": "Magnetosphere shape",
+        "val": "corkscrew-like",
+        "foot": "Due to rotation and tilt, the magnetic tail twists behind the planet"
+      }
+    },
+    "missions": {
+      "eyebrow": "Who explored and plans to explore",
+      "title": "Missions to Uranus",
+      "v2": "Voyager 2 (only flyby)",
+      "v2st": "Only direct data about the planet and moons",
+      "uop": "Uranus Orbiter and Probe",
+      "uopst": "Under development · recommended mission of the decade",
+      "footnote": "Everything known about Uranus from direct observations was obtained during the 5.5 hours of Voyager 2's single flyby in January 1986—no other spacecraft has visited this planet since."
+    },
+    "opposition": {
+      "eyebrow": "Linked to sky maps",
+      "title": "Uranus's next opposition",
+      "until": "Until the best observation moment",
+      "days": "days",
+      "months": "months",
+      "foot": "On the limit of naked-eye visibility under a very dark sky",
+      "findK": "How to find it",
+      "findBody": "Uranus has a magnitude of about 5.7m—theoretically visible to the naked eye under perfectly dark skies, but for confident observation you will need binoculars and a detailed finder chart."
+    },
+    "system": {
+      "eyebrow": "All {{count}} known moons",
+      "title": "Complete moon system of Uranus",
+      "sub": "Three dynamic groups of Uranus's moons—from inner ring moons to the major moons and distant irregulars. Prograde are teal, retrograde are coral. Hover for details.",
+      "inner": "Inner ring moons",
+      "major": "Major moons",
+      "outer": "Outer retrograde moons",
+      "scaleNote": "Orbits are drawn to true linear scale based on semi-major axes: from 49k km (Cordelia) to ~20M km (outer irregulars)—a difference of ~400x. Time is accelerated (1s ≈ 0.1 days). Deep zoom is available in the fullscreen viewer.",
+      "fullscreen": "Fullscreen",
+      "fullscreenHint": "Open fullscreen system viewer—deep zoom, real images, and detailed specs for each of the {{count}} moons",
+      "openFullscreen": "Explore all {{count}} moons in fullscreen mode",
+      "fullscreenTitle": "Complete Uranus Moon System",
+      "loading": "Loading moon system…"
+    },
+    "records": {
+      "eyebrow": "Fun facts",
+      "title": "Uranus of records",
+      "c1_key": "First planet discovered",
+      "c1_val": "1781",
+      "c1_foot": "William Herschel—first planet found by telescope",
+      "c2_key": "Coldest atmosphere",
+      "c2_val": "−224°C",
+      "c2_foot": "Colder than Neptune, although further from the Sun",
+      "c3_key": "42-year seasons",
+      "c3_val": "extreme",
+      "c3_foot": "Each pole—42 years of light, then 42 years of darkness"
     }
   }
 }

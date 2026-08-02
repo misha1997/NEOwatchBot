@@ -40,6 +40,7 @@ from services.jupiter import get_jupiter as _build_jupiter
 from services.mercury import get_mercury as _build_mercury
 from services.venus import get_venus as _build_venus
 from services.neptune import get_neptune as _build_neptune
+from services.uranus import get_uranus as _build_uranus
 from services.grb_alerts import GRBAlertAPI
 from services.comets import CometAPI
 from services.exoplanets import ExoplanetAPI
@@ -1787,6 +1788,21 @@ async def get_neptune() -> dict:
     return await asyncio.to_thread(get_or_fetch, "neptune", NEPTUNE_TTL, _neptune_raw)
 
 
+URANUS_TTL = 300
+
+
+def _uranus_raw() -> dict:
+    try:
+        return _build_uranus()
+    except Exception as e:
+        logger.error("uranus: %s", e)
+        return {}
+
+
+async def get_uranus() -> dict:
+    return await asyncio.to_thread(get_or_fetch, "uranus", URANUS_TTL, _uranus_raw)
+
+
 EARTH_TTL = 300
 
 
@@ -1954,6 +1970,7 @@ def _photo_localize(p: dict) -> dict:
         "description": p.get("description") or "",
         "credit": p.get("credit"),
         "date_created": p.get("date_created"),
+        "source_url": p.get("source_url"),
         "thumb": ("/galaxy-img/" + str(thumb).lstrip("/")) if thumb else None,
         "full": ("/galaxy-img/" + str(full).lstrip("/")) if full else None,
         "sort_order": p.get("sort_order") or 0,
@@ -1986,6 +2003,9 @@ def _galaxy_raw(slug: str, lang: str = DEFAULT_LANG) -> dict:
             return {"available": False}
 
     photos = [_photo_localize(p) for p in (g.get("photos") or [])]
+    # Constellation (IAU abbr) + best viewing month, resolved from RA/Dec via
+    # skyfield. Cheap (cached 24h at the API layer); None when coords missing.
+    from services.galaxies import galaxy_constellation, best_month_from_ra
     return {
         "available": True,
         "key": g.get("key"),
@@ -2002,6 +2022,8 @@ def _galaxy_raw(slug: str, lang: str = DEFAULT_LANG) -> dict:
         "redshift": g.get("redshift"),
         "ned_type": g.get("ned_type"),
         "ned_prefname": g.get("ned_prefname"),
+        "constellation_abbr": galaxy_constellation(g.get("ra"), g.get("dec")),
+        "best_month": best_month_from_ra(g.get("ra")),
         "description": _lf(g, "description", lang),
         "fact": _lf(g, "fact", lang),
         "photos": photos,

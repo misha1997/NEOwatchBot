@@ -227,6 +227,12 @@ async def neptune():
     return await data.get_neptune()
 
 
+@router.get("/uranus")
+async def uranus():
+    """Live Earth-Uranus distance and next opposition date."""
+    return await data.get_uranus()
+
+
 @router.get("/earth")
 async def earth():
     """Live Earth climate vital signs (CO2, temperature anomaly) and real-time earthquake data."""
