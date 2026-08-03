@@ -578,11 +578,36 @@
 @media (max-width: 720px) {
   .cfm-top-bar { padding: 14px 16px; }
   .cfm-title { font-size: 16px; }
+  /* Hide the long subtitle on phones so it doesn't eat vertical sky space. */
+  .cfm-sub { display: none; }
   .cfm-bottom-bar {
     bottom: 14px;
     min-width: 0;
     width: calc(100vw - 24px);
+    /* Clear the iPhone home-indicator / gesture bar. */
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
   }
+  /* Comfortable finger target for the zoom buttons. */
+  .const-zoom-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+  /* Constellation pills scroll horizontally instead of wrapping into a tall
+     stack that hides the sky. */
+  .cfm-pills-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    padding-bottom: 4px;
+  }
+  .cfm-pills-row .const-pill { flex: 0 0 auto; scroll-snap-align: start; }
+  .cfm-pills-row::-webkit-scrollbar { height: 0; display: none; }
+  .cfm-pills-row { scrollbar-width: none; }
+  /* Keep the floating tooltip on-screen on a phone. */
+  .const-tooltip { max-width: min(86vw, 300px); }
 }
 
 /* ---------- detailed card for fullscreen space explorer ---------- */

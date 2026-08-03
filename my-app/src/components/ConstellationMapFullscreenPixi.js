@@ -126,6 +126,16 @@ export default function ConstellationMapFullscreenPixi({
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
 
+  // Multi-pointer / gesture state (mobile). Refs so the window listeners can
+  // mutate them without re-rendering React.
+  const pointersRef = useRef(new Map()); // pointerId -> { x, y } (client coords)
+  const pinchRef = useRef(null); // { startDist, startZoom, startMid, startPan }
+  const movedRef = useRef(false); // per-gesture: did the pointer(s) move > threshold?
+  const lastTapRef = useRef({ t: 0, x: 0, y: 0 }); // last single-tap (double-tap detection)
+  const spriteTapRef = useRef(false); // set by Pixi pointertap so a selection isn't a zoom
+  const downPosRef = useRef({ x: 0, y: 0 }); // first-pointer down position (tap vs drag)
+  const redrawDomeRef = useRef(null); // shared dome redraw helper (wheel + pinch)
+
   // Tooltip & Detail Card translations
   const hudLabels = useMemo(() => {
     return lang === "en" ? {
@@ -406,31 +416,38 @@ export default function ConstellationMapFullscreenPixi({
     world.pivot.set(cx, cy);
     world.position.set(cx + panOffsetRef.current.x, cy + panOffsetRef.current.y);
 
-    // Draw static dome circles and grid lines to match mini-map exactly
-    domeGraphics.clear();
-    domeGraphics.lineStyle({
-      width: 0.8 / zoomRef.current,
-      color: 0x1f2e4d,
-      alpha: 0.4
-    });
-    domeGraphics.beginFill(0x060c18, 0.82);
-    domeGraphics.drawCircle(cx, cy, rHor);
-    domeGraphics.endFill();
-    
-    domeGraphics.drawCircle(cx, cy, rHor * 0.68);
-    domeGraphics.drawCircle(cx, cy, rHor * 0.36);
-    domeGraphics.drawCircle(cx, cy, 10);
-    
-    domeGraphics.moveTo(cx, cy - rHor);
-    domeGraphics.lineTo(cx, cy + rHor);
-    domeGraphics.moveTo(cx - rHor, cy);
-    domeGraphics.lineTo(cx + rHor, cy);
+    // Shared dome redraw (used by the initial draw, the wheel handler, and the
+    // pinch handler so the grid lines stay thin and sharp at any zoom).
+    const redrawDome = (z) => {
+      domeGraphics.clear();
+      domeGraphics.lineStyle({
+        width: 0.8 / z,
+        color: 0x1f2e4d,
+        alpha: 0.4
+      });
+      domeGraphics.beginFill(0x060c18, 0.82);
+      domeGraphics.drawCircle(cx, cy, rHor);
+      domeGraphics.endFill();
 
-    const diag = rHor * 0.704;
-    domeGraphics.moveTo(cx - diag, cy - diag);
-    domeGraphics.lineTo(cx + diag, cy + diag);
-    domeGraphics.moveTo(cx + diag, cy - diag);
-    domeGraphics.lineTo(cx - diag, cy + diag);
+      domeGraphics.drawCircle(cx, cy, rHor * 0.68);
+      domeGraphics.drawCircle(cx, cy, rHor * 0.36);
+      domeGraphics.drawCircle(cx, cy, 10);
+
+      domeGraphics.moveTo(cx, cy - rHor);
+      domeGraphics.lineTo(cx, cy + rHor);
+      domeGraphics.moveTo(cx - rHor, cy);
+      domeGraphics.lineTo(cx + rHor, cy);
+
+      const dVal = rHor * 0.704;
+      domeGraphics.moveTo(cx - dVal, cy - dVal);
+      domeGraphics.lineTo(cx + dVal, cy + dVal);
+      domeGraphics.moveTo(cx + dVal, cy - dVal);
+      domeGraphics.lineTo(cx - dVal, cy + dVal);
+    };
+    redrawDomeRef.current = redrawDome;
+
+    // Draw static dome circles and grid lines to match mini-map exactly
+    redrawDome(zoomRef.current);
 
     // LOD updating in the render loop
     const updateLOD = () => {
@@ -445,16 +462,82 @@ export default function ConstellationMapFullscreenPixi({
     app.ticker.add(updateLOD);
 
     // Event listener functions for window events (to keep pan/zoom extremely fast)
+    // Apply a zoom step centered on a screen point (clientX/clientY). Used by
+    // the wheel handler, pinch-to-zoom, and double-tap-to-zoom so they all share
+    // the same "point under the cursor/finger stays put" math.
+    const applyZoomToward = (clientX, clientY, nextZoom) => {
+      const prevZoom = zoomRef.current;
+      const clamped = Math.max(1.0, Math.min(6000.0, nextZoom));
+      zoomRef.current = clamped;
+
+      const rect = app.view.getBoundingClientRect();
+      const Ax = (clientX - rect.left) * (width / rect.width);
+      const Ay = (clientY - rect.top) * (height / rect.height);
+      const ratio = 1 - clamped / prevZoom;
+      panOffsetRef.current = {
+        x: panOffsetRef.current.x + (Ax - cx - panOffsetRef.current.x) * ratio,
+        y: panOffsetRef.current.y + (Ay - cy - panOffsetRef.current.y) * ratio
+      };
+
+      world.scale.set(clamped);
+      world.position.set(cx + panOffsetRef.current.x, cy + panOffsetRef.current.y);
+
+      if (redrawDomeRef.current) redrawDomeRef.current(clamped);
+      if (updateElementsScaleRef.current) updateElementsScaleRef.current(clamped);
+    };
+
     const handleWindowPointerDown = (e) => {
       if (!canvasWrapRef.current || !canvasWrapRef.current.contains(e.target)) return;
-      isDraggingRef.current = true;
-      dragStartRef.current = {
-        x: e.clientX - panOffsetRef.current.x,
-        y: e.clientY - panOffsetRef.current.y
-      };
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pointersRef.current.size === 1) {
+        // Begin single-pointer pan.
+        movedRef.current = false;
+        spriteTapRef.current = false;
+        downPosRef.current = { x: e.clientX, y: e.clientY };
+        isDraggingRef.current = true;
+        dragStartRef.current = {
+          x: e.clientX - panOffsetRef.current.x,
+          y: e.clientY - panOffsetRef.current.y
+        };
+      } else if (pointersRef.current.size === 2) {
+        // Begin pinch-to-zoom (pan pauses while two fingers are down).
+        isDraggingRef.current = false;
+        const pts = [...pointersRef.current.values()];
+        const dx = pts[0].x - pts[1].x;
+        const dy = pts[0].y - pts[1].y;
+        pinchRef.current = {
+          startDist: Math.hypot(dx, dy) || 1,
+          startZoom: zoomRef.current
+        };
+        movedRef.current = true; // a pinch is a move, not a tap
+      }
     };
 
     const handleWindowPointerMove = (e) => {
+      const pt = pointersRef.current.get(e.pointerId);
+      if (pt) {
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+      }
+
+      // Tap-vs-drag threshold.
+      if (pointersRef.current.size === 1 && isDraggingRef.current && !movedRef.current) {
+        if (Math.hypot(e.clientX - downPosRef.current.x, e.clientY - downPosRef.current.y) > 6) {
+          movedRef.current = true;
+        }
+      }
+
+      if (pointersRef.current.size >= 2 && pinchRef.current) {
+        // Update the moving finger, then recompute from both.
+        const pts = [...pointersRef.current.values()].slice(0, 2);
+        const curDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+        const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+        const ratio = curDist / pinchRef.current.startDist;
+        applyZoomToward(mid.x, mid.y, pinchRef.current.startZoom * ratio);
+        return;
+      }
+
       if (!isDraggingRef.current) return;
       panOffsetRef.current = {
         x: e.clientX - dragStartRef.current.x,
@@ -463,64 +546,71 @@ export default function ConstellationMapFullscreenPixi({
       world.position.set(cx + panOffsetRef.current.x, cy + panOffsetRef.current.y);
     };
 
-    const handleWindowPointerUp = () => {
-      isDraggingRef.current = false;
+    const handleDoubleTap = (clientX, clientY) => {
+      const now = performance.now();
+      const last = lastTapRef.current;
+      const isDouble =
+        now - last.t < 300 &&
+        Math.abs(clientX - last.x) < 24 &&
+        Math.abs(clientY - last.y) < 24;
+
+      if (isDouble) {
+        lastTapRef.current = { t: 0, x: 0, y: 0 };
+        if (zoomRef.current >= 8.0) {
+          // Zoomed in → reset to default.
+          zoomRef.current = 3.0;
+          panOffsetRef.current = { x: 0, y: 0 };
+          world.scale.set(3.0);
+          world.position.set(cx, cy);
+          if (redrawDomeRef.current) redrawDomeRef.current(3.0);
+          if (updateElementsScaleRef.current) updateElementsScaleRef.current(3.0);
+        } else {
+          // Zoom in 2.5× toward the tap point.
+          applyZoomToward(clientX, clientY, zoomRef.current * 2.5);
+        }
+      } else {
+        lastTapRef.current = { t: now, x: clientX, y: clientY };
+      }
+    };
+
+    const handleWindowPointerUp = (e) => {
+      pointersRef.current.delete(e.pointerId);
+
+      if (pinchRef.current && pointersRef.current.size < 2) {
+        // Pinch ended. If one finger remains down, re-seed pan from it so the
+        // sky doesn't jump when the second finger lifts.
+        pinchRef.current = null;
+        if (pointersRef.current.size === 1) {
+          const rem = [...pointersRef.current.values()][0];
+          isDraggingRef.current = true;
+          dragStartRef.current = {
+            x: rem.x - panOffsetRef.current.x,
+            y: rem.y - panOffsetRef.current.y
+          };
+        }
+        return;
+      }
+
+      if (isDraggingRef.current && pointersRef.current.size === 0) {
+        isDraggingRef.current = false;
+        // A tap on empty sky (no sprite selected, negligible movement)?
+        if (!movedRef.current && !spriteTapRef.current) {
+          handleDoubleTap(e.clientX, e.clientY);
+        }
+      }
     };
 
     const handleWindowWheel = (e) => {
       if (!canvasWrapRef.current || !canvasWrapRef.current.contains(e.target)) return;
       e.preventDefault();
-
-      const rect = app.view.getBoundingClientRect();
-      const Ax = (e.clientX - rect.left) * (width / rect.width);
-      const Ay = (e.clientY - rect.top) * (height / rect.height);
       const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
-
-      const prevZoom = zoomRef.current;
-      const nextZoom = Math.max(1.0, Math.min(6000.0, prevZoom * zoomFactor));
-      zoomRef.current = nextZoom;
-
-      const ratio = 1 - nextZoom / prevZoom;
-      panOffsetRef.current = {
-        x: panOffsetRef.current.x + (Ax - cx - panOffsetRef.current.x) * ratio,
-        y: panOffsetRef.current.y + (Ay - cy - panOffsetRef.current.y) * ratio
-      };
-
-      world.scale.set(nextZoom);
-      world.position.set(cx + panOffsetRef.current.x, cy + panOffsetRef.current.y);
-      
-      domeGraphics.clear();
-      domeGraphics.lineStyle({
-        width: 0.8 / nextZoom,
-        color: 0x1f2e4d,
-        alpha: 0.4
-      });
-      domeGraphics.beginFill(0x060c18, 0.82);
-      domeGraphics.drawCircle(cx, cy, rHor);
-      domeGraphics.endFill();
-      domeGraphics.drawCircle(cx, cy, rHor * 0.68);
-      domeGraphics.drawCircle(cx, cy, rHor * 0.36);
-      domeGraphics.drawCircle(cx, cy, 10);
-      domeGraphics.moveTo(cx, cy - rHor);
-      domeGraphics.lineTo(cx, cy + rHor);
-      domeGraphics.moveTo(cx - rHor, cy);
-      domeGraphics.lineTo(cx + rHor, cy);
-      
-      const dVal = rHor * 0.704;
-      domeGraphics.moveTo(cx - dVal, cy - dVal);
-      domeGraphics.lineTo(cx + dVal, cy + dVal);
-      domeGraphics.moveTo(cx + dVal, cy - dVal);
-      domeGraphics.lineTo(cx - dVal, cy + dVal);
-
-      // Dynamically update star/line scales on wheel zoom
-      if (updateElementsScaleRef.current) {
-        updateElementsScaleRef.current(nextZoom);
-      }
+      applyZoomToward(e.clientX, e.clientY, zoomRef.current * zoomFactor);
     };
 
     window.addEventListener("pointerdown", handleWindowPointerDown);
     window.addEventListener("pointermove", handleWindowPointerMove);
     window.addEventListener("pointerup", handleWindowPointerUp);
+    window.addEventListener("pointercancel", handleWindowPointerUp);
     app.view.addEventListener("wheel", handleWindowWheel, { passive: false });
 
     // Handle Resize
@@ -536,8 +626,10 @@ export default function ConstellationMapFullscreenPixi({
       window.removeEventListener("pointerdown", handleWindowPointerDown);
       window.removeEventListener("pointermove", handleWindowPointerMove);
       window.removeEventListener("pointerup", handleWindowPointerUp);
+      window.removeEventListener("pointercancel", handleWindowPointerUp);
       window.removeEventListener("resize", handleResize);
-      
+      pointersRef.current.clear();
+
       if (appRef.current) {
         appRef.current.destroy(true, { children: true, texture: true, baseTexture: true });
         appRef.current = null;
@@ -633,6 +725,7 @@ export default function ConstellationMapFullscreenPixi({
       sprite.on("pointerout", () => setHoveredObj(null));
       sprite.on("pointertap", (e) => {
         e.stopPropagation();
+        spriteTapRef.current = true; // selection tap — suppress double-tap zoom
         setSelectedObj(starObj);
         if (s[6]) setActiveConst(s[6]);
       });
@@ -726,6 +819,7 @@ export default function ConstellationMapFullscreenPixi({
           textNode.cursor = "pointer";
           textNode.on("pointertap", (e) => {
             e.stopPropagation();
+            spriteTapRef.current = true; // selection tap — suppress double-tap zoom
             setActiveConst(c.id);
             setSelectedObj({
               type: "constellation",
@@ -871,6 +965,7 @@ export default function ConstellationMapFullscreenPixi({
       objSprite.on("pointerout", () => setHoveredObj(null));
       objSprite.on("pointertap", (e) => {
         e.stopPropagation();
+        spriteTapRef.current = true; // selection tap — suppress double-tap zoom
         setSelectedObj(planetObj);
       });
 
@@ -933,6 +1028,7 @@ export default function ConstellationMapFullscreenPixi({
       galContainer.on("pointerout", () => setHoveredObj(null));
       galContainer.on("pointertap", (e) => {
         e.stopPropagation();
+        spriteTapRef.current = true; // selection tap — suppress double-tap zoom
         setSelectedObj(galObj);
       });
 
