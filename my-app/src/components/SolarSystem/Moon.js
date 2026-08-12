@@ -51,7 +51,12 @@ export default function Moon({ data, isRealisticScale, showLabels, parentRadiusV
       >
         <mesh ref={meshRef} castShadow receiveShadow>
           <sphereGeometry args={[visualRadius, 32, 32]} />
-          <MoonMaterial textureUrl={data.textureUrl} color={data.color} hovered={hovered} />
+          <MoonMaterial 
+            textureUrl={data.textureUrl} 
+            flatTextureUrl={data.flatTextureUrl}
+            color={data.color} 
+            hovered={hovered} 
+          />
         </mesh>
       </group>
 
@@ -77,9 +82,10 @@ export default function Moon({ data, isRealisticScale, showLabels, parentRadiusV
 }
 
 // Separate component to handle conditional hook call
-function MoonMaterial({ textureUrl, color, hovered }) {
-  if (textureUrl) {
-    return <TexturedMaterial textureUrl={textureUrl} hovered={hovered} color={color} />;
+function MoonMaterial({ textureUrl, flatTextureUrl, color, hovered }) {
+  const actualTextureUrl = flatTextureUrl || textureUrl;
+  if (actualTextureUrl) {
+    return <TexturedMaterial textureUrl={actualTextureUrl} hovered={hovered} color={color} />;
   }
   return (
     <meshStandardMaterial 

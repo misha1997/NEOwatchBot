@@ -89,7 +89,8 @@
           "w": 318.15,
           "M0": 115.36,
           "n": 13.176
-        }
+        },
+        "flatTextureUrl": "/textures/moon_flat.jpg"
       }
     ]
   },
@@ -144,7 +145,8 @@
           "w": 84.12,
           "M0": 342.02,
           "n": 203.488
-        }
+        },
+        "flatTextureUrl": "/textures/io_flat.jpg"
       },
       {
         "id": "europa",
@@ -161,7 +163,8 @@
           "w": 88.97,
           "M0": 171.01,
           "n": 101.374
-        }
+        },
+        "flatTextureUrl": "/textures/europa_flat.jpg"
       },
       {
         "id": "ganymede",
@@ -178,7 +181,8 @@
           "w": 192.41,
           "M0": 317.54,
           "n": 50.317
-        }
+        },
+        "flatTextureUrl": "/textures/ganymede_flat.jpg"
       },
       {
         "id": "callisto",
@@ -195,7 +199,8 @@
           "w": 52.64,
           "M0": 181.4,
           "n": 21.571
-        }
+        },
+        "flatTextureUrl": "/textures/callisto_flat.jpg"
       },
       {
         "id": "amalthea",

@@ -177,8 +177,9 @@ export default function Planet({ data, isRealisticScale, showLabels, showOrbits,
 
 function PlanetMaterial({ data, hovered }) {
   // Use object syntax to safely load variable textures in a single hook call
+  const actualMapUrl = data.flatTextureUrl || data.textureUrl;
   const textureObj = useTexture({
-    map: data.textureUrl,
+    map: actualMapUrl,
     ...(data.normalMap ? { normalMap: data.normalMap } : {}),
     ...(data.specularMap ? { specularMap: data.specularMap } : {})
   });
