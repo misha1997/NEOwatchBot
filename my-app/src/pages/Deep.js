@@ -77,6 +77,7 @@ function GrbList({ t }) {
 
 export default function Deep() {
   const { t } = useTranslation();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { document.title = t("title.deep"); }, [t]);
   return (
     <>

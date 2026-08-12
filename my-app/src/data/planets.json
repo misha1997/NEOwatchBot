@@ -1,0 +1,567 @@
+[
+  {
+    "id": "sun",
+    "name": "Sun",
+    "type": "star",
+    "radiusKm": 696340,
+    "color": "#FDB813",
+    "textureUrl": "/textures/sun.jpg",
+    "mass": "1.989 \u0413\u2014 10^30 kg",
+    "orbit": {
+      "a": 0,
+      "e": 0,
+      "i": 0,
+      "N": 0,
+      "w": 0,
+      "M0": 0,
+      "n": 0
+    }
+  },
+  {
+    "id": "mercury",
+    "name": "Mercury",
+    "type": "planet",
+    "radiusKm": 2439.7,
+    "color": "#8c8c94",
+    "textureUrl": "/textures/mercury.jpg",
+    "mass": "3.301 \u0413\u2014 10^23 kg",
+    "orbit": {
+      "a": 0.38709927,
+      "e": 0.20563593,
+      "i": 7.00497902,
+      "N": 48.33076593,
+      "w": 77.45779628,
+      "M0": 252.2503235,
+      "n": 4.092317
+    }
+  },
+  {
+    "id": "venus",
+    "name": "Venus",
+    "type": "planet",
+    "radiusKm": 6051.8,
+    "color": "#e3bb76",
+    "textureUrl": "/textures/venus.jpg",
+    "mass": "4.867 \u0413\u2014 10^24 kg",
+    "orbit": {
+      "a": 0.72333566,
+      "e": 0.00677672,
+      "i": 3.39467605,
+      "N": 76.67984255,
+      "w": 131.60246718,
+      "M0": 181.9790995,
+      "n": 1.60213
+    }
+  },
+  {
+    "id": "earth",
+    "name": "Earth",
+    "type": "planet",
+    "radiusKm": 6371.0,
+    "color": "#2b82c9",
+    "textureUrl": "/textures/earth.jpg",
+    "mass": "5.972 \u0413\u2014 10^24 kg",
+    "orbit": {
+      "a": 1.00000261,
+      "e": 0.01671123,
+      "i": 1.531e-05,
+      "N": 174.87317577,
+      "w": 102.93768193,
+      "M0": 100.46457166,
+      "n": 0.985609
+    },
+    "normalMap": "/textures/earth_normal.jpg",
+    "specularMap": "/textures/earth_specular.jpg",
+    "cloudsMap": "/textures/earth_clouds.jpg",
+    "moons": [
+      {
+        "id": "moon",
+        "name": "Moon",
+        "radiusKm": 1737.4,
+        "color": "#aaaaaa",
+        "textureUrl": "/textures/moons/moon.jpg",
+        "isMajor": true,
+        "orbit": {
+          "a": 0.00257,
+          "e": 0.0549,
+          "i": 5.14,
+          "N": 125.08,
+          "w": 318.15,
+          "M0": 115.36,
+          "n": 13.176
+        }
+      }
+    ]
+  },
+  {
+    "id": "mars",
+    "name": "Mars",
+    "type": "planet",
+    "radiusKm": 3389.5,
+    "color": "#c1440e",
+    "textureUrl": "/textures/mars.jpg",
+    "mass": "6.417 \u0413\u2014 10^23 kg",
+    "orbit": {
+      "a": 1.52371034,
+      "e": 0.0933941,
+      "i": 1.84969142,
+      "N": 49.55953891,
+      "w": 336.05631665,
+      "M0": 355.433275,
+      "n": 0.524033
+    }
+  },
+  {
+    "id": "jupiter",
+    "name": "Jupiter",
+    "type": "planet",
+    "radiusKm": 69911.0,
+    "color": "#e0ae6f",
+    "textureUrl": "/textures/jupiter.jpg",
+    "mass": "1.898 \u0413\u2014 10^27 kg",
+    "orbit": {
+      "a": 5.202887,
+      "e": 0.04838624,
+      "i": 1.30439695,
+      "N": 100.47390909,
+      "w": 14.33120687,
+      "M0": 34.33479152,
+      "n": 0.0830853
+    },
+    "moons": [
+      {
+        "id": "io",
+        "name": "Io",
+        "radiusKm": 1821.6,
+        "color": "#e6d7a8",
+        "textureUrl": "/moons/io.jpg",
+        "isMajor": true,
+        "orbit": {
+          "a": 0.002819,
+          "e": 0.0041,
+          "i": 0.05,
+          "N": 43.97,
+          "w": 84.12,
+          "M0": 342.02,
+          "n": 203.488
+        }
+      },
+      {
+        "id": "europa",
+        "name": "Europa",
+        "radiusKm": 1560.8,
+        "color": "#9e917d",
+        "textureUrl": "/moons/europa.jpg",
+        "isMajor": true,
+        "orbit": {
+          "a": 0.004485,
+          "e": 0.0094,
+          "i": 0.47,
+          "N": 219.1,
+          "w": 88.97,
+          "M0": 171.01,
+          "n": 101.374
+        }
+      },
+      {
+        "id": "ganymede",
+        "name": "Ganymede",
+        "radiusKm": 2634.1,
+        "color": "#937c68",
+        "textureUrl": "/moons/ganymede.jpg",
+        "isMajor": true,
+        "orbit": {
+          "a": 0.007155,
+          "e": 0.0013,
+          "i": 0.2,
+          "N": 63.55,
+          "w": 192.41,
+          "M0": 317.54,
+          "n": 50.317
+        }
+      },
+      {
+        "id": "callisto",
+        "name": "Callisto",
+        "radiusKm": 2410.3,
+        "color": "#5b5753",
+        "textureUrl": "/moons/callisto.jpg",
+        "isMajor": true,
+        "orbit": {
+          "a": 0.012585,
+          "e": 0.0074,
+          "i": 0.19,
+          "N": 298.84,
+          "w": 52.64,
+          "M0": 181.4,
+          "n": 21.571
+        }
+      },
+      {
+        "id": "amalthea",
+        "name": "Amalthea",
+        "radiusKm": 83.5,
+        "color": "#777777",
+        "textureUrl": "/moons/generic_moon.jpg",
+        "isMajor": false,
+        "orbit": {
+          "a": 0.00121,
+          "e": 0.003,
+          "i": 0.374,
+          "N": 0,
+          "w": 0,
+          "M0": 0,
+          "n": 722.6
+        }
+      }
+    ]
+  },
+  {
+    "id": "saturn",
+    "name": "Saturn",
+    "type": "planet",
+    "radiusKm": 58232.0,
+    "color": "#ead6b8",
+    "textureUrl": "/textures/saturn.jpg",
+    "mass": "5.683 \u0413\u2014 10^26 kg",
+    "ring": {
+      "innerRadiusScale": 1.2,
+      "outerRadiusScale": 2.2,
+      "textureUrl": "/textures/saturn_ring.png",
+      "inclination": 26.7
+    },
+    "moons": [
+      {
+        "id": "titan",
+        "name": "Titan",
+        "radiusKm": 2574.7,
+        "color": "#d6a95a",
+        "isMajor": true,
+        "orbit": {
+          "a": 0.008168,
+          "e": 0.0288,
+          "i": 0.348,
+          "N": 168.5,
+          "w": 25.1,
+          "M0": 26.1,
+          "n": 22.576
+        }
+      },
+      {
+        "id": "enceladus",
+        "name": "Enceladus",
+        "radiusKm": 252.1,
+        "color": "#eeeeee",
+        "isMajor": true,
+        "orbit": {
+          "a": 0.00159,
+          "e": 0.0047,
+          "i": 0.009,
+          "N": 0,
+          "w": 0,
+          "M0": 0,
+          "n": 262.73
+        }
+      }
+    ],
+    "orbit": {
+      "a": 9.53667594,
+      "e": 0.05386179,
+      "i": 2.48599187,
+      "N": 113.66242448,
+      "w": 93.05678736,
+      "M0": 50.07571329,
+      "n": 0.0333333
+    }
+  },
+  {
+    "id": "uranus",
+    "name": "Uranus",
+    "type": "planet",
+    "radiusKm": 25362.0,
+    "color": "#4b70dd",
+    "textureUrl": "/textures/uranus.jpg",
+    "mass": "8.681 \u0413\u2014 10^25 kg",
+    "ring": {
+      "textureUrl": "/textures/saturn_ring.png",
+      "innerRadiusScale": 1.5,
+      "outerRadiusScale": 2.5,
+      "inclination": 97.77
+    },
+    "moons": [
+      {
+        "id": "titania",
+        "name": "Titania",
+        "radiusKm": 788.9,
+        "color": "#aaaaaa",
+        "textureUrl": "/moons/generic_moon.jpg",
+        "isMajor": true,
+        "orbit": {
+          "a": 0.0029,
+          "e": 0.0011,
+          "i": 0.34,
+          "N": 166.5,
+          "w": 25.1,
+          "M0": 26.1,
+          "n": 41.35
+        }
+      },
+      {
+        "id": "oberon",
+        "name": "Oberon",
+        "radiusKm": 761.4,
+        "color": "#aaaaaa",
+        "textureUrl": "/moons/generic_moon.jpg",
+        "isMajor": true,
+        "orbit": {
+          "a": 0.0039,
+          "e": 0.0014,
+          "i": 0.05,
+          "N": 166.5,
+          "w": 25.1,
+          "M0": 26.1,
+          "n": 26.74
+        }
+      },
+      {
+        "id": "umbriel",
+        "name": "Umbriel",
+        "radiusKm": 584.7,
+        "color": "#888888",
+        "textureUrl": "/moons/generic_moon.jpg",
+        "isMajor": true,
+        "orbit": {
+          "a": 0.0017,
+          "e": 0.0039,
+          "i": 0.12,
+          "N": 166.5,
+          "w": 25.1,
+          "M0": 26.1,
+          "n": 86.87
+        }
+      },
+      {
+        "id": "ariel",
+        "name": "Ariel",
+        "radiusKm": 578.9,
+        "color": "#dddddd",
+        "textureUrl": "/moons/generic_moon.jpg",
+        "isMajor": true,
+        "orbit": {
+          "a": 0.0012,
+          "e": 0.0012,
+          "i": 0.26,
+          "N": 166.5,
+          "w": 25.1,
+          "M0": 26.1,
+          "n": 142.84
+        }
+      },
+      {
+        "id": "miranda",
+        "name": "Miranda",
+        "radiusKm": 235.8,
+        "color": "#cccccc",
+        "textureUrl": "/moons/generic_moon.jpg",
+        "isMajor": false,
+        "orbit": {
+          "a": 0.0008,
+          "e": 0.0013,
+          "i": 4.22,
+          "N": 166.5,
+          "w": 25.1,
+          "M0": 26.1,
+          "n": 254.69
+        }
+      }
+    ],
+    "orbit": {
+      "a": 19.18916464,
+      "e": 0.04725744,
+      "i": 0.77263783,
+      "N": 74.01692503,
+      "w": 173.00529106,
+      "M0": 314.05500511,
+      "n": 0.0116666
+    }
+  },
+  {
+    "id": "neptune",
+    "name": "Neptune",
+    "type": "planet",
+    "radiusKm": 24622.0,
+    "color": "#5b5ddf",
+    "textureUrl": "/textures/neptune.jpg",
+    "mass": "1.024 \u0413\u2014 10^26 kg",
+    "orbit": {
+      "a": 30.06896348,
+      "e": 0.00858587,
+      "i": 1.76917,
+      "N": 131.72169,
+      "w": 44.97135,
+      "M0": 304.88003,
+      "n": 0.005995
+    },
+    "moons": [
+      {
+        "id": "triton",
+        "name": "Triton",
+        "radiusKm": 1353.4,
+        "color": "#a8a8a8",
+        "textureUrl": "/moons/generic_moon.jpg",
+        "isMajor": true,
+        "orbit": {
+          "a": 0.0023,
+          "e": 0.0,
+          "i": 156.885,
+          "N": 131.7,
+          "w": 44.9,
+          "M0": 0,
+          "n": 61.25
+        }
+      },
+      {
+        "id": "proteus",
+        "name": "Proteus",
+        "radiusKm": 210,
+        "color": "#777777",
+        "textureUrl": "/moons/generic_moon.jpg",
+        "isMajor": false,
+        "orbit": {
+          "a": 0.0007,
+          "e": 0.0005,
+          "i": 0.524,
+          "N": 131.7,
+          "w": 44.9,
+          "M0": 0,
+          "n": 319.46
+        }
+      },
+      {
+        "id": "nereid",
+        "name": "Nereid",
+        "radiusKm": 170,
+        "color": "#aaaaaa",
+        "textureUrl": "/moons/generic_moon.jpg",
+        "isMajor": false,
+        "orbit": {
+          "a": 0.0368,
+          "e": 0.7507,
+          "i": 7.09,
+          "N": 131.7,
+          "w": 44.9,
+          "M0": 0,
+          "n": 0.99
+        }
+      }
+    ]
+  },
+  {
+    "id": "ceres",
+    "name": "Ceres",
+    "type": "dwarf planet",
+    "radiusKm": 473.0,
+    "color": "#9ca1a6",
+    "textureUrl": "/moons/default_minor.png",
+    "mass": "9.38 \u0413\u2014 10^20 kg",
+    "orbit": {
+      "a": 2.7675,
+      "e": 0.0789,
+      "i": 10.593,
+      "N": 80.25,
+      "w": 73.83,
+      "M0": 106.84,
+      "n": 0.2141
+    }
+  },
+  {
+    "id": "vesta",
+    "name": "Vesta",
+    "type": "asteroid",
+    "radiusKm": 262.7,
+    "color": "#a8a8a8",
+    "textureUrl": "/moons/minor_1.png",
+    "mass": "2.59 \u0413\u2014 10^20 kg",
+    "orbit": {
+      "a": 2.361,
+      "e": 0.0887,
+      "i": 7.14,
+      "N": 103.81,
+      "w": 150.72,
+      "M0": 20.0,
+      "n": 0.2716
+    }
+  },
+  {
+    "id": "pallas",
+    "name": "Pallas",
+    "type": "asteroid",
+    "radiusKm": 256.0,
+    "color": "#8c8c8c",
+    "mass": "2.11 \u0413\u2014 10^20 kg",
+    "textureUrl": "/moons/minor_2.png",
+    "orbit": {
+      "a": 2.772,
+      "e": 0.231,
+      "i": 34.84,
+      "N": 173.08,
+      "w": 310.14,
+      "M0": 40.0,
+      "n": 0.2135
+    }
+  },
+  {
+    "id": "halley",
+    "name": "1P/Halley",
+    "type": "comet",
+    "radiusKm": 5.5,
+    "color": "#ffffff",
+    "mass": "2.2 \u0413\u2014 10^14 kg",
+    "textureUrl": "/moons/default_minor.png",
+    "orbit": {
+      "a": 17.834,
+      "e": 0.96714,
+      "i": 162.26,
+      "N": 58.42,
+      "w": 111.33,
+      "M0": 38.38,
+      "n": 0.0129
+    }
+  },
+  {
+    "id": "jwst",
+    "name": "James Webb ST",
+    "type": "spacecraft",
+    "radiusKm": 10.0,
+    "color": "#ffd700",
+    "mass": "6,161 kg",
+    "textureUrl": "/moons/default_minor.png",
+    "orbit": {
+      "a": 1.01,
+      "e": 0.01671123,
+      "i": 1.531e-05,
+      "N": 174.87317577,
+      "w": 102.93768193,
+      "M0": 100.46457166,
+      "n": 0.985609
+    }
+  },
+  {
+    "id": "halley",
+    "name": "Halley's Comet",
+    "type": "comet",
+    "radiusKm": 5.5,
+    "color": "#ffffff",
+    "mass": "2.2 \u00d7 10^14 kg",
+    "textureUrl": "/moons/default_minor.png",
+    "orbit": {
+      "a": 17.834,
+      "e": 0.967,
+      "i": 162.26,
+      "N": 58.42,
+      "w": 111.33,
+      "M0": 38.38,
+      "n": 0.01309
+    }
+  }
+]

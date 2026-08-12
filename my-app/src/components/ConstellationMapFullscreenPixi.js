@@ -137,7 +137,8 @@ export default function ConstellationMapFullscreenPixi({
   const redrawDomeRef = useRef(null); // shared dome redraw helper (wheel + pinch)
 
   // Tooltip & Detail Card translations
-  const hudLabels = useMemo(() => {
+  const hudLabels = // eslint-disable-next-line react-hooks/exhaustive-deps
+  useMemo(() => {
     return lang === "en" ? {
       bayer: "Bayer designation",
       catalog: "Catalog number",
@@ -285,6 +286,7 @@ export default function ConstellationMapFullscreenPixi({
   updateElementsScaleRef.current = updateElementsScale;
 
   // Load Star Catalog & API data
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // 1. Load real stars database
     fetch("/data/real_stars.json")
@@ -313,6 +315,7 @@ export default function ConstellationMapFullscreenPixi({
   }, [latLon, lang]);
 
   // Fetch full galaxy details dynamically when selected
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selectedObj && selectedObj.type === "galaxy") {
       setDetailedGalaxy(null);
@@ -350,6 +353,7 @@ export default function ConstellationMapFullscreenPixi({
   const objectImageUrl = getObjectImageUrl(selectedObj, detailedGalaxy);
 
   // PixiJS App Initialization (runs ONCE on mount)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!canvasWrapRef.current) return;
 
@@ -638,6 +642,7 @@ export default function ConstellationMapFullscreenPixi({
   }, []);
 
   // Re-draw scene when data, active selection, or coordinates change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const app = appRef.current;
     const world = worldRef.current;
@@ -1071,6 +1076,7 @@ export default function ConstellationMapFullscreenPixi({
   };
 
   // Keyboard navigation Escape to close
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();

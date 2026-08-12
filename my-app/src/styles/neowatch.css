@@ -2018,6 +2018,11 @@ table.data tr:hover td {
   background: #0a0c14
 }
 
+.sat-miniature {
+  background: none;
+  border: none;
+}
+
 .leaflet-container {
   background: #0a0c14 !important;
   font-family: var(--font-mono) !important

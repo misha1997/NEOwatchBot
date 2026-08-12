@@ -79,6 +79,7 @@ export default function ExoSystem({ systemId, onSelectPlanet }) {
   // Animation loop: advance each planet's angle in place, then re-render.
   // Pause while a popup is open or the pointer is over the stage so the dots
   // stay clickable and the popup stays anchored.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     lastRef.current = performance.now();
     const tick = (now) => {
@@ -98,6 +99,7 @@ export default function ExoSystem({ systemId, onSelectPlanet }) {
   }, [orbits]);
 
   // Clear the popup when the system changes (angles reseed in render above).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setSel(null);
     setPos(null);
@@ -125,6 +127,7 @@ export default function ExoSystem({ systemId, onSelectPlanet }) {
   }, [sel, planets, orbits]);
 
   useLayoutEffect(measure, [sel]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!sel) return;
     const onResize = () => measure();

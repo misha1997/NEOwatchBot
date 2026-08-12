@@ -11,7 +11,7 @@ import { useSeo } from "../hooks/useSeo";
 import "../styles/planetarium.css";
 
 export default function Planetarium() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   useSeo();
   useEffect(() => { document.title = t("title.planetarium"); }, [t]);
 
@@ -25,6 +25,11 @@ export default function Planetarium() {
             <div className="eyebrow gold">{t("planetarium.hero.eyebrow")}</div>
             <h1 className="hero-title" dangerouslySetInnerHTML={{ __html: t("planetarium.hero.title") }} />
             <p className="hero-sub">{t("planetarium.hero.sub")}</p>
+            <div className="hero-actions" style={{ marginTop: 24 }}>
+              <LocalizedLink to="solarsystem3d" className="btn primary">
+                {i18n.language === "en" ? "Explore Solar System in 3D" : "Сонячна система у 3D"}
+              </LocalizedLink>
+            </div>
           </div>
           <div className="orbit-wrap" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
             <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", maxWidth: 360, height: "auto" }}>

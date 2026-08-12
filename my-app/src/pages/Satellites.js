@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLang } from "../context/LanguageContext";
 import SatMap from "../components/SatMap";
+import SatMapFullscreen from "../components/SatMapFullscreen";
 import LocalizedLink from "../components/primitives/LocalizedLink";
 import SectionHead from "../components/primitives/SectionHead";
 import { useApi } from "../hooks/useApi";
@@ -23,6 +24,7 @@ export default function Satellites() {
     DEFAULTS.reduce((a, k) => { a[k] = true; return a; }, {})
   );
   const [count, setCount] = useState(null);
+  const [showFs, setShowFs] = useState(false);
 
   const toggle = (g) => {
     const map = mapRef.current;
@@ -57,7 +59,7 @@ export default function Satellites() {
 
       <section className="section" id="sat-map-card" style={{ paddingTop: 8 }}>
         <div className="wrap">
-          <div className="map-card">
+          <div className={`map-card ${showFs ? 'sat-map-fs' : ''}`}>
             <div className="sat-controls">
               {(groups || []).map((g) => (
                 <button type="button" key={g.key}
@@ -70,7 +72,20 @@ export default function Satellites() {
               ))}
               <span className="count">{countTxt}</span>
             </div>
-            <div className="map-body map-live">
+            <div className="map-body map-live" style={{ position: 'relative' }}>
+              <button
+                type="button"
+                className="const-fs-cta"
+                onClick={() => setShowFs(true)}
+                aria-label={t("jupiter.system.fullscreen")}
+                title={t("jupiter.system.fullscreenHint", { count: count || 0 })}
+                style={{ position: 'absolute', top: 12, right: 12, left: 'auto', zIndex: 1000 }}
+              >
+                <span className="const-fs-cta-ico">⛶</span>
+                <span className="const-fs-cta-tip" style={{ left: 'auto', right: 0, textAlign: 'right' }}>
+                  {t("jupiter.system.fullscreenHint", { count: count || 0 })}
+                </span>
+              </button>
               <SatMap ref={mapRef} groups={DEFAULTS} limit={400} lang={lang}
                 onReady={(n) => setCount(n)}
                 onCount={(n) => setCount(n)} />
@@ -79,6 +94,17 @@ export default function Satellites() {
           <p className="section-sub" style={{ marginTop: 14 }}>{t("satellites.s1_sub")}</p>
         </div>
       </section>
+
+      {showFs && (
+        <SatMapFullscreen 
+          active={active} 
+          groups={groups} 
+          toggle={toggle} 
+          count={count} 
+          lang={lang} 
+          onClose={() => setShowFs(false)} 
+        />
+      )}
 
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">

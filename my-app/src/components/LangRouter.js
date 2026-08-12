@@ -38,6 +38,7 @@ const Galaxies = lazy(() => import("../pages/Galaxies"));
 const Galaxy = lazy(() => import("../pages/Galaxy"));
 const News = lazy(() => import("../pages/News"));
 const NewsArticle = lazy(() => import("../pages/NewsArticle"));
+const SolarSystem3D = lazy(() => import("../pages/SolarSystem3D"));
 
 const PAGES = {
   home: Home,
@@ -65,6 +66,7 @@ const PAGES = {
   uranus: Uranus,
   galaxies: Galaxies,
   news: News,
+  solarsystem3d: SolarSystem3D,
 };
 
 function Loading() {

@@ -5,7 +5,6 @@ import Header from "./Header";
 import Footer from "./Footer";
 import Starfield from "../Starfield";
 import CookieBanner from "../CookieBanner";
-import { useSeo } from "../../hooks/useSeo";
 import { useLang } from "../../context/LanguageContext";
 import { PREFIX_TO_LANG } from "../../lib/seo";
 

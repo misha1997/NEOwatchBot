@@ -30,7 +30,7 @@ export const NAV_GROUPS = [
     { name: "earth", labelKey: "nav.earth" },
     { name: "jupiter", labelKey: "nav.jupiter" },
     { name: "saturn", labelKey: "nav.saturn", disabled: true },
-    { name: "uranus", labelKey: "nav.uranus", disabled: true },
+    { name: "uranus", labelKey: "nav.uranus" },
     { name: "neptune", labelKey: "nav.neptune" },
   ]},
   { labelKey: "nav.bodies_group", items: [

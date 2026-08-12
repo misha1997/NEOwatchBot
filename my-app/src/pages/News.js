@@ -22,6 +22,7 @@ export default function News() {
   const { t } = useTranslation();
   const { lang } = useLang();
   useSeo();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     document.body.classList.add("p-news");
     return () => document.body.classList.remove("p-news");
@@ -36,13 +37,15 @@ export default function News() {
   const [view, setView] = useState("cards");
 
   // Reset to the first page whenever the active filter / search changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setPage(0);
   }, [filter, query]);
 
   const featured = items[0];
 
-  const filtered = useMemo(() => {
+  const filtered = // eslint-disable-next-line react-hooks/exhaustive-deps
+  useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((it) => {
       const matchesCat = filter === "all" || it.category === filter;

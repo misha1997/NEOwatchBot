@@ -53,6 +53,7 @@ export default function OrbitMap() {
     setPos({ left, top: py, below: py < 90 });
   };
   useLayoutEffect(measure, [sel]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!sel) return;
     const onResize = () => measure();

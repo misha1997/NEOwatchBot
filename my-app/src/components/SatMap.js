@@ -96,6 +96,7 @@ const SatMap = forwardRef(function SatMap(
     removeGroup: (k) => methodsRef.current.removeGroup && methodsRef.current.removeGroup(k),
     setFollow: (v) => { followRef.current = !!v; },
     redrawTrack: () => methodsRef.current.redrawTrack && methodsRef.current.redrawTrack(),
+    invalidateSize: () => methodsRef.current.invalidateSize && methodsRef.current.invalidateSize(),
   }), []);
 
   useEffect(() => {
@@ -130,13 +131,41 @@ const SatMap = forwardRef(function SatMap(
       return getTle(key, limit, lang).then((data) => {
         if (!alive) return; // map may have been torn down (StrictMode remount / unmount)
         const color = (data.color || (groupMetaRef.current[key] || {}).color) || "#E8B94D";
+        
+        // Define high-quality SVG shapes based on the group
+        let svgIcon = "";
+        if (key === "iss") {
+          svgIcon = `<svg viewBox="0 0 32 32" width="32" height="32" stroke="${color}" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="8" height="10" rx="1" fill="${color}" fill-opacity="0.25"/>
+            <rect x="21" y="11" width="8" height="10" rx="1" fill="${color}" fill-opacity="0.25"/>
+            <line x1="7" y1="11" x2="7" y2="21" />
+            <line x1="25" y1="11" x2="25" y2="21" />
+            <line x1="11" y1="16" x2="21" y2="16" stroke-width="2" />
+            <rect x="14" y="6" width="4" height="20" rx="1" fill="${color}" />
+          </svg>`;
+        } else {
+          svgIcon = `<svg viewBox="0 0 32 32" width="24" height="24" stroke="${color}" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="12" y="12" width="8" height="8" rx="1" fill="${color}" fill-opacity="0.75" />
+            <rect x="4" y="13" width="6" height="6" rx="0.5" fill="${color}" fill-opacity="0.2"/>
+            <line x1="10" y1="16" x2="12" y2="16" stroke-width="2"/>
+            <rect x="22" y="13" width="6" height="6" rx="0.5" fill="${color}" fill-opacity="0.2"/>
+            <line x1="20" y1="16" x2="22" y2="16" stroke-width="2"/>
+            <path d="M16 12L16 6 M14 8h4" />
+          </svg>`;
+        }
+
         (data.items || []).forEach((it) => {
           let satrec;
           try { satrec = satellite.twoline2satrec(it.tle1, it.tle2); } catch (e) { return; }
           if (!satrec) return;
-          const marker = L.circleMarker([0, 0], {
-            radius: key === "iss" ? 6 : 3.5,
-            color, weight: 1, fillColor: color, fillOpacity: 0.9, interactive: true,
+          const marker = L.marker([0, 0], {
+            icon: L.divIcon({
+              className: "sat-miniature",
+              html: `<div style="display:flex; align-items:center; justify-content:center;">${svgIcon}</div>`,
+              iconSize: [32, 32],
+              iconAnchor: [16, 16]
+            }),
+            interactive: true,
           });
           marker.addTo(map);
           marker.bindPopup("", { maxWidth: 280 });
@@ -216,6 +245,11 @@ const SatMap = forwardRef(function SatMap(
         emitCount();
       },
       redrawTrack: drawTrack,
+      invalidateSize: () => {
+        if (alive && map) {
+          map.invalidateSize();
+        }
+      },
     };
 
     // Kick off: load all requested groups, then animate.

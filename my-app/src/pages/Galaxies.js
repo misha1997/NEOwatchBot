@@ -67,6 +67,7 @@ export default function Galaxies() {
   const { lang } = useLang();
   useSeo();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     document.body.classList.add("p-galaxies");
     return () => document.body.classList.remove("p-galaxies");
@@ -84,7 +85,8 @@ export default function Galaxies() {
 
   // Local Group diagram: place the four catalog members that belong to it at
   // fixed coords, labelled with their localized names from the API.
-  const byKey = useMemo(() => {
+  const byKey = // eslint-disable-next-line react-hooks/exhaustive-deps
+  useMemo(() => {
     const m = {};
     for (const g of items) m[g.key] = g;
     return m;

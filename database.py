@@ -409,6 +409,24 @@ def init_db():
             # (the site still works, the column just isn't uniqueness-constrained).
             logger.warning(f"news_articles idx_news_slug migration: {e}")
 
+        # Add source column to news_articles if missing.
+        try:
+            cursor.execute('''
+                SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'news_articles'
+                AND COLUMN_NAME = 'source'
+            ''')
+            if cursor.fetchone()[0] == 0:
+                cursor.execute('''
+                    ALTER TABLE news_articles
+                    ADD COLUMN source VARCHAR(120) NOT NULL DEFAULT 'SpaceflightNow' AFTER category_raw
+                ''')
+                conn.commit()
+                logger.info("Added source column to news_articles table")
+        except Error as e:
+            logger.warning(f"news_articles source column migration: {e}")
+
         # Galaxy photo nasa_id can be long (Hubble/ESA press-release ids run
         # 65+ chars). Widens VARCHAR(60) → VARCHAR(180) for installs seeded
         # before this fix; idempotent (only alters when the column is narrower).
@@ -1181,16 +1199,73 @@ def _news_slug_for_url(url: str, cursor, exclude_id: Optional[int] = None) -> st
             return slug
 
 
+def normalize_url(url: str) -> str:
+    """Normalize URL by stripping query string, fragment, trailing slash,
+    lowercasing the domain name and forcing HTTPS if appropriate."""
+    if not url:
+        return ""
+    url = url.strip()
+    url = url.split('#', 1)[0]
+    url = url.split('?', 1)[0]
+    url = url.rstrip('/')
+    if url.lower().startswith('http://'):
+        url = 'https://' + url[7:]
+    return url
+
+
+def is_duplicate_title(title: str, cursor) -> bool:
+    """Check if the title is a duplicate of a recently ingested article."""
+    if not title:
+        return False
+    title_clean = title.strip().lower()
+    
+    # 1. Exact match on title (case-insensitive) across the whole database
+    cursor.execute('SELECT 1 FROM news_articles WHERE LOWER(title) = %s', (title_clean,))
+    if cursor.fetchone():
+        return True
+        
+    # 2. Fuzzy similarity match against articles from the last 7 days
+    try:
+        from fuzzywuzzy import fuzz
+        import re
+        
+        def get_numbers(s: str) -> set:
+            # Normalize common rocket names that include numbers to avoid false mismatches
+            s_norm = re.sub(r'falcon\s*9', 'falcon', s.lower())
+            s_norm = re.sub(r'ariane\s*6', 'ariane', s_norm)
+            s_norm = re.sub(r'atlas\s*5', 'atlas', s_norm)
+            s_norm = re.sub(r'h\s*3', 'h', s_norm)
+            return set(re.findall(r'\d+', s_norm))
+
+        cursor.execute(
+            'SELECT title FROM news_articles WHERE fetched_at > DATE_SUB(NOW(), INTERVAL 7 DAY)'
+        )
+        recent_titles = [row[0] for row in cursor.fetchall() if row[0]]
+        
+        title_nums = get_numbers(title_clean)
+        
+        for r_title in recent_titles:
+            r_title_lower = r_title.lower()
+            # If the numbers extracted from the titles are different, treat them as different stories
+            # (e.g. Starlink 10-5 vs Starlink 10-6)
+            if get_numbers(r_title_lower) != title_nums:
+                continue
+                
+            # Use token_sort_ratio for comparison because word order can vary across sites
+            if fuzz.token_sort_ratio(title_clean, r_title_lower) >= 82:
+                return True
+    except Exception as e:
+        logger.warning(f"Error checking fuzzy title similarity: {e}")
+        
+    return False
+
+
 def ingest_news_articles(articles: list) -> int:
-    """Store new SpaceflightNow articles into the website news archive.
+    """Store new articles into the website news archive.
 
     Idempotent: skips URLs already present (UNIQUE idx_news_url + a prior
-    SELECT). Translates title+excerpt to UK in one DeepL batch (local import
-    to avoid coupling database.py -> translator at module load). The article
-    body (English, from the RSS ``content:encoded``) and hero image are taken
-    from the item dict — no per-article HTTP fetch here. ``body_uk`` is left
-    NULL and translated lazily on first article-page view (DeepL quota: full
-    bodies for every new article would exceed the 500k/month free limit).
+    SELECT) or normalized URL matches. Deduplicates similar headlines using
+    fuzzy title matching. Translates title+excerpt to UK in one DeepL batch.
     Returns the number of newly inserted articles. Raises nothing on DB
     failure: the scheduler / web layer wrap this in try/except."""
     if not articles:
@@ -1202,13 +1277,25 @@ def ingest_news_articles(articles: list) -> int:
     cursor = conn.cursor()
     try:
         for a in articles:
-            url = (a.get('url') or '').strip()
+            raw_url = a.get('url') or ''
+            url = normalize_url(raw_url)
             if not url:
                 continue
-            cursor.execute('SELECT 1 FROM news_articles WHERE url = %s', (url,))
+                
+            # Check URL uniqueness (exact and normalized)
+            cursor.execute('SELECT 1 FROM news_articles WHERE url = %s OR url = %s', (url, raw_url))
             if cursor.fetchone():
                 continue
+                
             title = (a.get('title') or '').strip()
+            if not title:
+                continue
+                
+            # Deduplicate by title
+            if is_duplicate_title(title, cursor):
+                logger.info(f"Skipping duplicate news title: {title}")
+                continue
+
             excerpt = (a.get('excerpt') or '').strip()
             # Batch-translate title + excerpt (skips empty/short internally).
             trans = Translator.translate_batch([title, excerpt], 'uk')
@@ -1220,14 +1307,15 @@ def ingest_news_articles(articles: list) -> int:
             # extra HTTP fetch. body_uk stays NULL (lazy translation on view).
             body = (a.get('body') or '').strip()
             image = (a.get('image') or '').strip()
+            source = a.get('source') or 'SpaceflightNow'
             cursor.execute(
                 '''INSERT INTO news_articles
                    (url, slug, title, title_uk, excerpt, excerpt_uk, body,
-                    image, category, category_raw, published_date)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                    image, category, category_raw, published_date, source)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
                 (url, slug, title, title_uk or None, excerpt or None, excerpt_uk or None,
                  body or None, image or None, a.get('category_bucket') or 'missions',
-                 (a.get('category') or '')[:120] or None, a.get('date') or None)
+                 (a.get('category') or '')[:120] or None, a.get('date') or None, source)
             )
             inserted += 1
         conn.commit()

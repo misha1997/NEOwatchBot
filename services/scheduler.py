@@ -14,7 +14,7 @@ from services import LaunchAPI
 from services.meteor_shower import MeteorShower
 from services.space_weather import SpaceWeatherAPI
 from services.grb_alerts import GRBAlertAPI
-from parsers import SpaceflightNowParser
+from parsers import SpaceflightNowParser, NewsParser
 from utils.translator import Translator
 from database import (
     get_apod_subscribers, get_launch_subscribers, get_iss_subscribers, get_neo_subscribers, get_news_subscribers, get_meteor_subscribers, get_flare_subscribers, get_grb_subscribers,
@@ -741,12 +741,12 @@ class NotificationScheduler:
             logger.error(f"Galaxies poll error: {e}")
 
     async def poll_news_feed(self):
-        """Fetch the SpaceflightNow RSS feed and ingest any new articles into
+        """Fetch the space news RSS feeds and ingest any new articles into
         the shared archive. Runs every 2 hours — this is the single live-fetch
         point for news; both the website (``/api/news``) and the bot digest
         (``send_daily_news``) read from the DB. Best-effort: never raises."""
         try:
-            articles = SpaceflightNowParser.get_news()  # RSS-first + HTML fallback
+            articles = NewsParser.get_news()  # RSS-first
             if articles:
                 ingest_news_articles(articles)
         except Exception as e:
@@ -765,7 +765,7 @@ class NotificationScheduler:
             # out and the archive is seeded.
             articles = get_news_articles(60)
             if not articles:
-                articles = SpaceflightNowParser.get_news()
+                articles = NewsParser.get_news()
                 if articles:
                     try:
                         ingest_news_articles(articles)

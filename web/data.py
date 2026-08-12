@@ -49,7 +49,7 @@ from services.iss_crew import (
     ISSCrewAPI, _country_name as crew_country, _position_name as crew_position,
     _flag_emoji as crew_flag,
 )
-from parsers import SpaceflightNowParser
+from parsers import SpaceflightNowParser, NewsParser
 from services.voyager import _PROBES as VOYAGER_PROBES, AU_KM, C_KM_S
 from utils.i18n import DEFAULT_LANG, t, compass_dir, pick
 from utils.translator import Translator
@@ -1450,7 +1450,7 @@ def _news_live(lang):
     """Live SpaceflightNow fetch used when the DB archive is empty/unavailable.
     Best-effort stores into the archive, then reads back; if the DB is off,
     returns the freshly-parsed list with id=null (cards link out to source)."""
-    arts = SpaceflightNowParser.get_news() or []
+    arts = NewsParser.get_news() or []
     if not arts:
         return []
     try:
@@ -1463,7 +1463,7 @@ def _news_live(lang):
     return [{
         "id": None, "slug": "", "url": a.get("url", ""), "title": a.get("title", ""),
         "excerpt": a.get("excerpt", ""), "category": a.get("category_bucket", "missions"),
-        "date": a.get("date", ""), "source": "SpaceflightNow", "image": "",
+        "date": a.get("date", ""), "source": a.get("source", "SpaceflightNow"), "image": "",
     } for a in arts]
 
 
@@ -1493,7 +1493,7 @@ def _news_article_raw(slug, lang):
     # ingest). New rows already carry the body from the feed — no HTTP fetch.
     if not it.get("body"):
         try:
-            content = SpaceflightNowParser.get_article_content(it["url"])
+            content = NewsParser.get_article_content(it["url"])
             body = content.get("body", "")
             image = content.get("image") or it.get("image")
             body_uk = Translator.translate(body, "en", "uk") if (lang == "uk" and body) else ""

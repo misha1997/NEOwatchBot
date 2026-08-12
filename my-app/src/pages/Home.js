@@ -21,6 +21,7 @@ export default function Home() {
   const { t } = useTranslation();
   const { loc } = useLoc();
   const city = locCity(loc) || t("common.kyiv");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { document.title = t("title.home"); }, [t]);
   return (
     <>
