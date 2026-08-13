@@ -144,6 +144,25 @@ def init_db():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
 
+        # Inline images found inside a news article's body (in addition to the
+        # single hero `news_articles.image`). `position` is the `n` in the
+        # body text's `[IMG:n]` placeholder (see parsers/news.py). Mirrored
+        # locally to data/news/<slug>/<n>-<full|thumb>.<ext>, same pattern as
+        # galaxy_photos / services/news_images.py.
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS news_article_images (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                article_id INT NOT NULL,
+                position INT NOT NULL,
+                source_url VARCHAR(500) NOT NULL,
+                full_path VARCHAR(300),
+                thumb_path VARCHAR(300),
+                UNIQUE KEY idx_news_img_pos (article_id, position),
+                INDEX idx_nia_article (article_id),
+                FOREIGN KEY (article_id) REFERENCES news_articles(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
         # APOD photo archive for the website gallery (NASA APOD, one entry/day).
         # `date` is the PK (APOD = 1/day, idempotent UPSERT). Images are mirrored
         # locally to data/apod/YYYY/MM/DD-<full|thumb>.<ext>; thumb_path/full_path
@@ -1324,6 +1343,7 @@ def ingest_news_articles(articles: list) -> int:
                  (a.get('category') or '')[:120] or None, a.get('date') or None, source)
             )
             inserted += 1
+            _mirror_news_body_images(cursor, cursor.lastrowid, slug, a.get('body_images') or [])
         conn.commit()
         if inserted:
             logger.info(f"Ingested {inserted} new news article(s) into archive")
@@ -1334,6 +1354,77 @@ def ingest_news_articles(articles: list) -> int:
         cursor.close()
         conn.close()
     return inserted
+
+
+def _mirror_news_body_images(cursor, article_id: int, slug: str, image_urls: list) -> None:
+    """Best-effort local mirror of a news article's inline body images
+    (the ``[IMG:n]`` placeholders in ``body`` — see ``parsers/news.py``).
+    One row per image in ``news_article_images``, upserted by
+    ``(article_id, position)``. Never raises: an image failure shouldn't
+    abort ingest, same as ``download_apod_media``/``download_galaxy_photo``."""
+    if not image_urls:
+        return
+    from services.news_images import download_news_image
+    for idx, url in enumerate(image_urls):
+        url = (url or '').strip()
+        if not url:
+            continue
+        try:
+            full_rel, thumb_rel = download_news_image(slug, idx, url)
+        except Exception as e:
+            logger.warning(f"news body image download error {slug}/{idx}: {e}")
+            full_rel, thumb_rel = None, None
+        try:
+            cursor.execute(
+                '''INSERT INTO news_article_images
+                   (article_id, position, source_url, full_path, thumb_path)
+                   VALUES (%s, %s, %s, %s, %s)
+                   ON DUPLICATE KEY UPDATE source_url = VALUES(source_url),
+                       full_path = COALESCE(VALUES(full_path), full_path),
+                       thumb_path = COALESCE(VALUES(thumb_path), thumb_path)''',
+                (article_id, idx, url, full_rel, thumb_rel)
+            )
+        except Error as e:
+            logger.warning(f"news_article_images insert error {slug}/{idx}: {e}")
+
+
+def set_news_article_images(article_id: int, slug: str, image_urls: list) -> None:
+    """Persist body images fetched lazily (``get_article_content`` fallback
+    for legacy/excerpt-only-source rows) — mirrors to disk + upserts
+    ``news_article_images``. Best-effort, own connection."""
+    if not image_urls:
+        return
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        _mirror_news_body_images(cursor, article_id, slug, image_urls)
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error saving news article images {article_id}: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_news_article_images(article_id: int) -> list:
+    """Ordered list of an article's mirrored inline body images:
+    ``[{"position", "source_url", "full_path", "thumb_path"}, ...]``."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            'SELECT position, source_url, full_path, thumb_path FROM news_article_images '
+            'WHERE article_id = %s ORDER BY position',
+            (article_id,)
+        )
+        return cursor.fetchall()
+    except Error as e:
+        logger.error(f"Error fetching news article images {article_id}: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def _news_filter_clause(search: Optional[str], category: Optional[str]) -> tuple:

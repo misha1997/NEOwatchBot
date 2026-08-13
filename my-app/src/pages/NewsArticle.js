@@ -64,8 +64,9 @@ export default function NewsArticle({ slug }) {
   }, [article]);
 
   // Reading-time estimate from the body (or excerpt fallback). ~200 wpm.
+  // Strip [IMG:n] inline-image placeholders first so they don't count as words.
   const readMins = useMemo(() => {
-    const txt = (article && (article.body || article.excerpt)) || "";
+    const txt = ((article && (article.body || article.excerpt)) || "").replace(/\[IMG:\d+\]/g, "");
     const words = txt.trim().split(/\s+/).filter(Boolean).length;
     if (!words) return 0;
     return Math.max(1, Math.round(words / 200));
@@ -180,7 +181,27 @@ export default function NewsArticle({ slug }) {
             <div className="article-body">
               {(article.body || article.excerpt || "")
                 .split("\n\n")
-                .map((para, i) => para.trim() ? <p key={i}>{para}</p> : null)}
+                .map((para, i) => {
+                  const trimmed = para.trim();
+                  if (!trimmed) return null;
+                  const imgMatch = trimmed.match(/^\[IMG:(\d+)\]$/);
+                  if (imgMatch) {
+                    const img = (article.body_images || [])
+                      .find((im) => String(im.position) === imgMatch[1]);
+                    if (!img) return null;
+                    return (
+                      <img
+                        key={i}
+                        className="article-inline-img"
+                        src={img.src}
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    );
+                  }
+                  return <p key={i}>{trimmed}</p>;
+                })}
               {!article.body && article.excerpt ? (
                 <p className="note">{t("news.article.bodyNa")}</p>
               ) : null}

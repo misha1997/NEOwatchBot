@@ -1,10 +1,16 @@
 """Translator using DeepL API with in-memory cache"""
 import json
+import re
 import requests
 import logging
 from typing import List
 from config import DEEPL_API_KEY
 from utils.i18n import t, DEFAULT_LANG
+
+# News article bodies embed `[IMG:n]` inline-image placeholders (see
+# parsers/news.py) — DeepL could otherwise mangle the brackets/digits when
+# translating prose around them, breaking the frontend's placeholder match.
+_IMG_PLACEHOLDER_RE = re.compile(r'(\[IMG:\d+\])')
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +141,25 @@ class Translator:
             return text
 
         return Translator.translate(text, "en", "uk")
+
+    @staticmethod
+    def translate_body(body: str) -> str:
+        """Translate a news article body EN->UK, preserving ``[IMG:n]``
+        inline-image placeholders verbatim: splits the text on the
+        placeholders, translates only the surrounding prose (one batch
+        call), and stitches the untouched placeholders back in at their
+        original position."""
+        if not body:
+            return body
+        parts = _IMG_PLACEHOLDER_RE.split(body)
+        if len(parts) == 1:
+            return Translator.translate(body, "en", "uk")
+        prose_idx = [i for i, p in enumerate(parts) if not _IMG_PLACEHOLDER_RE.fullmatch(p)]
+        prose_texts = [parts[i] for i in prose_idx]
+        translated = _translate(prose_texts, "EN", "UK")
+        for i, tr in zip(prose_idx, translated):
+            parts[i] = tr
+        return "".join(parts)
 
     @staticmethod
     def translate_batch(texts: List[str], lang: str = DEFAULT_LANG) -> List[str]:

@@ -250,6 +250,14 @@ _GAL_IMG_DIR = Path(__file__).resolve().parent.parent / "data" / "galaxies"
 _GAL_IMG_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/galaxy-img", StaticFiles(directory=_GAL_IMG_DIR), name="galaxy-img")
 
+# Locally-mirrored inline news-article body images (data/news/<slug>/<n>-
+# <full|thumb>.<ext>), populated by database.ingest_news_articles /
+# set_news_article_images. Served at /news-img/<rel> instead of hotlinking
+# whichever of the 5 source sites the image came from. Created on demand.
+_NEWS_IMG_DIR = Path(__file__).resolve().parent.parent / "data" / "news"
+_NEWS_IMG_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/news-img", StaticFiles(directory=_NEWS_IMG_DIR), name="news-img")
+
 
 def _spa_html(name: str, lang: str, status_code: int = 200,
               extra_jsonld: str = "", overrides: dict | None = None) -> HTMLResponse:

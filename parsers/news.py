@@ -10,6 +10,9 @@ from utils.i18n import t, DEFAULT_LANG
 
 logger = logging.getLogger(__name__)
 
+_IMG_PLACEHOLDER_RE = re.compile(r'^\[IMG:\d+\]$')
+_IMG_TAIL_RE = re.compile(r'\[IMG:\d*$')
+
 
 class NewsParser:
     """Aggregates and parses space news from multiple RSS feeds"""
@@ -120,7 +123,10 @@ class NewsParser:
                         # real article on first view instead of being blocked
                         # forever by a non-empty excerpt-as-body placeholder.
                         encoded = find_text(item, 'encoded') or find_text(item, 'content')
-                        body = NewsParser._clean_body_html(encoded) if encoded else ''
+                        if encoded:
+                            body, body_images = NewsParser._clean_body_html(encoded)
+                        else:
+                            body, body_images = '', []
                         
                         image = ''
                         if encoded:
@@ -161,6 +167,7 @@ class NewsParser:
                             'category': raw_category,
                             'category_bucket': bucket,
                             'body': body,
+                            'body_images': body_images,
                             'image': image,
                             'author': find_text(item, 'creator') or source_name,
                             'source': source_name,
@@ -240,25 +247,33 @@ class NewsParser:
                 if img_match:
                     img = img_match.group(1)
             
-            # Extract paragraphs
+            # Extract paragraphs and inline images together, in document
+            # order, so images land at their real position in the body (as
+            # [IMG:n] placeholders — same convention as _clean_body_html).
             paragraphs = []
+            body_images = []
             if content_html:
-                # Match <p>...</p> tags
-                p_matches = re.finditer(r'<p[^>]*>(.*?)</p>', content_html, re.DOTALL | re.IGNORECASE)
-                for p in p_matches:
-                    p_text = re.sub(r'<[^>]+>', '', p.group(1)) # Strip nested tags
-                    p_text = NewsParser._clean_html_entities(p_text.strip())
-                    if len(p_text) > 30 and not any(k in p_text.lower() for k in ("follow us on", "read more:", "copyright ©")):
-                        paragraphs.append(p_text)
+                for m in re.finditer(
+                    r'<p[^>]*>(.*?)</p>|<img[^>]+src="([^"]+)"[^>]*>',
+                    content_html, re.DOTALL | re.IGNORECASE
+                ):
+                    if m.group(1) is not None:
+                        p_text = re.sub(r'<[^>]+>', '', m.group(1))  # Strip nested tags
+                        p_text = NewsParser._clean_html_entities(p_text.strip())
+                        if len(p_text) > 30 and not any(k in p_text.lower() for k in ("follow us on", "read more:", "copyright ©")):
+                            paragraphs.append(p_text)
+                    elif m.group(2):
+                        body_images.append(m.group(2))
+                        paragraphs.append(f'[IMG:{len(body_images) - 1}]')
 
             body_text = "\n\n".join(paragraphs)
             if len(body_text) > 6000:
-                body_text = body_text[:6000] + "..."
+                body_text = _IMG_TAIL_RE.sub('', body_text[:6000]) + "..."
 
-            return {"body": body_text, "image": img}
+            return {"body": body_text, "image": img, "body_images": body_images}
         except Exception as e:
             logger.warning(f"Generic content parse failed for {url}: {e}")
-            return {"body": "", "image": ""}
+            return {"body": "", "image": "", "body_images": []}
 
     @staticmethod
     def _classify(cat_raw: str, text: str) -> str:
@@ -285,28 +300,49 @@ class NewsParser:
         return "missions"
 
     @staticmethod
-    def _clean_body_html(html: str) -> str:
-        """Strip tag list, footer, convert blocks to breaks, strip remaining tags, cap at 6000 chars."""
+    def _clean_body_html(html: str) -> tuple:
+        """Strip tag list, footer, convert blocks to breaks, extract inline
+        ``<img>`` tags as ``[IMG:n]`` placeholders kept at their original
+        position in the text, strip remaining tags, cap at 6000 chars.
+        Returns ``(body_text, image_urls)`` where ``image_urls[n]`` is the
+        URL behind placeholder ``[IMG:n]`` (mirrored to local disk + inserted
+        into ``news_article_images`` by ``database.ingest_news_articles``)."""
         if not html:
-            return ""
+            return "", []
         # Drop entry tags / metadata
         html = re.sub(r'<div[^>]*class="[^"]*\bentry-tags\b[^"]*"[^>]*>.*?</div>', '', html, flags=re.DOTALL | re.IGNORECASE)
         html = re.sub(r'<footer[^>]*class="[^"]*\bentry-(?:meta|footer)\b[^"]*"[^>]*>.*?</footer>', '', html, flags=re.DOTALL | re.IGNORECASE)
-        
+
+        # Pull out <img> tags before the generic tag-strip below, replacing
+        # each with a positional placeholder so the frontend can splice a
+        # real <img> back in at the right spot in the rendered body.
+        image_urls = []
+
+        def _capture_img(m):
+            image_urls.append(m.group(1))
+            return f'\n[IMG:{len(image_urls) - 1}]\n'
+
+        html = re.sub(r'<img[^>]+src="([^"]+)"[^>]*>', _capture_img, html, flags=re.IGNORECASE)
+
         # Convert tags to paragraph breaks
         body = re.sub(r'<(p|br|/p|/div|/h[1-6])[^>]*>', '\n', html, flags=re.IGNORECASE)
         body = re.sub(r'<[^>]+>', '', body)
-        
+
         # Clean entities
         body = NewsParser._clean_html_entities(body)
-        
-        # Normalize whitespace and limit length
-        paragraphs = [p.strip() for p in body.split('\n') if len(p.strip()) > 30]
+
+        # Normalize whitespace and limit length (always keep [IMG:n] lines,
+        # regardless of the >30-char prose filter).
+        paragraphs = [
+            p.strip() for p in body.split('\n')
+            if len(p.strip()) > 30 or _IMG_PLACEHOLDER_RE.match(p.strip())
+        ]
         body = "\n\n".join(paragraphs)
-        
+
         if len(body) > 6000:
-            body = body[:6000] + "..."
-        return body
+            # Don't cut mid-placeholder — drop a dangling "[IMG:" tail.
+            body = _IMG_TAIL_RE.sub('', body[:6000]) + "..."
+        return body, image_urls
 
     @staticmethod
     def _clean_html_entities(text: str) -> str:

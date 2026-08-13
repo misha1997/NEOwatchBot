@@ -63,6 +63,7 @@ from database import (
     get_city_suggestions, reverse_geocode as db_reverse_geocode,
     get_news_articles, count_news_articles, get_news_article, get_news_article_by_slug,
     get_related_news_articles, set_news_article_body, ingest_news_articles,
+    get_news_article_images, set_news_article_images,
     get_apod_entries, ingest_apod_entries,
     get_galaxies as db_get_galaxies, get_galaxy_by_slug as db_get_galaxy_by_slug,
     ingest_galaxies, ingest_galaxy_photos,
@@ -1603,7 +1604,7 @@ def _news_article_raw(slug, lang):
             image = content.get("image") or it.get("image")
             body_uk = ""
             if lang == "uk" and body:
-                translated = Translator.translate(body, "en", "uk")
+                translated = Translator.translate_body(body)
                 # Unchanged output means DeepL failed (quota/outage/no key) —
                 # leave body_uk blank so it's retried on a later view instead
                 # of permanently storing English text as the UK translation.
@@ -1613,6 +1614,8 @@ def _news_article_raw(slug, lang):
                 it["body"] = body
                 it["body_uk"] = body_uk
                 it["image"] = image
+            if content.get("body_images"):
+                set_news_article_images(article_id, it.get("slug") or slug, content["body_images"])
         except Exception as e:
             logger.error("news article body fetch: %s", e)
     # Lazy UK translation of the stored EN body — persisted so it's only done
@@ -1620,7 +1623,7 @@ def _news_article_raw(slug, lang):
     # at ingest would exceed the 500k/month free limit).
     if lang == "uk" and it.get("body") and not it.get("body_uk"):
         try:
-            body_uk = Translator.translate(it["body"], "en", "uk")
+            body_uk = Translator.translate_body(it["body"])
             if body_uk and body_uk != it["body"]:
                 set_news_article_body(article_id, it["body"], body_uk, it.get("image"))
                 it["body_uk"] = body_uk
@@ -1631,6 +1634,14 @@ def _news_article_raw(slug, lang):
     related = _news_localize(
         get_related_news_articles(it.get("category") or "missions", slug, 3), lang
     )
+    body_images = []
+    if "[IMG:" in body:
+        for row in get_news_article_images(article_id):
+            full_rel = row.get("full_path")
+            thumb_rel = row.get("thumb_path")
+            src = f"/news-img/{full_rel}" if full_rel else row.get("source_url") or ""
+            thumb = f"/news-img/{thumb_rel}" if thumb_rel else src
+            body_images.append({"position": row.get("position"), "src": src, "thumb": thumb})
     return {
         "available": True,
         "id": article_id,
@@ -1638,6 +1649,7 @@ def _news_article_raw(slug, lang):
         "url": it.get("url") or "",
         "title": title,
         "body": body,
+        "body_images": body_images,
         "image": it.get("image") or "",
         "category": it.get("category") or "missions",
         "date": it.get("published_date") or "",
