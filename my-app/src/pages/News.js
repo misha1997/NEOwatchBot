@@ -1,14 +1,16 @@
 // Space news page (news.html template): featured article + stat cards +
 // keyword search + category filter + cards/rows view toggle + paginated feed.
 // Wired to /api/news — a SpaceflightNow archive stored in MySQL with a live
-// parser fallback. Items with an `id` link to the on-site article page
-// (/news/:id); live-without-DB items (id === null) link out to the source.
-import { useEffect, useMemo, useState } from "react";
+// parser fallback. Pagination, category filtering and search all run on the
+// backend (DB LIKE query + LIMIT/OFFSET) — the client only holds the current
+// page's items. Items with an `id` link to the on-site article page
+// (/news/:slug); live-without-DB items (id === null) link out to the source.
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLang } from "../context/LanguageContext";
 import { useApi } from "../hooks/useApi";
 import { useSeo } from "../hooks/useSeo";
-import { getNews } from "../lib/api";
+import { getNews, getNewsKeywords } from "../lib/api";
 import { pathFor } from "../lib/seo";
 import LocalizedLink from "../components/primitives/LocalizedLink";
 import "../styles/news.css";
@@ -16,7 +18,7 @@ import "../styles/gallery.css"; // .pagination / .pg-btn
 
 const PAGE_SIZE = 6;
 const CATS = ["all", "launches", "missions", "discoveries", "tech"];
-const KEYWORDS = ["Starship", "JWST", "Voyager", "Mars", "Neutron", "Proxima"];
+const SEARCH_DEBOUNCE_MS = 350;
 
 export default function News() {
   const { t } = useTranslation();
@@ -28,46 +30,54 @@ export default function News() {
     return () => document.body.classList.remove("p-news");
   }, []);
 
-  const { data, loading, error } = useApi(() => getNews(lang), { deps: [lang] });
-  const items = (data && data.items) || [];
-
   const [filter, setFilter] = useState("all");
-  const [query, setQuery] = useState("");
+  const [rawQuery, setRawQuery] = useState("");
+  const [query, setQuery] = useState(""); // debounced, drives the API call
   const [page, setPage] = useState(0);
   const [view, setView] = useState("cards");
 
-  // Reset to the first page whenever the active filter / search changes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Debounce the free-text search box so we don't hit the backend on every
+  // keystroke; keyword chips / category pills set `query` immediately below.
   useEffect(() => {
+    const id = setTimeout(() => setQuery(rawQuery), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [rawQuery]);
+
+  // Reset to the first page whenever the active filter / search changes.
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }
     setPage(0);
   }, [filter, query]);
 
-  const featured = items[0];
+  const isDefaultView = filter === "all" && !query;
 
-  const filtered = // eslint-disable-next-line react-hooks/exhaustive-deps
-  useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return items.filter((it) => {
-      const matchesCat = filter === "all" || it.category === filter;
-      if (!matchesCat) return false;
-      if (!q) return true;
-      return (
-        (it.title || "").toLowerCase().includes(q) ||
-        (it.excerpt || "").toLowerCase().includes(q)
-      );
-    });
-  }, [items, filter, query]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageItems = filtered.slice(
-    safePage * PAGE_SIZE,
-    safePage * PAGE_SIZE + PAGE_SIZE
+  const { data, loading, error } = useApi(
+    () => getNews(lang, { page, pageSize: PAGE_SIZE, q: query, category: filter }),
+    { deps: [lang, page, query, filter] }
   );
+  const items = (data && data.items) || [];
+
+  // Trending keywords mined server-side from recent article titles (not a
+  // hardcoded list) — refetch only when the language changes.
+  const { data: kwData } = useApi(() => getNewsKeywords(lang), { deps: [lang] });
+  const keywords = (kwData && kwData.keywords) || [];
+  const total = (data && data.total) || 0;
+  const totalPages = (data && data.total_pages) || 1;
+  const safePage = (data && data.page) || 0;
+  const pageItems = items;
+  // The featured hero only makes sense on the plain, unfiltered first page.
+  const featured = isDefaultView && safePage === 0 ? items[0] : null;
 
   const goPage = (p) => {
     setPage(Math.max(0, Math.min(totalPages - 1, p)));
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const setKeyword = (kw) => {
+    setFilter("all");
+    setRawQuery(kw);
+    setQuery(kw); // skip the debounce for an explicit chip click
   };
 
   // Compact pagination: first, last, current ±1, with ellipses.
@@ -131,26 +141,25 @@ export default function News() {
           <input
             type="text"
             placeholder={t("news.search.placeholder")}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            value={rawQuery}
+            onChange={(e) => setRawQuery(e.target.value)}
           />
         </div>
-        <div className="kw-row">
-          <span className="lbl">{t("news.kw.label")}</span>
-          {KEYWORDS.map((kw) => (
-            <button
-              key={kw}
-              className="kw-chip"
-              type="button"
-              onClick={() => {
-                setQuery(kw);
-                setFilter("all");
-              }}
-            >
-              {t(`news.kw.${kw}`, { defaultValue: kw })}
-            </button>
-          ))}
-        </div>
+        {keywords.length ? (
+          <div className="kw-row">
+            <span className="lbl">{t("news.kw.label")}</span>
+            {keywords.map((kw) => (
+              <button
+                key={kw}
+                className={"kw-chip" + (query.toLowerCase() === kw.toLowerCase() ? " on" : "")}
+                type="button"
+                onClick={() => setKeyword(kw)}
+              >
+                {kw}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         <div className="news-cat-filters">
           {CATS.map((c) => (
@@ -169,9 +178,9 @@ export default function News() {
           <span
             dangerouslySetInnerHTML={{
               __html: t("news.count", {
-                n: `<b>${filtered.length}</b>`,
+                n: `<b>${total}</b>`,
                 q: query.trim(),
-                defaultValue: `Знайдено <b>${filtered.length}</b> новин`,
+                defaultValue: `Знайдено <b>${total}</b> новин`,
               }),
             }}
           />

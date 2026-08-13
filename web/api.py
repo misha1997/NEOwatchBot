@@ -152,16 +152,35 @@ async def mars_rovers():
 
 
 @router.get("/news")
-async def news(lang: str = LANG_Q):
-    """Space news digest archived in MySQL with a live-parser fallback.
+async def news(
+    lang: str = LANG_Q,
+    page: int = Query(0, ge=0, description="Page number, 0-indexed"),
+    page_size: int = Query(6, ge=1, le=24, description="Items per page (1-24)"),
+    q: str = Query("", max_length=100, description="Search title/excerpt (either language)"),
+    category: str = Query("", description="launches|missions|discoveries|tech, empty = all"),
+):
+    """One page of the space news archive (MySQL), filtered by `q`/`category`
+    at the DB level, with a live-parser fallback for the plain first page.
 
-    Returns ``{available, items[]}``. ``available`` is false when neither the
-    DB archive nor a live SpaceflightNow fetch yielded anything. Each item has
-    ``id`` (DB row id; ``null`` for live-without-DB fallback entries) so the
-    front can route cards with an id to the on-site article page and the rest
-    out to the source.
+    Returns ``{available, items[], total, page, page_size, total_pages, has_more}``.
+    ``available`` is false when neither the DB archive nor a live SpaceflightNow
+    fetch yielded anything. Each item has ``id`` (DB row id; ``null`` for
+    live-without-DB fallback entries) so the front can route cards with an id
+    to the on-site article page and the rest out to the source.
     """
-    return await data.get_news(lang)
+    return await data.get_news(lang, page, page_size, q, category)
+
+
+@router.get("/news/keywords")
+async def news_keywords(lang: str = LANG_Q):
+    """Trending keywords mined from recent article titles (distinct-article
+    frequency, stopwords filtered), for the "🔥 Популярні теми" chip row on
+    the news page. Replaces what used to be a hardcoded list.
+
+    Returns ``{keywords: string[]}`` (up to 6, may be empty on a fresh/empty
+    archive).
+    """
+    return await data.get_news_keywords(lang)
 
 
 @router.get("/news/{slug}")

@@ -83,3 +83,39 @@ export function WarnIcon({ size = 12, ...p }) {
     </svg>
   );
 }
+
+/* ---------- share row (article page) ---------- */
+
+export function TelegramShareIcon({ size = 16, ...p }) {
+  return (
+    <svg {...base(size, size)} {...p}>
+      <path d="M22 2L11 13" />
+      <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+    </svg>
+  );
+}
+
+export function LinkIcon({ size = 16, ...p }) {
+  return (
+    <svg {...base(size, size)} {...p}>
+      <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+    </svg>
+  );
+}
+
+export function CheckIcon({ size = 16, ...p }) {
+  return (
+    <svg {...base(size, size)} strokeWidth={2} {...p}>
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  );
+}
+
+export function XShareIcon({ size = 15, ...p }) {
+  return (
+    <svg {...base(size, size)} {...p}>
+      <path d="M4 4l16 16M20 4L4 20" />
+    </svg>
+  );
+}

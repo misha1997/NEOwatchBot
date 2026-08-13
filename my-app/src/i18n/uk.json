@@ -2116,13 +2116,7 @@
       "placeholder": "Пошук за словом, напр. Starship, Voyager, JWST…"
     },
     "kw": {
-      "label": "🔥 Популярні теми:",
-      "Starship": "Starship",
-      "JWST": "JWST",
-      "Voyager": "Voyager",
-      "Mars": "Марс",
-      "Neutron": "Neutron",
-      "Proxima": "Проксима Центавра"
+      "label": "🔥 Популярні теми:"
     },
     "cat": {
       "all": "Усі",
@@ -2156,7 +2150,12 @@
       "share": "Поділитись",
       "copy": "Скопіювати посилання",
       "relatedEyebrow": "Читай також",
-      "relatedTitle": "Повʼязані новини"
+      "relatedTitle": "Повʼязані новини",
+      "facts": "Коротко",
+      "factsSource": "Джерело",
+      "factsDate": "Опубліковано",
+      "factsCategory": "Категорія",
+      "factsRead": "Час читання"
     }
   },
   "mercury": {

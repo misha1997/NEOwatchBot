@@ -1330,23 +1330,63 @@ def ingest_news_articles(articles: list) -> int:
     return inserted
 
 
-def get_news_articles(limit: int = 60) -> list:
-    """Return the most recent archived news articles (newest first) as dicts.
-    Returns [] on any DB error (never raises) so the web layer can fall back
-    to a live SpaceflightNow fetch."""
+def _news_filter_clause(search: Optional[str], category: Optional[str]) -> tuple:
+    """Build a shared WHERE clause + params for the news list/count queries.
+
+    `search` matches (case-insensitively, via LIKE) against title/excerpt in
+    either language. `category` is an exact match; falsy/'all' means no filter."""
+    where = []
+    params: list = []
+    if category and category != 'all':
+        where.append('category = %s')
+        params.append(category)
+    if search:
+        term = f'%{search.strip()[:100]}%'
+        where.append('(title LIKE %s OR title_uk LIKE %s OR excerpt LIKE %s OR excerpt_uk LIKE %s)')
+        params.extend([term, term, term, term])
+    clause = ('WHERE ' + ' AND '.join(where)) if where else ''
+    return clause, params
+
+
+def get_news_articles(limit: int = 60, offset: int = 0, search: Optional[str] = None,
+                       category: Optional[str] = None) -> list:
+    """Return archived news articles (newest first) as dicts, optionally
+    filtered by `category` and/or a `search` substring (title/excerpt, both
+    languages) and paged via `offset`. Returns [] on any DB error (never
+    raises) so the web layer can fall back to a live SpaceflightNow fetch."""
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
+        clause, params = _news_filter_clause(search, category)
         cursor.execute(
-            '''SELECT id, url, slug, title, title_uk, excerpt, excerpt_uk, image,
+            f'''SELECT id, url, slug, title, title_uk, excerpt, excerpt_uk, image,
                       category, category_raw, published_date, source, fetched_at
-               FROM news_articles ORDER BY fetched_at DESC LIMIT %s''',
-            (limit,)
+               FROM news_articles {clause}
+               ORDER BY fetched_at DESC LIMIT %s OFFSET %s''',
+            params + [limit, offset]
         )
         return list(cursor.fetchall())
     except Error as e:
         logger.error(f"Error reading news articles: {e}")
         return []
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def count_news_articles(search: Optional[str] = None, category: Optional[str] = None) -> int:
+    """Total archived articles matching the same filter as get_news_articles
+    (for pagination). Returns 0 on DB error."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        clause, params = _news_filter_clause(search, category)
+        cursor.execute(f'SELECT COUNT(*) FROM news_articles {clause}', params)
+        row = cursor.fetchone()
+        return int(row[0]) if row else 0
+    except Error as e:
+        logger.error(f"Error counting news articles: {e}")
+        return 0
     finally:
         cursor.close()
         conn.close()

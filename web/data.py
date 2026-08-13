@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta, date
@@ -60,7 +61,7 @@ from config import (
 )
 from database import (
     get_city_suggestions, reverse_geocode as db_reverse_geocode,
-    get_news_articles, get_news_article, get_news_article_by_slug,
+    get_news_articles, count_news_articles, get_news_article, get_news_article_by_slug,
     get_related_news_articles, set_news_article_body, ingest_news_articles,
     get_apod_entries, ingest_apod_entries,
     get_galaxies as db_get_galaxies, get_galaxy_by_slug as db_get_galaxy_by_slug,
@@ -1422,8 +1423,12 @@ async def get_apod(lang: str = DEFAULT_LANG) -> dict:
 # ---------------------------------------------------------------------------
 
 NEWS_TTL = 1800  # 30 min
+NEWS_SEARCH_TTL = 300  # 5 min — search/filter results cached shorter (more cache keys)
 NEWS_ARTICLE_TTL = 6 * 3600  # bodies don't change once fetched
 NEWS_LIST_LIMIT = 60
+NEWS_PAGE_SIZE_DEFAULT = 6
+NEWS_PAGE_SIZE_MAX = 24
+NEWS_CATEGORIES = {"launches", "missions", "discoveries", "tech"}
 
 
 def _news_localize(items, lang):
@@ -1467,16 +1472,116 @@ def _news_live(lang):
     } for a in arts]
 
 
-def _news_raw(lang):
-    stored = get_news_articles(NEWS_LIST_LIMIT)
-    if stored:
-        return {"available": True, "items": _news_localize(stored, lang)}
-    live = _news_live(lang)
-    return {"available": bool(live), "items": live}
+def _news_raw(lang, page=0, page_size=NEWS_PAGE_SIZE_DEFAULT, q="", category=""):
+    """One page of the news archive, optionally filtered by `category` and/or
+    a `q` search term (title/excerpt substring, either language) — both
+    applied at the DB level. Falls back to a live unpaginated fetch only for
+    the plain, unfiltered first page when the archive is empty/unavailable."""
+    q = (q or "").strip()[:100]
+    category = category if category in NEWS_CATEGORIES else ""
+    page = max(0, page)
+    page_size = max(1, min(NEWS_PAGE_SIZE_MAX, page_size))
+    offset = page * page_size
+
+    total = count_news_articles(search=q or None, category=category or None)
+    if total == 0 and not q and not category and page == 0:
+        live = _news_live(lang)
+        return {
+            "available": bool(live), "items": live, "total": len(live),
+            "page": 0, "page_size": page_size, "total_pages": 1, "has_more": False,
+        }
+
+    rows = get_news_articles(page_size, offset=offset, search=q or None, category=category or None)
+    total_pages = max(1, -(-total // page_size))  # ceil division
+    return {
+        "available": total > 0,
+        "items": _news_localize(rows, lang),
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+        "has_more": (page + 1) < total_pages,
+    }
 
 
-async def get_news(lang: str = DEFAULT_LANG) -> dict:
-    return await asyncio.to_thread(get_or_fetch, f"news:{lang}", NEWS_TTL, lambda: _news_raw(lang))
+async def get_news(lang: str = DEFAULT_LANG, page: int = 0, page_size: int = NEWS_PAGE_SIZE_DEFAULT,
+                    q: str = "", category: str = "") -> dict:
+    q = (q or "").strip()
+    ttl = NEWS_TTL if not q and not category and page == 0 else NEWS_SEARCH_TTL
+    key = f"news:{lang}:{page}:{page_size}:{q.lower()}:{category}"
+    return await asyncio.to_thread(get_or_fetch, key, ttl, lambda: _news_raw(lang, page, page_size, q, category))
+
+
+# ---------------------------------------------------------------------------
+# Trending keywords for the "🔥 Популярні теми" chips — mined from recent
+# article titles instead of a hardcoded list, so they track what's actually
+# in the archive.
+# ---------------------------------------------------------------------------
+
+NEWS_KEYWORDS_TTL = 3600  # 1h — cheap to recompute, doesn't need to be fresher
+NEWS_KEYWORDS_SAMPLE = 200  # most recent titles to mine
+NEWS_KEYWORDS_TOP_N = 6
+
+_KEYWORD_WORD_RE = re.compile(r"[A-Za-zА-ЯЁа-яёІіЇїЄєҐґ0-9'-]{3,}")
+
+# Function words + generic space-news vocabulary that would otherwise dominate
+# every headline (source names, "launch", "mission", …) and crowd out actually
+# distinctive topics (mission/rocket/telescope names, planets, phenomena).
+_KEYWORD_STOP_EN = {
+    "the", "and", "for", "are", "was", "were", "with", "from", "this", "that",
+    "these", "those", "its", "their", "his", "her", "our", "your", "not",
+    "will", "would", "can", "could", "may", "might", "has", "have", "had",
+    "does", "did", "into", "about", "after", "before", "during", "between",
+    "through", "over", "under", "again", "more", "most", "than", "then",
+    "news", "space", "launch", "launches", "launched", "launching",
+    "mission", "missions", "rocket", "today", "update", "updates", "says",
+    "said", "new", "first", "live", "coverage", "nasa", "esa", "the", "sfn",
+    "will", "how", "why", "what", "amid", "set", "eyes", "plans", "plan",
+    "year", "years", "week", "month", "set",
+}
+_KEYWORD_STOP_UK = {
+    "та", "і", "й", "у", "в", "на", "з", "із", "зі", "для", "до", "від",
+    "про", "як", "що", "це", "цей", "ця", "ці", "він", "вона", "воно",
+    "вони", "його", "її", "їх", "ми", "ви", "не", "ні", "або", "чи", "але",
+    "а", "коли", "де", "після", "перед", "між", "через", "над", "під",
+    "за", "без", "ще", "вже", "буде", "було", "були", "бути", "новий",
+    "нова", "нове", "нові", "перший", "перша", "перше", "перші", "космічний",
+    "космічна", "космічне", "космічні", "космос", "новини", "запуск",
+    "запуску", "запуски", "місія", "місії", "місію", "ракета", "ракети",
+    "сьогодні", "може", "можуть", "стане", "стали", "рік", "року", "днів",
+}
+
+
+def _extract_trending_keywords(lang: str, top_n: int = NEWS_KEYWORDS_TOP_N) -> list:
+    """Rank words appearing in the most recent article titles by how many
+    distinct articles mention them (not raw word count, so one repetitive
+    headline can't dominate). Stopwords filter out function words and
+    space-news boilerplate ("launch", "mission", source names, …)."""
+    rows = get_news_articles(NEWS_KEYWORDS_SAMPLE)
+    if not rows:
+        return []
+    stop = _KEYWORD_STOP_UK if lang == "uk" else _KEYWORD_STOP_EN
+    counts: dict[str, int] = {}
+    display: dict[str, str] = {}
+    for r in rows:
+        title = (r.get("title_uk") if lang == "uk" and r.get("title_uk") else r.get("title")) or ""
+        seen = set()
+        for w in _KEYWORD_WORD_RE.findall(title):
+            lw = w.lower()
+            if lw in stop or lw.isdigit() or lw in seen:
+                continue
+            seen.add(lw)
+            counts[lw] = counts.get(lw, 0) + 1
+            display.setdefault(lw, w if w[:1].isupper() else w.capitalize())
+    ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    return [display[w] for w, _ in ranked[:top_n]]
+
+
+async def get_news_keywords(lang: str = DEFAULT_LANG) -> dict:
+    keywords = await asyncio.to_thread(
+        get_or_fetch, f"news_kw:{lang}", NEWS_KEYWORDS_TTL, lambda: _extract_trending_keywords(lang)
+    )
+    return {"keywords": keywords}
 
 
 def _news_article_raw(slug, lang):

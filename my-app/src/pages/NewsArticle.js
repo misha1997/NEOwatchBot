@@ -1,9 +1,11 @@
-// Single article page (/news/:slug) — ported from templates/article.html.
-// article-back, article-head (cat-pill + title + meta row), hero image,
-// body (lead paragraph styled larger via CSS p:first-of-type), topic tags
-// derived from the slug, share buttons, and a real «Пов'язані новини» grid
-// (same-category articles from the DB). Body is fetched lazily from
-// SpaceflightNow on first request, translated, and cached server-side.
+// Single article page (/news/:slug) — ported from templates/article.html,
+// upgraded into a two-column "professional" layout: breadcrumb nav, a
+// reading-progress bar, article-head (cat-pill + title + meta row), hero
+// image with a source credit line, body (lead paragraph styled larger via
+// CSS p:first-of-type) + topic tags in the main column, and a sticky aside
+// with a quick-facts card + share buttons. Related articles (same-category,
+// from the DB) render as a full-width grid below. Body is fetched lazily
+// from the source on first request, translated, and cached server-side.
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLang } from "../context/LanguageContext";
@@ -11,6 +13,7 @@ import { useApi } from "../hooks/useApi";
 import { getNewsArticle } from "../lib/api";
 import { SITE_URL, pathFor } from "../lib/seo";
 import LocalizedLink from "../components/primitives/LocalizedLink";
+import { TelegramShareIcon, LinkIcon, CheckIcon, XShareIcon } from "../lib/icons";
 import "../styles/news.css";
 
 const STOP = new Set([
@@ -26,6 +29,7 @@ export default function NewsArticle({ slug }) {
     deps: [slug, lang],
   });
   const [copied, setCopied] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const article = data && data.available ? data : null;
   const shareUrl = article
@@ -44,6 +48,20 @@ export default function NewsArticle({ slug }) {
     document.body.classList.add("p-news");
     return () => document.body.classList.remove("p-news");
   }, [article, shareUrl]);
+
+  // Thin fixed progress bar tracking how far the reader has scrolled.
+  useEffect(() => {
+    if (!article) return;
+    const onScroll = () => {
+      const doc = document.documentElement;
+      const scrollable = doc.scrollHeight - doc.clientHeight;
+      const pct = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 0;
+      setProgress(Math.min(100, Math.max(0, pct)));
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [article]);
 
   // Reading-time estimate from the body (or excerpt fallback). ~200 wpm.
   const readMins = useMemo(() => {
@@ -91,8 +109,24 @@ export default function NewsArticle({ slug }) {
 
   return (
     <div className="wrap" style={{ position: "relative", zIndex: 1 }}>
+      {article ? (
+        <div className="reading-progress" aria-hidden="true">
+          <div className="reading-progress-bar" style={{ width: progress + "%" }} />
+        </div>
+      ) : null}
+
       <section className="page-head">
-        <LocalizedLink to="news" className="article-back">← {t("news.article.back")}</LocalizedLink>
+        <nav className="article-breadcrumb" aria-label="breadcrumb">
+          <LocalizedLink to="home">{t("nav.home")}</LocalizedLink>
+          <span className="sep">/</span>
+          <LocalizedLink to="news">{t("nav.news")}</LocalizedLink>
+          {article ? (
+            <>
+              <span className="sep">/</span>
+              <span className="crumb-current">{catLabel(article.category)}</span>
+            </>
+          ) : null}
+        </nav>
 
         {loading ? (
           <p style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 14 }}>
@@ -123,13 +157,16 @@ export default function NewsArticle({ slug }) {
             </div>
 
             {article.image ? (
-              <img
-                className="article-hero"
-                src={article.image}
-                alt={article.title}
-                referrerPolicy="no-referrer"
-                loading="lazy"
-              />
+              <>
+                <img
+                  className="article-hero"
+                  src={article.image}
+                  alt={article.title}
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                />
+                <div className="article-hero-credit">{article.source}</div>
+              </>
             ) : (
               <div className="article-hero article-hero-ph" />
             )}
@@ -138,41 +175,75 @@ export default function NewsArticle({ slug }) {
       </section>
 
       {article ? (
-        <section className="section" style={{ paddingTop: 0 }}>
-          <div className="article-body">
-            {(article.body || article.excerpt || "")
-              .split("\n\n")
-              .map((para, i) => para.trim() ? <p key={i}>{para}</p> : null)}
-            {!article.body && article.excerpt ? (
-              <p className="note">{t("news.article.bodyNa")}</p>
-            ) : null}
-          </div>
-
-          {tags.length ? (
-            <div className="article-tags">
-              {tags.map((tag, i) => (
-                <span className="filter-pill" key={i}>{tag}</span>
-              ))}
+        <section className="section article-layout" style={{ paddingTop: 0 }}>
+          <div className="article-main">
+            <div className="article-body">
+              {(article.body || article.excerpt || "")
+                .split("\n\n")
+                .map((para, i) => para.trim() ? <p key={i}>{para}</p> : null)}
+              {!article.body && article.excerpt ? (
+                <p className="note">{t("news.article.bodyNa")}</p>
+              ) : null}
             </div>
-          ) : null}
 
-          <div className="article-share">
-            <span className="share-label">{t("news.article.share")}</span>
-            <button className="share-btn" type="button" title="Telegram" onClick={() => share("tg")}>✈</button>
-            <button className="share-btn" type="button" title={t("news.article.copy", "Скопіювати посилання")} onClick={() => share("copy")}>
-              {copied ? "✓" : "🔗"}
-            </button>
-            <button className="share-btn" type="button" title="X / Twitter" onClick={() => share("x")}>𝕏</button>
+            {tags.length ? (
+              <div className="article-tags">
+                {tags.map((tag, i) => (
+                  <span className="filter-pill" key={i}>{tag}</span>
+                ))}
+              </div>
+            ) : null}
+
+            <a
+              className="article-source-link"
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t("news.article.readSource")}
+            </a>
           </div>
 
-          <a
-            className="article-source-link"
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t("news.article.readSource")}
-          </a>
+          <aside className="article-aside">
+            <div className="article-facts-card">
+              <div className="facts-title">{t("news.article.facts")}</div>
+              <div className="fact-row">
+                <span>{t("news.article.factsSource")}</span>
+                <b>{article.source}</b>
+              </div>
+              {article.date ? (
+                <div className="fact-row">
+                  <span>{t("news.article.factsDate")}</span>
+                  <b>{article.date}</b>
+                </div>
+              ) : null}
+              <div className="fact-row">
+                <span>{t("news.article.factsCategory")}</span>
+                <b>{catLabel(article.category)}</b>
+              </div>
+              {readMins ? (
+                <div className="fact-row">
+                  <span>{t("news.article.factsRead")}</span>
+                  <b>{t("news.article.readTime", { n: readMins })}</b>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="article-share-aside">
+              <span className="share-label">{t("news.article.share")}</span>
+              <div className="share-btn-col">
+                <button className="share-btn" type="button" title="Telegram" onClick={() => share("tg")}>
+                  <TelegramShareIcon />
+                </button>
+                <button className="share-btn" type="button" title={t("news.article.copy", "Скопіювати посилання")} onClick={() => share("copy")}>
+                  {copied ? <CheckIcon /> : <LinkIcon />}
+                </button>
+                <button className="share-btn" type="button" title="X / Twitter" onClick={() => share("x")}>
+                  <XShareIcon />
+                </button>
+              </div>
+            </div>
+          </aside>
         </section>
       ) : null}
 

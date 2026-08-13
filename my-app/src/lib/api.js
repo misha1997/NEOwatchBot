@@ -82,14 +82,26 @@ export const getNeo = (lang) => fetchJSON(API + "/neo" + withLang("", lang));
 export const getMeteors = (lang) => fetchJSON(API + "/meteors" + withLang("", lang));
 export const getEvents = (lang) => fetchJSON(API + "/events" + withLang("", lang));
 export const getComets = (lang) => fetchJSON(API + "/comets" + withLang("", lang));
-// Space news digest archived in MySQL, with a live-parser fallback. Items
-// carry `id` (DB row, or null for live-without-DB) so cards with an id link
-// to the on-site article page /news/:id and the rest link out to the source.
-export const getNews = (lang) => fetchJSON(API + "/news" + withLang("", lang));
+// One page of the space news archive (MySQL), filtered/searched at the
+// backend. Items carry `id` (DB row, or null for live-without-DB) so cards
+// with an id link to the on-site article page /news/:slug and the rest link
+// out to the source. Returns {available,items,total,page,page_size,total_pages,has_more}.
+export const getNews = (lang, { page = 0, pageSize = 6, q = "", category = "" } = {}) => {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("page_size", String(pageSize));
+  if (q) params.set("q", q);
+  if (category && category !== "all") params.set("category", category);
+  if (lang) params.set("lang", lang);
+  return fetchJSON(API + "/news?" + params.toString());
+};
 // Full article body (translated) for the on-site article page /news/<slug>.
 // Body is fetched lazily from the source on first request and cached server-side.
 export const getNewsArticle = (slug, lang) =>
   fetchJSON(API + "/news/" + encodeURIComponent(slug) + withLang("", lang));
+// Trending keywords mined from recent article titles (backend), for the
+// "🔥 Популярні теми" chip row — {keywords: string[]}.
+export const getNewsKeywords = (lang) => fetchJSON(API + "/news/keywords" + withLang("", lang));
 // Language-neutral (numeric) NASA Exoplanet Archive data.
 export const getExoplanets = () => fetchJSON(API + "/exoplanets");
 export const getTle = (group, limit = 300, lang) =>
