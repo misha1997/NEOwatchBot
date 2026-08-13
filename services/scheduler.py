@@ -794,6 +794,20 @@ class NotificationScheduler:
 
             today = datetime.now().strftime('%d.%m.%Y')
 
+            # Pre-translate each article's title/excerpt once (not once per
+            # subscriber) — this loop used to call DeepL inside the
+            # per-subscriber loop below, burning quota N times for identical
+            # text when there are N Ukrainian subscribers.
+            uk_titles = {}
+            uk_excerpts = {}
+            for article in new_articles[:3]:
+                title = article['title']
+                excerpt = article.get('excerpt') or ''
+                if not article.get('title_uk') and title:
+                    uk_titles[article['url']] = Translator.translate(title, "en", "uk") or title
+                if excerpt and not article.get('excerpt_uk'):
+                    uk_excerpts[article['url']] = Translator.translate(excerpt, "en", "uk") or excerpt
+
             # Send to all subscribers, formatted per-user language.
             sent_count = 0
             for user in subscribers:
@@ -813,13 +827,10 @@ class NotificationScheduler:
 
                         if lang == 'uk':
                             # Use the stored DeepL translation (ingested at poll
-                            # time); translate on the fly only if missing.
-                            title_disp = article.get('title_uk') or title
-                            if not article.get('title_uk') and title:
-                                title_disp = Translator.translate(title, "en", "uk") or title
-                            excerpt_disp = article.get('excerpt_uk') or excerpt
-                            if excerpt and not article.get('excerpt_uk'):
-                                excerpt_disp = Translator.translate(excerpt, "en", "uk") or excerpt
+                            # time), falling back to the pre-translated copy
+                            # computed once above.
+                            title_disp = article.get('title_uk') or uk_titles.get(url) or title
+                            excerpt_disp = article.get('excerpt_uk') or uk_excerpts.get(url) or excerpt
                         else:
                             # English: use the original source text.
                             title_disp = title

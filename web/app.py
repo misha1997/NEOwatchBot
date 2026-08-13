@@ -428,6 +428,7 @@ async def _spa_lang(lang: str, rest: str, request: Request):
                 overrides = {
                     "title": headline or None,
                     "desc": (excerpt or "")[:160] or None,
+                    "image": article.get("image") or None,
                     "canonical": f"{SITE_URL}/{prefix_for(lang)}/{news_slug}/{article_slug}",
                     "uk_alt": f"{SITE_URL}/ua/{slug_for_name('news','uk')}/{article_slug}",
                     "en_alt": f"{SITE_URL}/en/{slug_for_name('news','en')}/{article_slug}",

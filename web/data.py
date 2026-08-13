@@ -1601,7 +1601,13 @@ def _news_article_raw(slug, lang):
             content = NewsParser.get_article_content(it["url"])
             body = content.get("body", "")
             image = content.get("image") or it.get("image")
-            body_uk = Translator.translate(body, "en", "uk") if (lang == "uk" and body) else ""
+            body_uk = ""
+            if lang == "uk" and body:
+                translated = Translator.translate(body, "en", "uk")
+                # Unchanged output means DeepL failed (quota/outage/no key) —
+                # leave body_uk blank so it's retried on a later view instead
+                # of permanently storing English text as the UK translation.
+                body_uk = translated if translated != body else ""
             if body:
                 set_news_article_body(article_id, body, body_uk, image)
                 it["body"] = body
@@ -1615,7 +1621,7 @@ def _news_article_raw(slug, lang):
     if lang == "uk" and it.get("body") and not it.get("body_uk"):
         try:
             body_uk = Translator.translate(it["body"], "en", "uk")
-            if body_uk:
+            if body_uk and body_uk != it["body"]:
                 set_news_article_body(article_id, it["body"], body_uk, it.get("image"))
                 it["body_uk"] = body_uk
         except Exception as e:

@@ -3,7 +3,7 @@ import requests
 import re
 import logging
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import List, Dict, Optional
 from utils.i18n import t, DEFAULT_LANG
@@ -113,9 +113,14 @@ class NewsParser:
                         cats = find_all_text(item, 'category')
                         raw_category = cats[0] if cats else feed_cat
 
-                        # Body and Image
+                        # Body and Image. No `content:encoded` (ESA, SpaceNews,
+                        # Universe Today) -> leave body empty rather than the
+                        # excerpt, so the site's lazy full-text fetch (which
+                        # only fires when body is falsy) can still pull the
+                        # real article on first view instead of being blocked
+                        # forever by a non-empty excerpt-as-body placeholder.
                         encoded = find_text(item, 'encoded') or find_text(item, 'content')
-                        body = NewsParser._clean_body_html(encoded) if encoded else excerpt
+                        body = NewsParser._clean_body_html(encoded) if encoded else ''
                         
                         image = ''
                         if encoded:
@@ -131,15 +136,22 @@ class NewsParser:
 
                         bucket = NewsParser._classify(raw_category, title + " " + excerpt)
 
-                        # Parse date object for sorting
+                        # Parse date object for sorting. Always normalize to
+                        # tz-aware UTC: parsedate_to_datetime() returns naive
+                        # datetimes when the RSS pubDate has no offset, and
+                        # mixing naive/aware values in the sort() below raises
+                        # TypeError, which would silently zero out the whole
+                        # merged article list for every feed in this poll.
                         parsed_dt = None
                         if pub:
                             try:
                                 parsed_dt = parsedate_to_datetime(pub)
+                                if parsed_dt.tzinfo is None:
+                                    parsed_dt = parsed_dt.replace(tzinfo=timezone.utc)
                             except Exception:
                                 pass
                         if not parsed_dt:
-                            parsed_dt = datetime.now()
+                            parsed_dt = datetime.now(timezone.utc)
 
                         all_articles.append({
                             'title': title,

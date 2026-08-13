@@ -12,11 +12,18 @@ DEEPL_API_URL = "https://api-free.deepl.com/v2/translate"
 
 # In-memory translation cache: (text, src, tgt) -> translated
 translation_cache = {}
+_missing_key_warned = False
 
 
 def _translate(texts: List[str], source: str = "EN", target: str = "UK") -> List[str]:
     """Translate list of texts via DeepL API. Returns originals on failure."""
-    if not texts or not DEEPL_API_KEY:
+    if not texts:
+        return texts
+    if not DEEPL_API_KEY:
+        global _missing_key_warned
+        if not _missing_key_warned:
+            logger.warning("DEEPL_API_KEY is not set — translations will return original text unchanged")
+            _missing_key_warned = True
         return texts
 
     # Filter out empty strings and already-cached entries

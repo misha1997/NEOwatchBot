@@ -197,6 +197,28 @@ def _loc(name: str, lang: str) -> str:
 
 
 _OG_IMAGE = SITE_URL + "/web-app-manifest-512x512.png"
+
+_PUB_DATE_RE = re.compile(r"^(\d{1,2})\.(\d{1,2})\.(\d{4})$")
+
+
+def _pub_date_iso(pub) -> str:
+    """Normalize a published-date value to ISO 8601 (``YYYY-MM-DD``).
+
+    ``news_articles.published_date`` is stored as free-text ``DD.MM.YYYY``
+    (see ``parsers/news.py``), not a DB date type, so it has no
+    ``isoformat()``. schema.org's ``NewsArticle.datePublished`` and the
+    Google News sitemap's ``<news:publication_date>`` both require W3C/ISO
+    8601 — a raw "13.08.2026" string fails structured-data validation.
+    """
+    if not pub:
+        return ""
+    if hasattr(pub, "isoformat"):
+        return pub.isoformat()
+    m = _PUB_DATE_RE.match(str(pub).strip())
+    if m:
+        d, mo, y = m.groups()
+        return f"{y}-{int(mo):02d}-{int(d):02d}"
+    return str(pub).strip()
 _OG_IMAGE_ALT = {"uk": "OrbitLight — лого", "en": "OrbitLight — logo"}
 
 
@@ -244,7 +266,7 @@ def _render_news_jsonld(article: dict, lang: str) -> str:
         "inLanguage": _og_locale(lang),
         "url": url,
         "image": image if image else _OG_IMAGE,
-        "datePublished": pub.isoformat() if hasattr(pub, "isoformat") else str(pub) if pub else "",
+        "datePublished": _pub_date_iso(pub),
         "author": {"@type": "Organization", "name": article.get("source") or "OrbitLight"},
         "publisher": {"@type": "Organization", "name": "OrbitLight",
                       "logo": {"@type": "ImageObject", "url": _OG_IMAGE}},
@@ -265,8 +287,9 @@ def render_head(name: str, lang: str, extra_jsonld: str = "",
     ``extra_jsonld`` (optional) is an already-serialized JSON-LD string to
     append (used for NewsArticle on news pages).
     ``overrides`` (optional) may carry ``title``, ``desc``, ``canonical``,
-    ``uk_alt``, ``en_alt`` — used for dynamic pages like news articles whose
-    meta must be unique per article (per-page title/description, §4).
+    ``uk_alt``, ``en_alt``, ``image`` — used for dynamic pages like news
+    articles whose meta must be unique per article (per-page
+    title/description/image, §4).
     """
     if lang not in _DICTS:
         lang = DEFAULT_LANG
@@ -275,6 +298,7 @@ def render_head(name: str, lang: str, extra_jsonld: str = "",
     ov = overrides or {}
     title = ov.get("title") or _title(lang, name)
     desc = ov.get("desc") or _desc(lang, name) or "OrbitLight — небо зараз."
+    image = ov.get("image") or _OG_IMAGE
     canonical = ov.get("canonical") or (_loc(name, lang) if name != "404" else f"{SITE_URL}/{prefix_for(lang)}/404")
     uk_alt = ov.get("uk_alt") or (_loc(name, "uk") if name != "404" else f"{SITE_URL}/ua/404")
     en_alt = ov.get("en_alt") or (_loc(name, "en") if name != "404" else f"{SITE_URL}/en/404")
@@ -294,15 +318,24 @@ def render_head(name: str, lang: str, extra_jsonld: str = "",
         f'    <meta property="og:title" content="{e(title)}" />\n'
         f'    <meta property="og:description" content="{e(desc)}" />\n'
         f'    <meta property="og:url" content="{e(canonical)}" />\n'
-        f'    <meta property="og:image" content="{e(_OG_IMAGE)}" />\n'
-        f'    <meta property="og:image:type" content="image/png" />\n'
-        f'    <meta property="og:image:width" content="512" />\n'
-        f'    <meta property="og:image:height" content="512" />\n'
-        f'    <meta property="og:image:alt" content="{e(_OG_IMAGE_ALT.get(lang, _OG_IMAGE_ALT["en"]))}" />\n'
+        f'    <meta property="og:image" content="{e(image)}" />\n'
+    )
+    if image == _OG_IMAGE:
+        # Only the default logo has known fixed dimensions — an article's own
+        # photo (news `overrides["image"]`) is an arbitrary hotlinked size,
+        # so guessing width/height would mislead scrapers more than omitting
+        # them (Telegram/Facebook/X all handle a missing size fine).
+        head += (
+            f'    <meta property="og:image:type" content="image/png" />\n'
+            f'    <meta property="og:image:width" content="512" />\n'
+            f'    <meta property="og:image:height" content="512" />\n'
+            f'    <meta property="og:image:alt" content="{e(_OG_IMAGE_ALT.get(lang, _OG_IMAGE_ALT["en"]))}" />\n'
+        )
+    head += (
         f'    <meta name="twitter:card" content="summary_large_image" />\n'
         f'    <meta name="twitter:title" content="{e(title)}" />\n'
         f'    <meta name="twitter:description" content="{e(desc)}" />\n'
-        f'    <meta name="twitter:image" content="{e(_OG_IMAGE)}" />\n'
+        f'    <meta name="twitter:image" content="{e(image)}" />\n'
     )
     if jsonld:
         head += f'    <script type="application/ld+json">{jsonld}</script>'
@@ -435,7 +468,7 @@ def build_sitemap_news_xml() -> str:
             continue
         seen.add(slug)
         pub = a.get("published_date") or a.get("fetched_at")
-        pub_iso = pub.isoformat() if hasattr(pub, "isoformat") else str(pub) if pub else _LASTMOD
+        pub_iso = _pub_date_iso(pub) or _LASTMOD
         title_uk = a.get("title_uk") or a.get("title") or ""
         title_en = a.get("title") or ""
         for lang in LANGS:

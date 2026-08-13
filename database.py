@@ -1298,9 +1298,15 @@ def ingest_news_articles(articles: list) -> int:
 
             excerpt = (a.get('excerpt') or '').strip()
             # Batch-translate title + excerpt (skips empty/short internally).
+            # DeepL failures (quota, outage, missing key) fall back to
+            # returning the original text unchanged, so an unchanged result
+            # means translation didn't happen. Leave *_uk blank rather than
+            # persisting the English text as if it were the Ukrainian
+            # translation: a blank stays retry-able (site/bot fall back to
+            # the English field), a stored value looks final forever.
             trans = Translator.translate_batch([title, excerpt], 'uk')
-            title_uk = trans[0] if len(trans) > 0 else ''
-            excerpt_uk = trans[1] if len(trans) > 1 else ''
+            title_uk = trans[0] if len(trans) > 0 and trans[0] != title else ''
+            excerpt_uk = trans[1] if len(trans) > 1 and trans[1] != excerpt else ''
             # Public slug for /news/<slug> (unique, suffix on collision).
             slug = _news_slug_for_url(url, cursor)
             # Body (EN) + hero image come straight from the RSS feed item — no
