@@ -178,6 +178,16 @@ class NewsParser:
                         link = find_text(item, 'link')
                         if not title or not link:
                             continue
+                        # ESA's feed mixes real articles with photo/video
+                        # showcase pages that have no real prose at all —
+                        # "Week in images" is a weekly digest of images with
+                        # captions, ESA_Multimedia/Images|Videos are a single
+                        # photo or clip. Ingesting these produces a "news
+                        # article" page that's just an image wall with no
+                        # translatable text, however good the scraper gets.
+                        if any(p in link for p in
+                               ('/About_Us/Week_in_images/', '/ESA_Multimedia/Images/', '/ESA_Multimedia/Videos/')):
+                            continue
 
                         # Parse publish date
                         date_str = ''
