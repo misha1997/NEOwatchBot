@@ -7,6 +7,7 @@
 // (/news/:slug); live-without-DB items (id === null) link out to the source.
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { useLang } from "../context/LanguageContext";
 import { useApi } from "../hooks/useApi";
 import { useSeo } from "../hooks/useSeo";
@@ -16,7 +17,7 @@ import LocalizedLink from "../components/primitives/LocalizedLink";
 import "../styles/news.css";
 import "../styles/gallery.css"; // .pagination / .pg-btn
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 12;
 const CATS = ["all", "launches", "missions", "discoveries", "tech"];
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -33,8 +34,20 @@ export default function News() {
   const [filter, setFilter] = useState("all");
   const [rawQuery, setRawQuery] = useState("");
   const [query, setQuery] = useState(""); // debounced, drives the API call
-  const [page, setPage] = useState(0);
   const [view, setView] = useState("cards");
+
+  // Page number lives in the URL (?page=N, 0-indexed, omitted at 0) so it's
+  // shareable/bookmarkable and survives a reload — same convention as the
+  // APOD gallery (Gallery.js).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Math.max(0, parseInt(searchParams.get("page") || "0", 10) || 0);
+  const setPage = (p, opts) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (p === 0) next.delete("page"); else next.set("page", String(p));
+      return next;
+    }, opts);
+  };
 
   // Debounce the free-text search box so we don't hit the backend on every
   // keystroke; keyword chips / category pills set `query` immediately below.
@@ -47,7 +60,8 @@ export default function News() {
   const firstRun = useRef(true);
   useEffect(() => {
     if (firstRun.current) { firstRun.current = false; return; }
-    setPage(0);
+    setPage(0, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, query]);
 
   const isDefaultView = filter === "all" && !query;
