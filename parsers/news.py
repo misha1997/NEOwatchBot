@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import List, Dict, Optional
+from urllib.parse import urljoin
 from utils.i18n import t, DEFAULT_LANG
 
 logger = logging.getLogger(__name__)
@@ -124,21 +125,21 @@ class NewsParser:
                         # forever by a non-empty excerpt-as-body placeholder.
                         encoded = find_text(item, 'encoded') or find_text(item, 'content')
                         if encoded:
-                            body, body_images = NewsParser._clean_body_html(encoded)
+                            body, body_images = NewsParser._clean_body_html(encoded, link)
                         else:
                             body, body_images = '', []
-                        
+
                         image = ''
                         if encoded:
                             img_match = re.search(r'<img[^>]+src="([^"]+)"', encoded, re.IGNORECASE)
                             if img_match:
-                                image = img_match.group(1)
-                        
+                                image = urljoin(link, img_match.group(1))
+
                         # Fallback for hero image search if empty
                         if not image and desc:
                             img_match = re.search(r'<img[^>]+src="([^"]+)"', desc, re.IGNORECASE)
                             if img_match:
-                                image = img_match.group(1)
+                                image = urljoin(link, img_match.group(1))
 
                         bucket = NewsParser._classify(raw_category, title + " " + excerpt)
 
@@ -245,7 +246,7 @@ class NewsParser:
             if content_html:
                 img_match = re.search(r'<img[^>]+src="([^"]+)"', content_html, re.IGNORECASE)
                 if img_match:
-                    img = img_match.group(1)
+                    img = urljoin(url, img_match.group(1))
             
             # Extract paragraphs and inline images together, in document
             # order, so images land at their real position in the body (as
@@ -263,7 +264,7 @@ class NewsParser:
                         if len(p_text) > 30 and not any(k in p_text.lower() for k in ("follow us on", "read more:", "copyright ©")):
                             paragraphs.append(p_text)
                     elif m.group(2):
-                        body_images.append(m.group(2))
+                        body_images.append(urljoin(url, m.group(2)))
                         paragraphs.append(f'[IMG:{len(body_images) - 1}]')
 
             body_text = "\n\n".join(paragraphs)
@@ -300,13 +301,17 @@ class NewsParser:
         return "missions"
 
     @staticmethod
-    def _clean_body_html(html: str) -> tuple:
+    def _clean_body_html(html: str, base_url: str = "") -> tuple:
         """Strip tag list, footer, convert blocks to breaks, extract inline
         ``<img>`` tags as ``[IMG:n]`` placeholders kept at their original
         position in the text, strip remaining tags, cap at 6000 chars.
         Returns ``(body_text, image_urls)`` where ``image_urls[n]`` is the
         URL behind placeholder ``[IMG:n]`` (mirrored to local disk + inserted
-        into ``news_article_images`` by ``database.ingest_news_articles``)."""
+        into ``news_article_images`` by ``database.ingest_news_articles``).
+        ``base_url`` (the article's own URL) resolves root/relative ``src``
+        values some feeds embed (e.g. ``/article_images/foo.webp``) into
+        absolute URLs — otherwise the frontend requests them against our own
+        site's origin and gets a 404."""
         if not html:
             return "", []
         # Drop entry tags / metadata
@@ -319,7 +324,7 @@ class NewsParser:
         image_urls = []
 
         def _capture_img(m):
-            image_urls.append(m.group(1))
+            image_urls.append(urljoin(base_url, m.group(1)) if base_url else m.group(1))
             return f'\n[IMG:{len(image_urls) - 1}]\n'
 
         html = re.sub(r'<img[^>]+src="([^"]+)"[^>]*>', _capture_img, html, flags=re.IGNORECASE)
