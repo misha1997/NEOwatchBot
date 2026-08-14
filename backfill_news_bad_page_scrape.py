@@ -28,10 +28,21 @@ right here and writes the corrected body/image/inline media immediately —
 same one step, no visible gap. `--limit` paces it since each row is a live
 HTTP fetch.
 
+Some junk (e.g. nasa.gov falling back to a generic NASA-insignia image as an
+author's byline photo when they have no headshot uploaded) is only
+recognizable from the ``class="avatar"`` attribute on the live ``<img>`` tag
+— once mirrored down to a bare URL in the DB it's indistinguishable from a
+real photo, so the SQL candidate search below can't find it by pattern.
+Every NASA article is re-fetched unconditionally for that reason (still
+capped/paced by ``--limit``); everything else only gets fixed if it matches
+a known junk signal. Use ``--slug`` to force-refresh one specific article
+regardless of the heuristics, e.g. right after spotting a bad photo on it.
+
 Usage:
-  python3 backfill_news_bad_page_scrape.py             # report + apply
-  python3 backfill_news_bad_page_scrape.py --dry-run    # report counts only
-  python3 backfill_news_bad_page_scrape.py --limit 50   # cap rows fetched this run
+  python3 backfill_news_bad_page_scrape.py               # report + apply
+  python3 backfill_news_bad_page_scrape.py --dry-run      # report counts only
+  python3 backfill_news_bad_page_scrape.py --limit 50     # cap rows fetched this run
+  python3 backfill_news_bad_page_scrape.py --slug some-article-slug
 """
 import argparse
 import logging
@@ -53,13 +64,19 @@ IMAGE_CAP = 8  # matches parsers.news._MAX_BODY_IMAGES
 FETCH_DELAY = 1.0  # seconds between live HTTP fetches — polite to source sites
 
 
-def _find_candidates(cursor):
+def _find_candidates(cursor, slug=None):
+    if slug:
+        cursor.execute(
+            "SELECT id, slug, url, image FROM news_articles WHERE slug = %s", (slug,)
+        )
+        return cursor.fetchall()
     cursor.execute(
         """
         SELECT DISTINCT a.id, a.slug, a.url, a.image
         FROM news_articles a
         LEFT JOIN news_article_images i ON i.article_id = a.id
-        WHERE a.image IS NULL
+        WHERE a.source = 'NASA'
+           OR a.image IS NULL
            OR a.image = ''
            OR a.image LIKE '%.svg'
            OR i.source_url LIKE '%.svg%'
@@ -84,15 +101,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true", help="only report counts, write nothing")
     parser.add_argument("--limit", type=int, default=None, help="max rows to actually re-fetch this run")
+    parser.add_argument("--slug", type=str, default=None, help="force-refresh one article by slug, ignoring the heuristics")
     args = parser.parse_args()
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        rows = _find_candidates(cursor)
+        rows = _find_candidates(cursor, args.slug)
     finally:
         cursor.close()
         conn.close()
+
+    if args.slug and not rows:
+        logger.warning(f"no article with slug={args.slug!r}")
+        return
 
     logger.info(f"found {len(rows)} candidate row(s) with a bad page scrape")
     for row in rows:

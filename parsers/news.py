@@ -22,7 +22,10 @@ _MAX_BODY_IMAGES = 8
 _MAX_BODY_VIDEOS = 4
 
 
-def _is_junk_image(src: str) -> bool:
+_AVATAR_CLASS_RE = re.compile(r'class="[^"]*\bavatar\b[^"]*"', re.IGNORECASE)
+
+
+def _is_junk_image(src: str, tag_html: str = '') -> bool:
     """True for images that are never real article content:
     - vector icons/logos (menu toggles, arrows, play buttons). Site chrome
       that isn't wrapped in a real ``<header>``/``<nav>`` tag (e.g.
@@ -35,11 +38,17 @@ def _is_junk_image(src: str) -> bool:
       container (WordPress/Gutenberg post body, or an <article> that also
       wraps the byline/CTA widgets) — there's no clean HTML boundary to
       scope around like there is for page-wide chrome, so they have to be
-      recognized by what they are.
+      recognized by what they are. Some byline photos have no "avatar" in
+      the filename at all (nasa.gov falls back to a generic NASA-insignia
+      image when an author has no headshot uploaded) — those are only
+      recognizable via the standard WordPress ``class="avatar"`` marker on
+      the ``<img>`` tag itself, hence the optional ``tag_html`` param.
     - project/mission logos in a "Learn More and Get Involved" style CTA
       block (e.g. science.nasa.gov's ``wp-block-nasa-blocks-featured-link-
       list``) — same story as above, baked straight into ``content:encoded``
       alongside the real prose. These reliably have "logo" in the filename."""
+    if tag_html and _AVATAR_CLASS_RE.search(tag_html):
+        return True
     try:
         parsed = urlparse(src)
     except Exception:
@@ -51,6 +60,11 @@ def _is_junk_image(src: str) -> bool:
         return True
     path = parsed.path.lower()
     if '/wp-content/plugins/' in path or '/wp-content/themes/' in path:
+        return True
+    # NASA "explore more"/topic-card related-content widgets (e.g.
+    # .../ui/explore-more-cards/explore-card_the-sun.png) — same story as
+    # the featured-link-list logo above, just a different card block.
+    if 'explore-more' in path or 'topic-card' in path:
         return True
     filename = path.rsplit('/', 1)[-1]
     return 'avatar' in filename or 'logo' in filename or 'patreon' in path
@@ -64,6 +78,15 @@ _VIDEO_IFRAME_RE = re.compile(
     r'<iframe[^>]+src="([^"]*(?:youtube(?:-nocookie)?\.com/embed|player\.vimeo\.com/video)[^"]*)"[^>]*>'
     r'\s*(?:</iframe>)?'
     r'(?:\s*</div>)?',
+    re.IGNORECASE | re.DOTALL
+)
+# Self-hosted HTML5 <video><source src="....mp4"> players (NASA/
+# science.nasa.gov's own video blocks — not a YouTube/Vimeo embed at all).
+# Matched through to the real </video> close so the "enable JavaScript to
+# view this video" vjs-no-js fallback text inside it doesn't leak into the
+# body as if it were a real paragraph.
+_VIDEO_TAG_RE = re.compile(
+    r'<video[^>]*>.*?<source[^>]+src="([^"]+\.(?:mp4|webm|ogv|ogg))"[^>]*>.*?</video>',
     re.IGNORECASE | re.DOTALL
 )
 
@@ -185,17 +208,17 @@ class NewsParser:
                         else:
                             body, body_images, body_videos = '', [], []
 
-                        image = ''
-                        if encoded:
-                            img_match = re.search(r'<img[^>]+src="([^"]+)"', encoded, re.IGNORECASE)
-                            if img_match:
-                                image = urljoin(link, img_match.group(1))
+                        def _first_real_image(html_src, base):
+                            for img_match in re.finditer(r'<img[^>]+src="([^"]+)"[^>]*>', html_src, re.IGNORECASE):
+                                candidate = urljoin(base, img_match.group(1))
+                                if not _is_junk_image(candidate, img_match.group(0)):
+                                    return candidate
+                            return ''
 
+                        image = _first_real_image(encoded, link) if encoded else ''
                         # Fallback for hero image search if empty
                         if not image and desc:
-                            img_match = re.search(r'<img[^>]+src="([^"]+)"', desc, re.IGNORECASE)
-                            if img_match:
-                                image = urljoin(link, img_match.group(1))
+                            image = _first_real_image(desc, link)
 
                         bucket = NewsParser._classify(raw_category, title + " " + excerpt)
 
@@ -310,9 +333,9 @@ class NewsParser:
 
             # Extract first (non-icon) image inside content_html
             if content_html:
-                for img_match in re.finditer(r'<img[^>]+src="([^"]+)"', content_html, re.IGNORECASE):
+                for img_match in re.finditer(r'<img[^>]+src="([^"]+)"[^>]*>', content_html, re.IGNORECASE):
                     candidate = urljoin(url, img_match.group(1))
-                    if not _is_junk_image(candidate):
+                    if not _is_junk_image(candidate, img_match.group(0)):
                         img = candidate
                         break
 
@@ -334,6 +357,7 @@ class NewsParser:
 
             if content_html:
                 content_html = _VIDEO_IFRAME_RE.sub(_capture_video, content_html)
+                content_html = _VIDEO_TAG_RE.sub(_capture_video, content_html)
 
             # Extract paragraphs and inline images together, in document
             # order, so images land at their real position in the body (as
@@ -361,7 +385,7 @@ class NewsParser:
                         # featured-image <figure> inside <article> (not
                         # wrapped in a <p>) otherwise get it twice — once as
                         # the hero, once again as the first inline photo.
-                        if candidate != img and not _is_junk_image(candidate) and len(body_images) < _MAX_BODY_IMAGES:
+                        if candidate != img and not _is_junk_image(candidate, m.group(0)) and len(body_images) < _MAX_BODY_IMAGES:
                             body_images.append(candidate)
                             paragraphs.append(f'[IMG:{len(body_images) - 1}]')
 
@@ -447,7 +471,7 @@ class NewsParser:
 
         def _capture_img(m):
             candidate = urljoin(base_url, m.group(1)) if base_url else m.group(1)
-            if _is_junk_image(candidate) or len(image_urls) >= _MAX_BODY_IMAGES:
+            if _is_junk_image(candidate, m.group(0)) or len(image_urls) >= _MAX_BODY_IMAGES:
                 return ''
             image_urls.append(candidate)
             return f'\n[IMG:{len(image_urls) - 1}]\n'
@@ -464,6 +488,7 @@ class NewsParser:
             return f'\n[VIDEO:{len(video_urls) - 1}]\n'
 
         html = _VIDEO_IFRAME_RE.sub(_capture_video, html)
+        html = _VIDEO_TAG_RE.sub(_capture_video, html)
 
         # Convert tags to paragraph breaks
         body = re.sub(r'<(p|br|/p|/div|/h[1-6])[^>]*>', '\n', html, flags=re.IGNORECASE)
