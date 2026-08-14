@@ -22,16 +22,30 @@ _MAX_BODY_IMAGES = 8
 _MAX_BODY_VIDEOS = 4
 
 
-def _is_svg(src: str) -> bool:
-    """True for vector icons/logos (menu toggles, arrows, play buttons —
-    never a real content photo). Site chrome that isn't wrapped in a real
-    ``<header>``/``<nav>`` tag (e.g. esa.int's nav lives in a plain
-    ``<section id="esa-header">``) otherwise slips through as the "hero
-    image" or an inline body photo."""
+def _is_junk_image(src: str) -> bool:
+    """True for images that are never real article content:
+    - vector icons/logos (menu toggles, arrows, play buttons). Site chrome
+      that isn't wrapped in a real ``<header>``/``<nav>`` tag (e.g.
+      esa.int's nav lives in a plain ``<section id="esa-header">``)
+      otherwise slips through as the "hero image" or an inline body photo.
+    - the author's Gravatar byline photo and generic "related topics" card
+      thumbnails — NASA's science.nasa.gov embeds both directly inside
+      ``content:encoded`` (a WordPress/Gutenberg quirk: those blocks live in
+      the same post body as the real prose, so there's no HTML boundary to
+      scope around like there is for site-wide chrome)."""
     try:
-        return urlparse(src).path.lower().endswith('.svg')
+        parsed = urlparse(src)
     except Exception:
         return False
+    if parsed.path.lower().endswith('.svg'):
+        return True
+    host = parsed.netloc.lower()
+    if 'gravatar.com' in host:
+        return True
+    path = parsed.path.lower()
+    return '/wp-content/plugins/' in path or '/wp-content/themes/' in path
+
+
 # Embedded video players (YouTube/Vimeo <iframe>) found inline in article
 # HTML, optionally wrapped in a Jetpack/WordPress "embed-container" <div>.
 # Other iframes (ads, tweets, forms, ...) are intentionally left alone.
@@ -288,7 +302,7 @@ class NewsParser:
             if content_html:
                 for img_match in re.finditer(r'<img[^>]+src="([^"]+)"', content_html, re.IGNORECASE):
                     candidate = urljoin(url, img_match.group(1))
-                    if not _is_svg(candidate):
+                    if not _is_junk_image(candidate):
                         img = candidate
                         break
 
@@ -333,7 +347,7 @@ class NewsParser:
                             paragraphs.append(p_text)
                     elif m.group(2):
                         candidate = urljoin(url, m.group(2))
-                        if not _is_svg(candidate) and len(body_images) < _MAX_BODY_IMAGES:
+                        if not _is_junk_image(candidate) and len(body_images) < _MAX_BODY_IMAGES:
                             body_images.append(candidate)
                             paragraphs.append(f'[IMG:{len(body_images) - 1}]')
 
@@ -419,7 +433,7 @@ class NewsParser:
 
         def _capture_img(m):
             candidate = urljoin(base_url, m.group(1)) if base_url else m.group(1)
-            if _is_svg(candidate) or len(image_urls) >= _MAX_BODY_IMAGES:
+            if _is_junk_image(candidate) or len(image_urls) >= _MAX_BODY_IMAGES:
                 return ''
             image_urls.append(candidate)
             return f'\n[IMG:{len(image_urls) - 1}]\n'

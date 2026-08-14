@@ -1,24 +1,31 @@
 #!/usr/bin/env python3
-"""One-off backfill for articles poisoned by the pre-fix generic page scrape
-in ``parsers/news.py: get_article_content`` (the live-page fetch used for
-excerpt-only sources — ESA and Universe Today have no ``content:encoded`` in
-their RSS, so every one of their stored bodies came from this path).
+"""One-off backfill for articles poisoned by junk-image bugs fixed in
+``parsers/news.py`` (see ``_is_junk_image`` / ``_MAX_BODY_IMAGES``):
 
-Before the fix, sites whose site-chrome wasn't wrapped in a real
-``<header>``/``<nav>`` tag (esa.int uses a plain ``<section id="esa-header">``)
-leaked into the scrape:
-  - the hero `image` could end up being a nav-bar icon (``ESA_Menu.svg``)
-    instead of a real photo,
-  - `news_article_images` could balloon to 40+ rows: an entire "Related
-    Links" widget and/or full photo gallery harvested as if it were inline
-    article content, with no cap.
+1. Page-scrape flood (``get_article_content``, the live-page fetch used for
+   excerpt-only sources — ESA and Universe Today have no ``content:encoded``
+   in their RSS, so every one of their stored bodies came from this path).
+   Sites whose site-chrome wasn't wrapped in a real ``<header>``/``<nav>``
+   tag (esa.int uses a plain ``<section id="esa-header">``) leaked into the
+   scrape: the hero `image` could end up being a nav-bar icon
+   (``ESA_Menu.svg``) instead of a real photo, and `news_article_images`
+   could balloon to 40+ rows — an entire "Related Links" widget and/or full
+   photo gallery harvested as if it were inline article content, no cap.
 
-This script finds rows exhibiting either symptom (svg "photo", or an inline
-image count blown past the new cap of 8) and resets `body`/`body_uk`/`image`
-to NULL plus wipes the stale `news_article_images`/`news_article_videos`
-rows (and their mirrored files on disk) — so the site's existing lazy
-full-content fetch (`web/data.py`) regenerates everything on the next page
-view, this time through the fixed, capped, article-scoped parser.
+2. CMS filler baked into the RSS content itself (``_clean_body_html``, the
+   ``content:encoded`` path — this is how NASA/science.nasa.gov bodies are
+   built). Their WordPress/Gutenberg post body embeds the author's Gravatar
+   byline photo and generic "related topics" card thumbnails as plain
+   ``<img>`` tags in the very same HTML as the real prose — no page-chrome
+   boundary to scope around, they just look like more inline photos.
+
+This script finds rows exhibiting any of these symptoms (svg "photo",
+gravatar/plugin/theme filler, or an inline image count blown past the new
+cap of 8) and resets `body`/`body_uk`/`image` to NULL plus wipes the stale
+`news_article_images`/`news_article_videos` rows (and their mirrored files
+on disk) — so the site's existing lazy full-content fetch (`web/data.py`)
+regenerates everything on the next page view, this time through the fixed,
+capped, filtered parser.
 
 Usage:
   python3 backfill_news_bad_page_scrape.py             # report + apply
@@ -47,6 +54,9 @@ def _find_candidates(cursor):
         LEFT JOIN news_article_images i ON i.article_id = a.id
         WHERE a.image LIKE '%.svg'
            OR i.source_url LIKE '%.svg%'
+           OR i.source_url LIKE '%gravatar.com%'
+           OR i.source_url LIKE '%/wp-content/plugins/%'
+           OR i.source_url LIKE '%/wp-content/themes/%'
            OR a.id IN (
                 SELECT article_id FROM news_article_images
                 GROUP BY article_id
