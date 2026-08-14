@@ -35,7 +35,11 @@ def _is_junk_image(src: str) -> bool:
       container (WordPress/Gutenberg post body, or an <article> that also
       wraps the byline/CTA widgets) — there's no clean HTML boundary to
       scope around like there is for page-wide chrome, so they have to be
-      recognized by what they are."""
+      recognized by what they are.
+    - project/mission logos in a "Learn More and Get Involved" style CTA
+      block (e.g. science.nasa.gov's ``wp-block-nasa-blocks-featured-link-
+      list``) — same story as above, baked straight into ``content:encoded``
+      alongside the real prose. These reliably have "logo" in the filename."""
     try:
         parsed = urlparse(src)
     except Exception:
@@ -49,7 +53,7 @@ def _is_junk_image(src: str) -> bool:
     if '/wp-content/plugins/' in path or '/wp-content/themes/' in path:
         return True
     filename = path.rsplit('/', 1)[-1]
-    return 'avatar' in filename or 'patreon' in path
+    return 'avatar' in filename or 'logo' in filename or 'patreon' in path
 
 
 # Embedded video players (YouTube/Vimeo <iframe>) found inline in article

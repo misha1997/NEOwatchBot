@@ -12,38 +12,45 @@
    could balloon to 40+ rows — an entire "Related Links" widget and/or full
    photo gallery harvested as if it were inline article content, no cap.
 
-2. CMS filler baked into the RSS content itself (``_clean_body_html``, the
-   ``content:encoded`` path — this is how NASA/science.nasa.gov bodies are
-   built). Their WordPress/Gutenberg post body embeds the author's Gravatar
-   byline photo and generic "related topics" card thumbnails as plain
-   ``<img>`` tags in the very same HTML as the real prose — no page-chrome
-   boundary to scope around, they just look like more inline photos.
+2. CMS/theme filler baked into the article's own HTML container (NASA's
+   Gravatar byline + "related topics" cards in ``content:encoded``,
+   universetoday.com's byline avatar + Patreon CTA thumbnail, and a
+   duplicated hero image when a featured-image <figure> sits inside
+   <article> unwrapped by a <p>) — no page-chrome boundary to scope around,
+   they just look like more inline photos.
 
-This script finds rows exhibiting any of these symptoms (svg "photo",
-gravatar/plugin/theme filler, or an inline image count blown past the new
-cap of 8) and resets `body`/`body_uk`/`image` to NULL plus wipes the stale
-`news_article_images`/`news_article_videos` rows (and their mirrored files
-on disk) — so the site's existing lazy full-content fetch (`web/data.py`)
-regenerates everything on the next page view, this time through the fixed,
-capped, filtered parser.
+Unlike the first version of this script, this one does NOT reset `image`
+to NULL and wait for a visitor: the news-list page reads `image` straight
+from the DB for its preview cards, so blanking it was itself a regression
+(cards went from "wrong photo" to "no photo" for every row until someone
+happened to open that exact article). Instead it re-fetches each candidate
+right here and writes the corrected body/image/inline media immediately —
+same one step, no visible gap. `--limit` paces it since each row is a live
+HTTP fetch.
 
 Usage:
   python3 backfill_news_bad_page_scrape.py             # report + apply
-  python3 backfill_news_bad_page_scrape.py --dry-run   # report counts only
+  python3 backfill_news_bad_page_scrape.py --dry-run    # report counts only
+  python3 backfill_news_bad_page_scrape.py --limit 50   # cap rows fetched this run
 """
 import argparse
 import logging
 import shutil
+import time
 from pathlib import Path
 
 import config  # noqa: F401 — side effect: load_dotenv()
-from database import get_db_connection
+from database import (
+    get_db_connection, set_news_article_body, set_news_article_images, set_news_article_videos,
+)
+from parsers.news import NewsParser
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("backfill_news_bad_page_scrape")
 
 DATA_NEWS_DIR = Path("data/news")
 IMAGE_CAP = 8  # matches parsers.news._MAX_BODY_IMAGES
+FETCH_DELAY = 1.0  # seconds between live HTTP fetches — polite to source sites
 
 
 def _find_candidates(cursor):
@@ -52,7 +59,9 @@ def _find_candidates(cursor):
         SELECT DISTINCT a.id, a.slug, a.url, a.image
         FROM news_articles a
         LEFT JOIN news_article_images i ON i.article_id = a.id
-        WHERE a.image LIKE '%.svg'
+        WHERE a.image IS NULL
+           OR a.image = ''
+           OR a.image LIKE '%.svg'
            OR i.source_url LIKE '%.svg%'
            OR i.source_url LIKE '%gravatar.com%'
            OR i.source_url LIKE '%/wp-content/plugins/%'
@@ -74,6 +83,7 @@ def _find_candidates(cursor):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true", help="only report counts, write nothing")
+    parser.add_argument("--limit", type=int, default=None, help="max rows to actually re-fetch this run")
     args = parser.parse_args()
 
     conn = get_db_connection()
@@ -91,25 +101,60 @@ def main():
     if args.dry_run or not rows:
         return
 
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        for row in rows:
-            article_id = row["id"]
-            cursor.execute("DELETE FROM news_article_images WHERE article_id = %s", (article_id,))
-            cursor.execute("DELETE FROM news_article_videos WHERE article_id = %s", (article_id,))
-            cursor.execute(
-                "UPDATE news_articles SET body = NULL, body_uk = NULL, image = NULL WHERE id = %s",
-                (article_id,),
-            )
-            slug_dir = DATA_NEWS_DIR / (row["slug"] or "")
-            if row["slug"] and slug_dir.is_dir():
-                shutil.rmtree(slug_dir, ignore_errors=True)
-        conn.commit()
-        logger.info(f"reset {len(rows)} row(s) — bodies/images will regenerate on next page view")
-    finally:
-        cursor.close()
-        conn.close()
+    if args.limit:
+        rows = rows[:args.limit]
+
+    fixed = failed = 0
+    for row in rows:
+        try:
+            content = NewsParser.get_article_content(row["url"])
+        except Exception as e:
+            logger.warning(f"fetch failed for id={row['id']} url={row['url']}: {e}")
+            failed += 1
+            time.sleep(FETCH_DELAY)
+            continue
+
+        new_body = (content.get("body") or "").strip()
+        new_image = (content.get("image") or "").strip() or None
+        if not new_body:
+            logger.warning(f"id={row['id']} slug={row['slug']}: re-fetch returned no body, skipping")
+            failed += 1
+            time.sleep(FETCH_DELAY)
+            continue
+
+        # Wipe the old (possibly bloated/wrong) mirrored images before
+        # re-mirroring under the same position numbers, so a stale on-disk
+        # file can't get served under a position that now means something
+        # else.
+        slug_dir = DATA_NEWS_DIR / (row["slug"] or "")
+        if row["slug"] and slug_dir.is_dir():
+            shutil.rmtree(slug_dir, ignore_errors=True)
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM news_article_images WHERE article_id = %s", (row["id"],))
+            cursor.execute("DELETE FROM news_article_videos WHERE article_id = %s", (row["id"],))
+            conn.commit()
+        finally:
+            cursor.close()
+            conn.close()
+
+        # body_uk left NULL on purpose: the site's lazy translate path
+        # (web/data.py) regenerates it on the next page view.
+        set_news_article_body(row["id"], new_body, None, new_image)
+        if content.get("body_images"):
+            set_news_article_images(row["id"], row["slug"], content["body_images"])
+        if content.get("body_videos"):
+            set_news_article_videos(row["id"], content["body_videos"])
+        fixed += 1
+        logger.info(f"id={row['id']} slug={row['slug']}: refreshed "
+                    f"(image={'yes' if new_image else 'no'}, "
+                    f"{len(content.get('body_images') or [])} photo(s), "
+                    f"{len(content.get('body_videos') or [])} video(s))")
+        time.sleep(FETCH_DELAY)
+
+    logger.info(f"done: {fixed} row(s) refreshed, {failed} fetch failure(s)")
 
 
 if __name__ == "__main__":
