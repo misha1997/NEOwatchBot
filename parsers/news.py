@@ -28,11 +28,14 @@ def _is_junk_image(src: str) -> bool:
       that isn't wrapped in a real ``<header>``/``<nav>`` tag (e.g.
       esa.int's nav lives in a plain ``<section id="esa-header">``)
       otherwise slips through as the "hero image" or an inline body photo.
-    - the author's Gravatar byline photo and generic "related topics" card
-      thumbnails — NASA's science.nasa.gov embeds both directly inside
-      ``content:encoded`` (a WordPress/Gutenberg quirk: those blocks live in
-      the same post body as the real prose, so there's no HTML boundary to
-      scope around like there is for site-wide chrome)."""
+    - the author's byline avatar and generic "related topics"/promo card
+      thumbnails — some sites (NASA/science.nasa.gov's Gravatar + "related
+      topics" cards, universetoday.com's own byline avatar + Patreon CTA
+      thumbnail) embed these directly inside the article's own HTML
+      container (WordPress/Gutenberg post body, or an <article> that also
+      wraps the byline/CTA widgets) — there's no clean HTML boundary to
+      scope around like there is for page-wide chrome, so they have to be
+      recognized by what they are."""
     try:
         parsed = urlparse(src)
     except Exception:
@@ -43,7 +46,10 @@ def _is_junk_image(src: str) -> bool:
     if 'gravatar.com' in host:
         return True
     path = parsed.path.lower()
-    return '/wp-content/plugins/' in path or '/wp-content/themes/' in path
+    if '/wp-content/plugins/' in path or '/wp-content/themes/' in path:
+        return True
+    filename = path.rsplit('/', 1)[-1]
+    return 'avatar' in filename or 'patreon' in path
 
 
 # Embedded video players (YouTube/Vimeo <iframe>) found inline in article
@@ -347,7 +353,11 @@ class NewsParser:
                             paragraphs.append(p_text)
                     elif m.group(2):
                         candidate = urljoin(url, m.group(2))
-                        if not _is_junk_image(candidate) and len(body_images) < _MAX_BODY_IMAGES:
+                        # Skip a repeat of the hero image: sites that put the
+                        # featured-image <figure> inside <article> (not
+                        # wrapped in a <p>) otherwise get it twice — once as
+                        # the hero, once again as the first inline photo.
+                        if candidate != img and not _is_junk_image(candidate) and len(body_images) < _MAX_BODY_IMAGES:
                             body_images.append(candidate)
                             paragraphs.append(f'[IMG:{len(body_images) - 1}]')
 

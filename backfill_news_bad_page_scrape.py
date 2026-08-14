@@ -57,6 +57,9 @@ def _find_candidates(cursor):
            OR i.source_url LIKE '%gravatar.com%'
            OR i.source_url LIKE '%/wp-content/plugins/%'
            OR i.source_url LIKE '%/wp-content/themes/%'
+           OR i.source_url LIKE '%avatar%'
+           OR i.source_url LIKE '%patreon%'
+           OR i.source_url = a.image
            OR a.id IN (
                 SELECT article_id FROM news_article_images
                 GROUP BY article_id
