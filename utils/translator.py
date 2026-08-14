@@ -157,8 +157,15 @@ class Translator:
         prose_idx = [i for i, p in enumerate(parts) if not _IMG_PLACEHOLDER_RE.fullmatch(p)]
         prose_texts = [parts[i] for i in prose_idx]
         translated = _translate(prose_texts, "EN", "UK")
-        for i, tr in zip(prose_idx, translated):
-            parts[i] = tr
+        # _translate() strips each chunk before sending it to DeepL, so the
+        # leading/trailing whitespace (typically the "\n\n" that keeps an
+        # [IMG:n] placeholder alone on its own line) must be restored here —
+        # otherwise the placeholder ends up glued to adjacent prose and the
+        # frontend's "whole paragraph" match fails, printing "[IMG:n]" as text.
+        for i, orig, tr in zip(prose_idx, prose_texts, translated):
+            lead = orig[:len(orig) - len(orig.lstrip())]
+            trail = orig[len(orig.rstrip()):]
+            parts[i] = f"{lead}{tr.strip()}{trail}"
         return "".join(parts)
 
     @staticmethod

@@ -32,6 +32,7 @@ from database import (
 )
 from services import NasaAPI, N2YOAPI
 from utils.i18n import t, pick, compass_dir, normalize_lang
+from web.seo import SITE_URL, slug_for_name
 
 logger = logging.getLogger(__name__)
 
@@ -820,7 +821,17 @@ class NotificationScheduler:
                     for i, article in enumerate(new_articles[:3], 1):
                         title = article['title']
                         excerpt = article.get('excerpt') or ''
-                        url = article['url']
+                        # Link to the article's own page on the site (mirrored
+                        # images, translated body) instead of the external
+                        # source — falls back to the source URL if the article
+                        # has no slug (e.g. a live fallback fetch, not yet
+                        # ingested into news_articles).
+                        if article.get('slug'):
+                            prefix = 'ua' if lang == 'uk' else 'en'
+                            news_slug = slug_for_name('news', lang)
+                            url = f"{SITE_URL}/{prefix}/{news_slug}/{article['slug']}"
+                        else:
+                            url = article['url']
                         # category_raw is the raw source label (e.g. "Falcon 9")
                         # kept for the emoji keyword match; fall back to the bucket.
                         category = article.get('category_raw') or article.get('category') or ''
