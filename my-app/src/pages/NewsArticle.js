@@ -156,6 +156,21 @@ export default function NewsArticle({ slug }) {
                 <span>{t("news.article.translation")}</span>
               </div>
             </div>
+
+            {article.image ? (
+              <>
+                <img
+                  className="article-hero"
+                  src={article.image}
+                  alt={article.title}
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                />
+                <div className="article-hero-credit">{article.source}</div>
+              </>
+            ) : (
+              <div className="article-hero article-hero-ph" />
+            )}
           </>
         )}
       </section>
