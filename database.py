@@ -163,6 +163,24 @@ def init_db():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
 
+        # Inline embedded videos (YouTube/Vimeo <iframe> players) found inside
+        # a news article's body. `position` is the `n` in the body text's
+        # `[VIDEO:n]` placeholder (see parsers/news.py). Unlike
+        # news_article_images, nothing is mirrored locally — the frontend
+        # embeds the provider's player directly via <iframe>, same as APOD
+        # video entries.
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS news_article_videos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                article_id INT NOT NULL,
+                position INT NOT NULL,
+                video_url VARCHAR(500) NOT NULL,
+                UNIQUE KEY idx_news_vid_pos (article_id, position),
+                INDEX idx_niv_article (article_id),
+                FOREIGN KEY (article_id) REFERENCES news_articles(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
         # APOD photo archive for the website gallery (NASA APOD, one entry/day).
         # `date` is the PK (APOD = 1/day, idempotent UPSERT). Images are mirrored
         # locally to data/apod/YYYY/MM/DD-<full|thumb>.<ext>; thumb_path/full_path
@@ -1344,6 +1362,7 @@ def ingest_news_articles(articles: list) -> int:
             )
             inserted += 1
             _mirror_news_body_images(cursor, cursor.lastrowid, slug, a.get('body_images') or [])
+            _upsert_news_body_videos(cursor, cursor.lastrowid, a.get('body_videos') or [])
         conn.commit()
         if inserted:
             logger.info(f"Ingested {inserted} new news article(s) into archive")
@@ -1386,6 +1405,67 @@ def _mirror_news_body_images(cursor, article_id: int, slug: str, image_urls: lis
             )
         except Error as e:
             logger.warning(f"news_article_images insert error {slug}/{idx}: {e}")
+
+
+def _upsert_news_body_videos(cursor, article_id: int, video_urls: list) -> None:
+    """Persist a news article's inline embedded videos (the ``[VIDEO:n]``
+    placeholders in ``body`` — see ``parsers/news.py``). One row per video in
+    ``news_article_videos``, upserted by ``(article_id, position)``. No local
+    mirroring (unlike images) — just the provider's embed URL. Never raises."""
+    if not video_urls:
+        return
+    for idx, url in enumerate(video_urls):
+        url = (url or '').strip()
+        if not url:
+            continue
+        try:
+            cursor.execute(
+                '''INSERT INTO news_article_videos (article_id, position, video_url)
+                   VALUES (%s, %s, %s)
+                   ON DUPLICATE KEY UPDATE video_url = VALUES(video_url)''',
+                (article_id, idx, url)
+            )
+        except Error as e:
+            logger.warning(f"news_article_videos insert error article_id={article_id}/{idx}: {e}")
+
+
+def set_news_article_videos(article_id: int, video_urls: list) -> None:
+    """Persist body videos fetched lazily (``get_article_content`` fallback
+    for legacy/excerpt-only-source rows) — upserts ``news_article_videos``.
+    Best-effort, own connection."""
+    if not video_urls:
+        return
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        _upsert_news_body_videos(cursor, article_id, video_urls)
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error saving news article videos {article_id}: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_news_article_videos(article_id: int) -> list:
+    """Ordered list of an article's inline embedded videos:
+    ``[{"position", "video_url"}, ...]``."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            'SELECT position, video_url FROM news_article_videos '
+            'WHERE article_id = %s ORDER BY position',
+            (article_id,)
+        )
+        return cursor.fetchall()
+    except Error as e:
+        logger.error(f"Error fetching news article videos {article_id}: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def set_news_article_images(article_id: int, slug: str, image_urls: list) -> None:

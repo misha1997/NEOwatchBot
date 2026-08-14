@@ -64,6 +64,7 @@ from database import (
     get_news_articles, count_news_articles, get_news_article, get_news_article_by_slug,
     get_related_news_articles, set_news_article_body, ingest_news_articles,
     get_news_article_images, set_news_article_images,
+    get_news_article_videos, set_news_article_videos,
     get_apod_entries, ingest_apod_entries,
     get_galaxies as db_get_galaxies, get_galaxy_by_slug as db_get_galaxy_by_slug,
     ingest_galaxies, ingest_galaxy_photos,
@@ -1616,6 +1617,8 @@ def _news_article_raw(slug, lang):
                 it["image"] = image
             if content.get("body_images"):
                 set_news_article_images(article_id, it.get("slug") or slug, content["body_images"])
+            if content.get("body_videos"):
+                set_news_article_videos(article_id, content["body_videos"])
         except Exception as e:
             logger.error("news article body fetch: %s", e)
     # Lazy UK translation of the stored EN body — persisted so it's only done
@@ -1642,6 +1645,10 @@ def _news_article_raw(slug, lang):
             src = f"/news-img/{full_rel}" if full_rel else row.get("source_url") or ""
             thumb = f"/news-img/{thumb_rel}" if thumb_rel else src
             body_images.append({"position": row.get("position"), "src": src, "thumb": thumb})
+    body_videos = []
+    if "[VIDEO:" in body:
+        for row in get_news_article_videos(article_id):
+            body_videos.append({"position": row.get("position"), "src": row.get("video_url") or ""})
     return {
         "available": True,
         "id": article_id,
@@ -1650,6 +1657,7 @@ def _news_article_raw(slug, lang):
         "title": title,
         "body": body,
         "body_images": body_images,
+        "body_videos": body_videos,
         "image": it.get("image") or "",
         "category": it.get("category") or "missions",
         "date": it.get("published_date") or "",

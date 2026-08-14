@@ -185,6 +185,24 @@ export default function NewsArticle({ slug }) {
                       />
                     );
                   }
+                  const videoMatch = trimmed.match(/^\[VIDEO:(\d+)\]$/);
+                  if (videoMatch) {
+                    const vid = (article.body_videos || [])
+                      .find((v) => String(v.position) === videoMatch[1]);
+                    if (!vid) return null;
+                    return (
+                      <div className="article-inline-video" key={i}>
+                        <iframe
+                          src={vid.src}
+                          title="video"
+                          loading="lazy"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    );
+                  }
                   return <p key={i}>{trimmed}</p>;
                 })}
               {!article.body && article.excerpt ? (

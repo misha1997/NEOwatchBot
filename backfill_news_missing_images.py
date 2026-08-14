@@ -32,7 +32,9 @@ import logging
 import time
 
 import config  # noqa: F401 — side effect: load_dotenv()
-from database import get_db_connection, set_news_article_body, set_news_article_images
+from database import (
+    get_db_connection, set_news_article_body, set_news_article_images, set_news_article_videos,
+)
 from parsers.news import NewsParser
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -114,9 +116,11 @@ def main():
         if row["image_rows"] == 0 and new_body and new_body_images:
             # body_uk left NULL on purpose: the site's lazy translate path
             # (web/data.py) regenerates it on the next page view, using the
-            # [IMG:n]-preserving translator.
+            # [IMG:n]/[VIDEO:n]-preserving translator.
             set_news_article_body(row["id"], new_body, None, new_image)
             set_news_article_images(row["id"], row["slug"], new_body_images)
+            if content.get("body_videos"):
+                set_news_article_videos(row["id"], content["body_videos"])
             fixed_body += 1
             logger.info(f"id={row['id']} slug={row['slug']}: replaced body "
                         f"({len(new_body_images)} inline photo(s))")

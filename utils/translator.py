@@ -7,10 +7,11 @@ from typing import List
 from config import DEEPL_API_KEY
 from utils.i18n import t, DEFAULT_LANG
 
-# News article bodies embed `[IMG:n]` inline-image placeholders (see
-# parsers/news.py) — DeepL could otherwise mangle the brackets/digits when
-# translating prose around them, breaking the frontend's placeholder match.
-_IMG_PLACEHOLDER_RE = re.compile(r'(\[IMG:\d+\])')
+# News article bodies embed `[IMG:n]`/`[VIDEO:n]` inline-media placeholders
+# (see parsers/news.py) — DeepL could otherwise mangle the brackets/digits
+# when translating prose around them, breaking the frontend's placeholder
+# match.
+_IMG_PLACEHOLDER_RE = re.compile(r'(\[(?:IMG|VIDEO):\d+\])')
 
 logger = logging.getLogger(__name__)
 
