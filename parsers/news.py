@@ -70,6 +70,13 @@ def _is_junk_image(src: str, tag_html: str = '') -> bool:
     return 'avatar' in filename or 'logo' in filename or 'patreon' in path
 
 
+# An inline content photo, optionally wrapped in an <a href="..."> link to
+# its full-size version (universetoday.com does this for every figure) — the
+# wrapper is consumed too so it doesn't end up as a dangling empty link.
+_INLINE_IMG_RE = re.compile(
+    r'(?:<a[^>]*>\s*)?<img[^>]+src="([^"]+)"[^>]*>(?:\s*</a>)?',
+    re.IGNORECASE | re.DOTALL
+)
 # Embedded video players (YouTube/Vimeo <iframe>) found inline in article
 # HTML, optionally wrapped in a Jetpack/WordPress "embed-container" <div>.
 # Other iframes (ads, tweets, forms, ...) are intentionally left alone.
@@ -339,14 +346,32 @@ class NewsParser:
                         img = candidate
                         break
 
-            # Pull embedded videos out before the paragraph pass below: a
-            # video iframe is often nested *inside* a <p>...</p> (e.g. a
-            # Jetpack embed-container followed by a caption sentence in the
-            # same paragraph), so the <p> branch of the finditer below would
-            # otherwise swallow it whole and strip away the src. Splitting
-            # the surrounding paragraph around the placeholder — even when
-            # there was no real enclosing <p> — keeps it isolated on its own
-            # line, same convention as [IMG:n].
+            # Pull inline images and embedded videos out before the
+            # paragraph pass below: both are often nested *inside* a
+            # <p>...</p> (universetoday.com wraps every figure in <p><a
+            # href="..."><img ...></a></p>; a video iframe is often preceded
+            # by a Jetpack embed-container in the same paragraph as its
+            # caption), so a naive "<p>...</p> or standalone <img>" regex
+            # would let the <p> branch win first and swallow the media
+            # whole, stripping the src along with it — the paragraph then
+            # has nothing left but attributes, fails the length filter, and
+            # both the image/video *and* the sentence around it vanish
+            # silently. Splitting the surrounding paragraph around each
+            # placeholder — even where there was no real enclosing <p> —
+            # keeps it isolated on its own line instead.
+            body_images = []
+
+            def _capture_inline_img(m):
+                candidate = urljoin(url, m.group(1))
+                # Skip a repeat of the hero image: sites that put the
+                # featured-image <figure> inside <article> (not wrapped in a
+                # <p>) otherwise get it twice — once as the hero, once again
+                # as the first inline photo.
+                if candidate == img or _is_junk_image(candidate, m.group(0)) or len(body_images) >= _MAX_BODY_IMAGES:
+                    return ''
+                body_images.append(candidate)
+                return f'</p><p>[IMG:{len(body_images) - 1}]</p><p>'
+
             body_videos = []
 
             def _capture_video(m):
@@ -356,38 +381,24 @@ class NewsParser:
                 return f'</p><p>[VIDEO:{len(body_videos) - 1}]</p><p>'
 
             if content_html:
+                content_html = _INLINE_IMG_RE.sub(_capture_inline_img, content_html)
                 content_html = _VIDEO_IFRAME_RE.sub(_capture_video, content_html)
                 content_html = _VIDEO_TAG_RE.sub(_capture_video, content_html)
 
-            # Extract paragraphs and inline images together, in document
-            # order, so images land at their real position in the body (as
-            # [IMG:n] placeholders — same convention as _clean_body_html).
+            # Extract paragraphs, in document order, so the [IMG:n]/
+            # [VIDEO:n] placeholders land at their real position in the body.
             paragraphs = []
-            body_images = []
             if content_html:
-                for m in re.finditer(
-                    r'<p[^>]*>(.*?)</p>|<img[^>]+src="([^"]+)"[^>]*>',
-                    content_html, re.DOTALL | re.IGNORECASE
-                ):
-                    if m.group(1) is not None:
-                        p_text = re.sub(r'<[^>]+>', '', m.group(1))  # Strip nested tags
-                        p_text = NewsParser._clean_html_entities(p_text.strip())
-                        if _VIDEO_PLACEHOLDER_RE.match(p_text) or (
-                            len(p_text) > 30 and not any(
-                                k in p_text.lower() for k in
-                                ("follow us on", "read more:", "copyright ©", "you have already liked this page")
-                            )
-                        ):
-                            paragraphs.append(p_text)
-                    elif m.group(2):
-                        candidate = urljoin(url, m.group(2))
-                        # Skip a repeat of the hero image: sites that put the
-                        # featured-image <figure> inside <article> (not
-                        # wrapped in a <p>) otherwise get it twice — once as
-                        # the hero, once again as the first inline photo.
-                        if candidate != img and not _is_junk_image(candidate, m.group(0)) and len(body_images) < _MAX_BODY_IMAGES:
-                            body_images.append(candidate)
-                            paragraphs.append(f'[IMG:{len(body_images) - 1}]')
+                for m in re.finditer(r'<p[^>]*>(.*?)</p>', content_html, re.DOTALL | re.IGNORECASE):
+                    p_text = re.sub(r'<[^>]+>', '', m.group(1))  # Strip nested tags
+                    p_text = NewsParser._clean_html_entities(p_text.strip())
+                    if _IMG_PLACEHOLDER_RE.match(p_text) or _VIDEO_PLACEHOLDER_RE.match(p_text) or (
+                        len(p_text) > 30 and not any(
+                            k in p_text.lower() for k in
+                            ("follow us on", "read more:", "copyright ©", "you have already liked this page")
+                        )
+                    ):
+                        paragraphs.append(p_text)
 
             body_text = "\n\n".join(paragraphs)
             if len(body_text) > 6000:
