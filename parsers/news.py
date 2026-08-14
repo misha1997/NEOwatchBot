@@ -77,6 +77,13 @@ _INLINE_IMG_RE = re.compile(
     r'(?:<a[^>]*>\s*)?<img[^>]+src="([^"]+)"[^>]*>(?:\s*</a>)?',
     re.IGNORECASE | re.DOTALL
 )
+# Opening <div> of a NASA/science.nasa.gov Gutenberg "related topics"/CTA
+# block (see NewsParser._strip_nasa_promo_blocks for why these can't be
+# recognized by image filename alone).
+_NASA_PROMO_BLOCK_RE = re.compile(
+    r'<div[^>]*class="[^"]*\bwp-block-nasa-blocks-(?:topic-cards?|featured-link-list)\b[^"]*"[^>]*>',
+    re.IGNORECASE
+)
 # Embedded video players (YouTube/Vimeo <iframe>) found inline in article
 # HTML, optionally wrapped in a Jetpack/WordPress "embed-container" <div>.
 # Other iframes (ads, tweets, forms, ...) are intentionally left alone.
@@ -338,6 +345,9 @@ class NewsParser:
                     body_match = re.search(r'<body[^>]*>(.*?)</body>', clean_html, re.DOTALL | re.IGNORECASE)
                     content_html = body_match.group(1) if body_match else clean_html
 
+            if content_html:
+                content_html = NewsParser._strip_nasa_promo_blocks(content_html)
+
             # Extract first (non-icon) image inside content_html
             if content_html:
                 for img_match in re.finditer(r'<img[^>]+src="([^"]+)"[^>]*>', content_html, re.IGNORECASE):
@@ -431,6 +441,47 @@ class NewsParser:
         return html
 
     @staticmethod
+    def _skip_balanced_div(html: str) -> int:
+        """Sibling of ``_extract_balanced_div``: given HTML starting right
+        after an opening ``<div ...>``, return the index just past that
+        div's own matching ``</div>`` (``len(html)`` if unterminated), for
+        callers that need to skip over a block rather than read its content."""
+        depth = 0
+        for m in re.finditer(r'<div\b|</div>', html, re.IGNORECASE):
+            if m.group(0)[1] == '/':
+                if depth == 0:
+                    return m.end()
+                depth -= 1
+            else:
+                depth += 1
+        return len(html)
+
+    @staticmethod
+    def _strip_nasa_promo_blocks(html: str) -> str:
+        """Remove NASA/science.nasa.gov Gutenberg "related topics"/CTA
+        widgets ("Keep Exploring" topic-card grids, "Learn More and Get
+        Involved" featured-link lists) wherever they appear in the HTML.
+
+        These embed real, normally-named project photos as card thumbnails
+        (unlike the byline avatar/logo filler ``_is_junk_image`` already
+        catches by filename) directly inside the same container as the real
+        prose — with no naming clue, the only reliable signal is the
+        block's own wrapper class. Each match is skipped to its *real*
+        matching ``</div>`` (nested divs are the norm for a card grid), not
+        the first nested one."""
+        if 'wp-block-nasa-blocks-' not in html:
+            return html
+        out = []
+        pos = 0
+        for m in _NASA_PROMO_BLOCK_RE.finditer(html):
+            if m.start() < pos:
+                continue  # inside a block already skipped
+            out.append(html[pos:m.start()])
+            pos = m.end() + NewsParser._skip_balanced_div(html[m.end():])
+        out.append(html[pos:])
+        return ''.join(out)
+
+    @staticmethod
     def _classify(cat_raw: str, text: str) -> str:
         """Map raw category label + text to launches, discoveries, tech, or missions."""
         hay = ((cat_raw or "") + " " + (text or "")).lower()
@@ -474,6 +525,7 @@ class NewsParser:
         # Drop entry tags / metadata
         html = re.sub(r'<div[^>]*class="[^"]*\bentry-tags\b[^"]*"[^>]*>.*?</div>', '', html, flags=re.DOTALL | re.IGNORECASE)
         html = re.sub(r'<footer[^>]*class="[^"]*\bentry-(?:meta|footer)\b[^"]*"[^>]*>.*?</footer>', '', html, flags=re.DOTALL | re.IGNORECASE)
+        html = NewsParser._strip_nasa_promo_blocks(html)
 
         # Pull out <img> tags before the generic tag-strip below, replacing
         # each with a positional placeholder so the frontend can splice a
