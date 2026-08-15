@@ -2271,7 +2271,13 @@ async def get_mast_lightcurve(target: str) -> dict:
     return val or {}
 
 def _mast_hubble_jwst_raw() -> list | None:
-    return _run_mast_subprocess(["hubble-jwst"])
+    # Tighter budget than the default 180s: Cloudflare's proxy times out a
+    # slow origin response at ~100s regardless of what we do here, turning
+    # a merely-slow MAST day into a raw 524 error page instead of the
+    # empty-list-then-retry-later behavior get_or_fetch already handles
+    # gracefully (failed subprocess isn't cached, so the next request tries
+    # again rather than being stuck empty for the full 12h TTL).
+    return _run_mast_subprocess(["hubble-jwst"], timeout=80)
 
 async def get_mast_hubble_jwst() -> list:
     val = await asyncio.to_thread(

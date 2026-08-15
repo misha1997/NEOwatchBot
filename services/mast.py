@@ -3,6 +3,7 @@ import sys
 import json
 import logging
 import warnings
+import concurrent.futures
 import numpy as np
 from datetime import datetime
 import lightkurve as lk
@@ -111,52 +112,81 @@ class MastService:
             return None
 
     @staticmethod
+    def _query_one_target(target: dict) -> list[dict]:
+        """Cone-search a single target and return its top-2 recent HST/JWST
+        science images. Split out of get_hubble_jwst_recent_obs so it can
+        run in its own worker thread."""
+        rows_out: list[dict] = []
+        try:
+            coord = SkyCoord(target["coords"], frame="icrs")
+            # Query within 0.05 deg (3 arcmin)
+            res = Observations.query_region(coord, radius=0.05 * u.deg)
+            if len(res) == 0:
+                return rows_out
+
+            # Filter for HST & JWST science image observations with valid JPEGs
+            mask = (res['obs_collection'] == 'HST') | (res['obs_collection'] == 'JWST')
+            res = res[mask]
+            res = res[res['intentType'] == 'science']
+            res = res[res['dataproduct_type'] == 'image']
+            res = res[~res['jpegURL'].mask]
+
+            if len(res) == 0:
+                return rows_out
+
+            # Sort by time descending (latest first)
+            res.sort('t_min')
+            res.reverse()
+
+            # Take top 2 observations for this target
+            for row in res[:2]:
+                jpeg_uri = row['jpegURL']
+                # Convert to public HTTP URL if it is a mast: URI
+                if jpeg_uri.startswith("mast:"):
+                    jpeg_url = f"https://mast.stsci.edu/api/v0.1/Download/file/?uri={jpeg_uri}"
+                else:
+                    jpeg_url = jpeg_uri
+
+                rows_out.append({
+                    "instrument": f"{row['obs_collection']} · {row['instrument_name']}",
+                    "target": target["name"],
+                    "coords": f"RA {row['s_ra']:.2f}° / Dec {row['s_dec']:.2f}°",
+                    "date": mjd_to_date(row['t_min']),
+                    "jpeg_url": jpeg_url,
+                    "collection": row['obs_collection']
+                })
+        except Exception as e:
+            logger.error("MAST: Failed to query region for %s: %s", target["name"], e)
+        return rows_out
+
+    @staticmethod
     def get_hubble_jwst_recent_obs() -> list[dict]:
-        """Query recent HST & JWST science image observations in famous regions."""
-        obs_list = []
-        
-        for target in FAMOUS_TARGETS:
-            try:
-                # Do a fast cone search for each target
-                coord = SkyCoord(target["coords"], frame="icrs")
-                # Query within 0.05 deg (3 arcmin)
-                res = Observations.query_region(coord, radius=0.05 * u.deg)
-                if len(res) == 0:
-                    continue
-                    
-                # Filter for HST & JWST science image observations with valid JPEGs
-                mask = (res['obs_collection'] == 'HST') | (res['obs_collection'] == 'JWST')
-                res = res[mask]
-                res = res[res['intentType'] == 'science']
-                res = res[res['dataproduct_type'] == 'image']
-                res = res[~res['jpegURL'].mask]
-                
-                if len(res) == 0:
-                    continue
-                    
-                # Sort by time descending (latest first)
-                res.sort('t_min')
-                res.reverse()
-                
-                # Take top 2 observations for this target
-                for row in res[:2]:
-                    jpeg_uri = row['jpegURL']
-                    # Convert to public HTTP URL if it is a mast: URI
-                    if jpeg_uri.startswith("mast:"):
-                        jpeg_url = f"https://mast.stsci.edu/api/v0.1/Download/file/?uri={jpeg_uri}"
-                    else:
-                        jpeg_url = jpeg_uri
-                        
-                    obs_list.append({
-                        "instrument": f"{row['obs_collection']} · {row['instrument_name']}",
-                        "target": target["name"],
-                        "coords": f"RA {row['s_ra']:.2f}° / Dec {row['s_dec']:.2f}°",
-                        "date": mjd_to_date(row['t_min']),
-                        "jpeg_url": jpeg_url,
-                        "collection": row['obs_collection']
-                    })
-            except Exception as e:
-                logger.error("MAST: Failed to query region for %s: %s", target["name"], e)
+        """Query recent HST & JWST science image observations in famous
+        regions — one cone search per target, run IN PARALLEL.
+
+        Each ``Observations.query_region()`` call is a network round-trip
+        to the MAST archive; run sequentially, 6 of them routinely added up
+        to 120s+ of total wait — longer than Cloudflare's proxy timeout, so
+        the request died with a 524 before our own subprocess even finished.
+        A thread pool (this is I/O-bound, not CPU-bound, so the GIL isn't a
+        problem) cuts the wall-clock time to roughly the slowest single
+        query instead of the sum of all of them. The 45s deadline below is
+        shared across all targets at once (``concurrent.futures.wait``, not
+        a per-future ``result(timeout=...)`` in a loop) — the latter would
+        re-arm a fresh 45s wait for every still-hung target it reaches,
+        letting several slow targets add their timeouts back up again."""
+        obs_list: list[dict] = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(FAMOUS_TARGETS)) as pool:
+            futures = {pool.submit(MastService._query_one_target, t): t for t in FAMOUS_TARGETS}
+            done, not_done = concurrent.futures.wait(futures, timeout=45)
+            for fut in done:
+                target = futures[fut]
+                try:
+                    obs_list.extend(fut.result())
+                except Exception as e:
+                    logger.error("MAST: target %s failed: %s", target["name"], e)
+            for fut in not_done:
+                logger.warning("MAST: target %s timed out", futures[fut]["name"])
 
         return obs_list
 
