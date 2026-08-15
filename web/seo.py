@@ -475,15 +475,20 @@ def build_sitemap_news_xml() -> str:
             loc = f"{SITE_URL}/{prefix_for(lang)}/{news_slugs[lang]}/{slug}"
             uk_alt = f"{SITE_URL}/ua/{news_slugs['uk']}/{slug}"
             en_alt = f"{SITE_URL}/en/{news_slugs['en']}/{slug}"
-            # news:news markup
+            # news:news markup. `publication_date`/`title` are required
+            # siblings of `publication` directly under `news:news` — NOT
+            # nested inside `publication` (GSC flags the article title/date
+            # as "missing tag" under the `publication` parent when they're
+            # misplaced there, since the protocol only allows `name`/
+            # `language` inside `publication`).
             news_block = (
                 "    <news:news>\n"
                 f"      <news:publication>\n"
                 f"        <news:name>OrbitLight</news:name>\n"
                 f"        <news:language>{lang}</news:language>\n"
-                f"        <news:publication_date>{pub_iso}</news:publication_date>\n"
-                f"        <news:title>{html.escape(title_uk if lang == 'uk' else title_en)}</news:title>\n"
                 "      </news:publication>\n"
+                f"      <news:publication_date>{pub_iso}</news:publication_date>\n"
+                f"      <news:title>{html.escape(title_uk if lang == 'uk' else title_en)}</news:title>\n"
                 "    </news:news>\n"
             )
             url = (
