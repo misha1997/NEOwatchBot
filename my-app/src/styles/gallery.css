@@ -386,7 +386,8 @@
   font-size: 15px
 }
 
-.pg-btn[disabled] {
+.pg-btn[disabled],
+.pg-btn.disabled {
   opacity: .35;
   cursor: default;
   pointer-events: none

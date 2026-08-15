@@ -83,10 +83,8 @@ export default function News() {
   // The featured hero only makes sense on the plain, unfiltered first page.
   const featured = isDefaultView && safePage === 0 ? items[0] : null;
 
-  const goPage = (p) => {
-    setPage(Math.max(0, Math.min(totalPages - 1, p)));
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const pageHref = (n) => pathFor("news", lang) + (n === 0 ? "" : `?page=${n}`);
+  const scrollTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   const setKeyword = (kw) => {
     setFilter("all");
@@ -202,16 +200,20 @@ export default function News() {
             <button
               className={"vt-btn" + (view === "cards" ? " active" : "")}
               type="button"
+              title={t("news.view.cards")}
+              aria-label={t("news.view.cards")}
               onClick={() => setView("cards")}
             >
-              ▦ {t("news.view.cards")}
+              ▦
             </button>
             <button
               className={"vt-btn" + (view === "rows" ? " active" : "")}
               type="button"
+              title={t("news.view.rows")}
+              aria-label={t("news.view.rows")}
               onClick={() => setView("rows")}
             >
-              ☰ {t("news.view.rows")}
+              ☰
             </button>
           </div>
         </div>
@@ -291,29 +293,40 @@ export default function News() {
 
             {totalPages > 1 && (
               <div className="pagination">
-                <button
-                  className="pg-btn arrow"
-                  onClick={() => goPage(safePage - 1)}
-                  disabled={safePage === 0}
-                  aria-label={t("gallery.prev", "Попередня")}
-                >‹</button>
+                {safePage === 0 ? (
+                  <span className="pg-btn arrow disabled" aria-hidden="true">‹</span>
+                ) : (
+                  <LocalizedLink
+                    className="pg-btn arrow"
+                    to={pageHref(safePage - 1)}
+                    onClick={scrollTop}
+                    aria-label={t("gallery.prev", "Попередня")}
+                  >‹</LocalizedLink>
+                )}
                 {pageBtns.map((n, i) =>
                   n === "…" ? (
                     <span className="pg-dots" key={"d" + i}>…</span>
+                  ) : n === safePage ? (
+                    <span className="pg-btn active" key={n} aria-current="page">{n + 1}</span>
                   ) : (
-                    <button
+                    <LocalizedLink
                       key={n}
-                      className={"pg-btn" + (n === safePage ? " active" : "")}
-                      onClick={() => goPage(n)}
-                    >{n + 1}</button>
+                      className="pg-btn"
+                      to={pageHref(n)}
+                      onClick={scrollTop}
+                    >{n + 1}</LocalizedLink>
                   )
                 )}
-                <button
-                  className="pg-btn arrow"
-                  onClick={() => goPage(safePage + 1)}
-                  disabled={safePage === totalPages - 1}
-                  aria-label={t("gallery.next", "Наступна")}
-                >›</button>
+                {safePage === totalPages - 1 ? (
+                  <span className="pg-btn arrow disabled" aria-hidden="true">›</span>
+                ) : (
+                  <LocalizedLink
+                    className="pg-btn arrow"
+                    to={pageHref(safePage + 1)}
+                    onClick={scrollTop}
+                    aria-label={t("gallery.next", "Наступна")}
+                  >›</LocalizedLink>
+                )}
               </div>
             )}
           </>

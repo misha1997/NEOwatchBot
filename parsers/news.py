@@ -303,7 +303,18 @@ class NewsParser:
             response = requests.get(url, headers=headers, timeout=15)
             if response.status_code != 200:
                 raise Exception(f"HTTP {response.status_code}")
-            
+
+            # requests falls back to ISO-8859-1 (the old RFC 2616 default)
+            # whenever the server's Content-Type header omits a charset —
+            # universetoday.com does exactly that (`Content-Type: text/html`,
+            # no `; charset=`) despite the page itself being UTF-8. Decoding
+            # real UTF-8 bytes as ISO-8859-1 doesn't error, it just mangles
+            # every curly quote/dash into garbage ("SRT's" -> "SRTâs") —
+            # apparent_encoding (charset-sniffed from the actual bytes) is
+            # only worth trusting over the header when requests had nothing
+            # real to go on.
+            if response.encoding is None or response.encoding.lower() == 'iso-8859-1':
+                response.encoding = response.apparent_encoding
             html = response.text
             
             # Domain-specific selectors
