@@ -27,6 +27,11 @@ FAMOUS_TARGETS = [
     {"name": "Pillars of Creation", "coords": "18h18m48s -13d49m00s"}
 ]
 
+# Cap on simultaneous MAST cone-search queries — see the docstring on
+# MastService.get_hubble_jwst_recent_obs for why this isn't len(FAMOUS_TARGETS).
+_MAX_CONCURRENT_TARGETS = 2
+
+
 def mjd_to_date(mjd) -> str:
     """Convert Modified Julian Date (MJD) to DD.MM.YYYY string."""
     try:
@@ -169,16 +174,29 @@ class MastService:
         to 120s+ of total wait — longer than Cloudflare's proxy timeout, so
         the request died with a 524 before our own subprocess even finished.
         A thread pool (this is I/O-bound, not CPU-bound, so the GIL isn't a
-        problem) cuts the wall-clock time to roughly the slowest single
-        query instead of the sum of all of them. The 45s deadline below is
+        problem) cuts the wall-clock time down. The 45s deadline below is
         shared across all targets at once (``concurrent.futures.wait``, not
         a per-future ``result(timeout=...)`` in a loop) — the latter would
         re-arm a fresh 45s wait for every still-hung target it reaches,
-        letting several slow targets add their timeouts back up again."""
+        letting several slow targets add their timeouts back up again.
+
+        Worker count is capped, NOT ``len(FAMOUS_TARGETS)``: this whole
+        subprocess exists because lightkurve/astropy/astroquery are already
+        hundreds of MB resident just imported (see the module docstring on
+        ``_main``) — running every target's query truly concurrently was
+        observed OOM-killing the subprocess outright (rc=-9 in the journal)
+        because that many in-flight MAST result tables now overlap in
+        memory at once, where the old sequential version only ever held
+        one. _MAX_CONCURRENT_TARGETS trades some of the parallel speed-up
+        back for a bounded peak: still much faster than fully sequential,
+        without holding all 6 result sets in memory at the same time."""
         obs_list: list[dict] = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(FAMOUS_TARGETS)) as pool:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=_MAX_CONCURRENT_TARGETS) as pool:
             futures = {pool.submit(MastService._query_one_target, t): t for t in FAMOUS_TARGETS}
-            done, not_done = concurrent.futures.wait(futures, timeout=45)
+            # With only _MAX_CONCURRENT_TARGETS running at once, 6 targets
+            # need 3 sequential rounds, not 1 — the deadline has to cover
+            # all of them, not just one batch.
+            done, not_done = concurrent.futures.wait(futures, timeout=60)
             for fut in done:
                 target = futures[fut]
                 try:

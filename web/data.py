@@ -2277,7 +2277,7 @@ def _mast_hubble_jwst_raw() -> list | None:
     # empty-list-then-retry-later behavior get_or_fetch already handles
     # gracefully (failed subprocess isn't cached, so the next request tries
     # again rather than being stuck empty for the full 12h TTL).
-    return _run_mast_subprocess(["hubble-jwst"], timeout=80)
+    return _run_mast_subprocess(["hubble-jwst"], timeout=90)
 
 async def get_mast_hubble_jwst() -> list:
     # `v is not None` isn't enough here: a subprocess that ran fine but hit
