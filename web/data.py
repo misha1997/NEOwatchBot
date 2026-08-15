@@ -2280,8 +2280,17 @@ def _mast_hubble_jwst_raw() -> list | None:
     return _run_mast_subprocess(["hubble-jwst"], timeout=80)
 
 async def get_mast_hubble_jwst() -> list:
+    # `v is not None` isn't enough here: a subprocess that ran fine but hit
+    # its internal 45s per-batch deadline on every target (see
+    # MastService.get_hubble_jwst_recent_obs) returns `[]`, not `None` — an
+    # empty-but-not-None result would pass that check and get pinned in the
+    # cache for the full 12h, showing "no observations" for half a day over
+    # what was really a transient MAST slowdown. Any of the 6 permanent
+    # famous targets having zero recent HST/JWST imagery is implausible
+    # enough to treat an empty list the same as a failure: don't cache it,
+    # let the next request try again.
     val = await asyncio.to_thread(
         get_or_fetch, "mast_hj", 43200, _mast_hubble_jwst_raw,
-        lambda v: v is not None,
+        lambda v: bool(v),
     )
     return val or []
