@@ -516,7 +516,8 @@
   background: #000;
   margin: 8px 0 20px;
 }
-.article-inline-video iframe {
+.article-inline-video iframe,
+.article-inline-video video {
   position: absolute;
   inset: 0;
   width: 100%;

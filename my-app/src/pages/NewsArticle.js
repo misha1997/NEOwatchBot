@@ -205,16 +205,29 @@ export default function NewsArticle({ slug }) {
                     const vid = (article.body_videos || [])
                       .find((v) => String(v.position) === videoMatch[1]);
                     if (!vid) return null;
+                    // Self-hosted NASA clips are direct .mp4/.webm files, not
+                    // a YouTube/Vimeo embed page — a real <video> element,
+                    // not an <iframe>, is what actually plays them.
+                    const isFile = /\.(mp4|webm|ogv|ogg)(\?|$)/i.test(vid.src);
                     return (
                       <div className="article-inline-video" key={i}>
-                        <iframe
-                          src={vid.src}
-                          title="video"
-                          loading="lazy"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                          allowFullScreen
-                          referrerPolicy="no-referrer"
-                        />
+                        {isFile ? (
+                          <video
+                            src={vid.src}
+                            controls
+                            preload="metadata"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <iframe
+                            src={vid.src}
+                            title="video"
+                            loading="lazy"
+                            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                            referrerPolicy="no-referrer"
+                          />
+                        )}
                       </div>
                     );
                   }
