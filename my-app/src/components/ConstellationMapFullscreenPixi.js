@@ -106,10 +106,12 @@ export default function ConstellationMapFullscreenPixi({
   const objectsContainerRef = useRef(null);
   const domeGraphicsRef = useRef(null);
   const starTextureRef = useRef(null);
-  
+  const selectionRingRef = useRef(null);
+
   // Cache constellations data to redraw it during zoom/pan events
   const constellationsDataRef = useRef(null);
   const updateElementsScaleRef = useRef(null);
+  const selectedWorldPosRef = useRef(null); // {x,y} of the selected star/planet/galaxy, in world coords
 
   // States for detailed view and tooltip
   const [selectedObj, setSelectedObj] = useState(null);
@@ -248,6 +250,23 @@ export default function ConstellationMapFullscreenPixi({
     });
   };
 
+  // Helper to redraw the selection highlight ring around the tapped star/planet/galaxy,
+  // keeping it a constant screen size (inverse-scaled) as the user zooms.
+  const drawSelectionRing = (z) => {
+    const ring = selectionRingRef.current;
+    if (!ring) return;
+    ring.clear();
+
+    const pos = selectedWorldPosRef.current;
+    if (!pos) return;
+
+    const r = 15 / z;
+    ring.lineStyle({ width: 1.5 / z, color: 0x4fd1c5, alpha: 0.4 });
+    ring.drawCircle(pos.x, pos.y, r * 1.7);
+    ring.lineStyle({ width: 2 / z, color: 0x4fd1c5, alpha: 0.95 });
+    ring.drawCircle(pos.x, pos.y, r);
+  };
+
   // Helper to dynamically update elements' scale on zoom to prevent them from growing large
   const updateElementsScale = (z) => {
     // 1. Inverse-scale all stars based on zoom
@@ -282,6 +301,8 @@ export default function ConstellationMapFullscreenPixi({
 
     // Redraw constellation lines
     drawConstellationLines(z);
+    // Redraw the selection highlight ring
+    drawSelectionRing(z);
   };
   updateElementsScaleRef.current = updateElementsScale;
 
@@ -412,6 +433,11 @@ export default function ConstellationMapFullscreenPixi({
     world.addChild(objectsContainer);
     objectsContainerRef.current = objectsContainer;
 
+    // Added last so the selection ring always draws on top of stars/planets/galaxies.
+    const selectionRing = new PIXI.Graphics();
+    world.addChild(selectionRing);
+    selectionRingRef.current = selectionRing;
+
     const cx = width / 2;
     const cy = height / 2;
     const rHor = Math.min(width, height) * 0.43;
@@ -461,7 +487,6 @@ export default function ConstellationMapFullscreenPixi({
       containers[2].alpha = Math.max(0.0, Math.min(1.0, (z - 2.8) / 2.2));
       containers[3].alpha = Math.max(0.0, Math.min(1.0, (z - 5.0) / 3.0));
       containers[4].alpha = Math.max(0.0, Math.min(1.0, (z - 10.0) / 8.0));
-      labelsContainer.alpha = Math.max(0.0, Math.min(1.0, 1.0 - (z - 5.5) / 2.5));
     };
     app.ticker.add(updateLOD);
 
@@ -1048,6 +1073,20 @@ export default function ConstellationMapFullscreenPixi({
     });
 
   }, [celestialData, planetsData, galaxiesData, currentTime, seasonFilter, latLon, activeConst, lang, setActiveConst]);
+
+  // Highlight the tapped star/planet/galaxy with a ring on the sky itself (not
+  // just the detail card). Constellations already get their own highlight via
+  // tinted stars/lines, so they're excluded here.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!selectedObj || selectedObj.type === "constellation" || selectedObj.alt == null || selectedObj.az == null) {
+      selectedWorldPosRef.current = null;
+    } else {
+      const { cx, cy, rHor } = getViewportParams();
+      selectedWorldPosRef.current = altAzToXY(selectedObj.alt, selectedObj.az, cx, cy, rHor);
+    }
+    drawSelectionRing(zoomRef.current);
+  }, [selectedObj]);
 
   // Handle zooming using floating UI buttons
   const handleUiZoom = (zoomIn) => {
