@@ -721,6 +721,7 @@ export default function ConstellationMapFullscreenPixi({
       };
 
       sprite.on("pointerover", (e) => {
+        if (e.pointerType === "touch") return; // no hover concept on touch — avoid tooltip flicker while panning
         setHoveredObj({
           ...starObj,
           x: e.global.x + 15,
@@ -729,6 +730,7 @@ export default function ConstellationMapFullscreenPixi({
       });
       sprite.on("pointerout", () => setHoveredObj(null));
       sprite.on("pointertap", (e) => {
+        if (movedRef.current) return; // pan/drag gesture, not a real tap — the object rode along under the finger
         e.stopPropagation();
         spriteTapRef.current = true; // selection tap — suppress double-tap zoom
         setSelectedObj(starObj);
@@ -823,6 +825,7 @@ export default function ConstellationMapFullscreenPixi({
           textNode.eventMode = "static";
           textNode.cursor = "pointer";
           textNode.on("pointertap", (e) => {
+            if (movedRef.current) return; // pan/drag gesture, not a real tap
             e.stopPropagation();
             spriteTapRef.current = true; // selection tap — suppress double-tap zoom
             setActiveConst(c.id);
@@ -961,6 +964,7 @@ export default function ConstellationMapFullscreenPixi({
       };
 
       objSprite.on("pointerover", (e) => {
+        if (e.pointerType === "touch") return; // no hover concept on touch — avoid tooltip flicker while panning
         setHoveredObj({
           ...planetObj,
           x: e.global.x + 15,
@@ -969,6 +973,7 @@ export default function ConstellationMapFullscreenPixi({
       });
       objSprite.on("pointerout", () => setHoveredObj(null));
       objSprite.on("pointertap", (e) => {
+        if (movedRef.current) return; // pan/drag gesture, not a real tap — the object rode along under the finger
         e.stopPropagation();
         spriteTapRef.current = true; // selection tap — suppress double-tap zoom
         setSelectedObj(planetObj);
@@ -1024,6 +1029,7 @@ export default function ConstellationMapFullscreenPixi({
       };
 
       galContainer.on("pointerover", (e) => {
+        if (e.pointerType === "touch") return; // no hover concept on touch — avoid tooltip flicker while panning
         setHoveredObj({
           ...galObj,
           x: e.global.x + 15,
@@ -1032,6 +1038,7 @@ export default function ConstellationMapFullscreenPixi({
       });
       galContainer.on("pointerout", () => setHoveredObj(null));
       galContainer.on("pointertap", (e) => {
+        if (movedRef.current) return; // pan/drag gesture, not a real tap — the object rode along under the finger
         e.stopPropagation();
         spriteTapRef.current = true; // selection tap — suppress double-tap zoom
         setSelectedObj(galObj);

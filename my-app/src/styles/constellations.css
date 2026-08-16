@@ -439,6 +439,14 @@
 }
 .cfm-map-layer .const-map-loading { height: 100%; }
 
+/* The shared zoom column defaults to the map card's top-right corner, but in
+   fullscreen it would sit under the title bar's close button — shift it left
+   to clear that button instead (kept vertically level with it). */
+.cfm-fullscreen-wrap .const-zoom-col {
+  top: 18px;
+  right: 66px;
+}
+
 /* Top-left title bar (mirrors .jms-top-bar) */
 .cfm-top-bar {
   position: absolute;
@@ -586,6 +594,13 @@
     width: calc(100vw - 24px);
     /* Clear the iPhone home-indicator / gesture bar. */
     padding-bottom: max(14px, env(safe-area-inset-bottom));
+  }
+  /* On phones the title bar is short and card-free (the detail card becomes a
+     bottom sheet), so drop the zoom column straight down below it instead of
+     dodging sideways — there's no close button to clear at this width. */
+  .cfm-fullscreen-wrap .const-zoom-col {
+    top: 64px;
+    right: 12px;
   }
   /* Comfortable finger target for the zoom buttons. */
   .const-zoom-btn {

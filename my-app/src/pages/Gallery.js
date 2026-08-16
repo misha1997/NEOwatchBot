@@ -3,11 +3,13 @@
 // reload. Each page = PAGE_SIZE days of APODs, newest first; paging forward
 // into territory not yet mirrored is fetched live from NASA and ingested to
 // the DB in the same request (backend-driven lazy backfill).
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { useLang } from "../context/LanguageContext";
 import { getApodArchivePage } from "../lib/api";
+import { pathFor } from "../lib/seo";
+import LocalizedLink from "../components/primitives/LocalizedLink";
 import {
   videoEmbed,
   posterCandidates,
@@ -63,11 +65,8 @@ export default function Gallery() {
   const activePage = (data && typeof data.page === "number") ? data.page : page;
   const hasMore = (data && data.has_more) || false;
 
-  const goPage = useCallback((p) => {
-    const n = Math.max(0, Math.min(totalPages - 1, p));
-    setSearchParams(n === 0 ? {} : { page: String(n) });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [setSearchParams, totalPages]);
+  const pageHref = (n) => pathFor("gallery", lang) + (n === 0 ? "" : `?page=${n}`);
+  const scrollTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   // Lightbox keyboard nav (within the current page).
   useEffect(() => {
@@ -220,29 +219,40 @@ export default function Gallery() {
                 live-fetches + ingests any page not yet in the DB. */}
             {totalPages > 1 && (
               <div className="pagination">
-                <button
-                  className="pg-btn arrow"
-                  onClick={() => goPage(activePage - 1)}
-                  disabled={activePage === 0}
-                  aria-label={t("gallery.prev", "Попередня")}
-                >‹</button>
+                {activePage === 0 ? (
+                  <span className="pg-btn arrow disabled" aria-hidden="true">‹</span>
+                ) : (
+                  <LocalizedLink
+                    className="pg-btn arrow"
+                    to={pageHref(activePage - 1)}
+                    onClick={scrollTop}
+                    aria-label={t("gallery.prev", "Попередня")}
+                  >‹</LocalizedLink>
+                )}
                 {pageBtns.map((n, i) =>
                   n === "…" ? (
                     <span className="pg-dots" key={"d" + i}>…</span>
+                  ) : n === activePage ? (
+                    <span className="pg-btn active" key={n} aria-current="page">{n + 1}</span>
                   ) : (
-                    <button
+                    <LocalizedLink
                       key={n}
-                      className={"pg-btn" + (n === activePage ? " active" : "")}
-                      onClick={() => goPage(n)}
-                    >{n + 1}</button>
+                      className="pg-btn"
+                      to={pageHref(n)}
+                      onClick={scrollTop}
+                    >{n + 1}</LocalizedLink>
                   )
                 )}
-                <button
-                  className="pg-btn arrow"
-                  onClick={() => goPage(activePage + 1)}
-                  disabled={!hasMore}
-                  aria-label={t("gallery.next", "Наступна")}
-                >›</button>
+                {!hasMore ? (
+                  <span className="pg-btn arrow disabled" aria-hidden="true">›</span>
+                ) : (
+                  <LocalizedLink
+                    className="pg-btn arrow"
+                    to={pageHref(activePage + 1)}
+                    onClick={scrollTop}
+                    aria-label={t("gallery.next", "Наступна")}
+                  >›</LocalizedLink>
+                )}
               </div>
             )}
           </>
