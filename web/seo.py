@@ -240,7 +240,7 @@ def _render_webpage_jsonld(name: str, lang: str) -> str:
         "name": _title(lang, name),
         "description": _desc(lang, name) or "OrbitLight — небо зараз.",
         "url": canonical,
-        "inLanguage": _og_locale(lang),
+        "inLanguage": lang,
         "isPartOf": {"@type": "WebSite", "url": f"{SITE_URL}/{prefix_for(lang)}/", "name": "OrbitLight"},
         "breadcrumb": {"@type": "BreadcrumbList", "itemListElement": breadcrumb_items},
     }
@@ -263,7 +263,7 @@ def _render_news_jsonld(article: dict, lang: str) -> str:
         "@context": "https://schema.org",
         "@type": "NewsArticle",
         "headline": title or "",
-        "inLanguage": _og_locale(lang),
+        "inLanguage": lang,
         "url": url,
         "image": image if image else _OG_IMAGE,
         "datePublished": _pub_date_iso(pub),

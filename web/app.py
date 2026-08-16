@@ -275,31 +275,31 @@ def _spa_html(name: str, lang: str, status_code: int = 200,
                         headers={"Cache-Control": "public, max-age=300"})
 
 
-@app.get("/sitemap.xml", include_in_schema=False)
+@app.api_route("/sitemap.xml", methods=["GET", "HEAD"], include_in_schema=False)
 async def _sitemap():
     return Response(build_sitemap_index_xml(), media_type="application/xml; charset=utf-8",
                     headers={"Cache-Control": "public, max-age=3600"})
 
 
-@app.get("/sitemap-pages.xml", include_in_schema=False)
+@app.api_route("/sitemap-pages.xml", methods=["GET", "HEAD"], include_in_schema=False)
 async def _sitemap_pages():
     return Response(build_sitemap_pages_xml(), media_type="application/xml; charset=utf-8",
                     headers={"Cache-Control": "public, max-age=3600"})
 
 
-@app.get("/sitemap-news.xml", include_in_schema=False)
+@app.api_route("/sitemap-news.xml", methods=["GET", "HEAD"], include_in_schema=False)
 async def _sitemap_news():
     return Response(build_sitemap_news_xml(), media_type="application/xml; charset=utf-8",
                     headers={"Cache-Control": "public, max-age=3600"})
 
 
-@app.get("/sitemap-images.xml", include_in_schema=False)
+@app.api_route("/sitemap-images.xml", methods=["GET", "HEAD"], include_in_schema=False)
 async def _sitemap_images():
     return Response(build_sitemap_images_xml(), media_type="application/xml; charset=utf-8",
                     headers={"Cache-Control": "public, max-age=3600"})
 
 
-@app.get("/robots.txt", include_in_schema=False)
+@app.api_route("/robots.txt", methods=["GET", "HEAD"], include_in_schema=False)
 async def _robots():
     return Response(build_robots_txt(), media_type="text/plain; charset=utf-8",
                     headers={"Cache-Control": "public, max-age=3600"})
@@ -492,7 +492,7 @@ async def _spa_lang(lang: str, rest: str, request: Request):
 
 # --- Routes ------------------------------------------------------------------
 
-@app.get("/", include_in_schema=False)
+@app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
 async def _root(request: Request):
     """301 / → /<lang>/ by cookie (if set) else Accept-Language. Sets the
     cookie on the first visit so subsequent root hits are stable."""
@@ -501,28 +501,28 @@ async def _root(request: Request):
     return _lang_redirect(lang, set_cookie=not has_cookie)
 
 
-@app.get("/ua", include_in_schema=False)
+@app.api_route("/ua", methods=["GET", "HEAD"], include_in_schema=False)
 async def _spa_ua_root():
     return RedirectResponse(url="/ua/", status_code=301)
 
 
-@app.get("/ua/{rest:path}", include_in_schema=False)
+@app.api_route("/ua/{rest:path}", methods=["GET", "HEAD"], include_in_schema=False)
 async def _spa_ua(rest: str, request: Request):
     # /ua/  (rest == "")  → home. /ua/<slug> → _spa_lang.
     return await _spa_lang("uk", rest, request)
 
 
-@app.get("/en", include_in_schema=False)
+@app.api_route("/en", methods=["GET", "HEAD"], include_in_schema=False)
 async def _spa_en_root():
     return RedirectResponse(url="/en/", status_code=301)
 
 
-@app.get("/en/{rest:path}", include_in_schema=False)
+@app.api_route("/en/{rest:path}", methods=["GET", "HEAD"], include_in_schema=False)
 async def _spa_en(rest: str, request: Request):
     return await _spa_lang("en", rest, request)
 
 
-@app.get("/{full_path:path}", include_in_schema=False)
+@app.api_route("/{full_path:path}", methods=["GET", "HEAD"], include_in_schema=False)
 async def _spa_legacy(full_path: str, request: Request):
     """Catch-all for unprefixed URLs.
 
