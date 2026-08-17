@@ -12,10 +12,12 @@ from services.debris import SpaceDebrisAPI
 from services.facts import RandomFact
 from services.grb_alerts import GRBAlertAPI
 from database import (get_user, update_user_location, toggle_subscription,
-                      reverse_geocode, create_or_update_user, update_user_lang)
+                      reverse_geocode, create_or_update_user, update_user_lang,
+                      cycle_quiet_hours, cycle_iss_filter,
+                      QUIET_HOURS_PRESETS, ISS_FILTER_PRESETS)
 from utils.keyboards import (get_main_menu, get_iss_menu, get_weather_menu, get_sky_menu,
                              get_deep_menu, get_language_picker)
-from utils.i18n import t, normalize_lang, DEFAULT_LANG
+from utils.i18n import t, normalize_lang, DEFAULT_LANG, escape_html
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,6 +37,35 @@ SUB_KEYS = {
     'grb': ('settings.grb', 'sub.grb'),
 }
 SUB_ORDER = ['iss', 'apod', 'launches', 'neo', 'news', 'meteors', 'flares', 'grb']
+
+
+def _quiet_hours_label(user: dict, lang: str) -> str:
+    """Translated label for the user's current quiet-hours preset."""
+    if not user:
+        idx = 0
+    else:
+        current = (
+            bool(user.get('quiet_hours_enabled', True)),
+            int(user.get('quiet_start') if user.get('quiet_start') is not None else 0),
+            int(user.get('quiet_end') if user.get('quiet_end') is not None else 6),
+        )
+        try:
+            idx = QUIET_HOURS_PRESETS.index(current)
+        except ValueError:
+            idx = 0
+    return t(f'settings.quiet.p{idx}', lang)
+
+
+def _iss_filter_label(user: dict, lang: str) -> str:
+    """Translated label for the user's current ISS brightness-filter preset."""
+    value = None
+    if user and user.get('iss_min_magnitude') is not None:
+        value = float(user['iss_min_magnitude'])
+    try:
+        idx = ISS_FILTER_PRESETS.index(value)
+    except ValueError:
+        idx = 0
+    return t(f'settings.iss.p{idx}', lang)
 
 
 def _lang_from(context: ContextTypes.DEFAULT_TYPE) -> str:
@@ -106,6 +137,8 @@ class CallbackHandlers:
             'settings': CallbackHandlers.settings,
             'set_location': CallbackHandlers.set_location,
             'language': CallbackHandlers.choose_language,
+            'quiet_cycle': CallbackHandlers.handle_quiet_cycle,
+            'iss_filter_cycle': CallbackHandlers.handle_iss_filter_cycle,
             'back_menu': CallbackHandlers.back_to_menu,
         }
 
@@ -263,7 +296,7 @@ class CallbackHandlers:
 
                 caption = f"{t('apod.video_title', lang)}\n\n"
                 caption += f"{t('apod.date', lang, date=data.get('date', ''))}\n"
-                caption += f"{t('apod.media', lang, title=data.get('title', ''))}\n\n"
+                caption += f"{t('apod.media', lang, title=escape_html(data.get('title', '')))}\n\n"
                 caption += t('apod.full_below', lang)
 
                 # Check if it's a direct video file (MP4, etc.) - handle query params
@@ -286,8 +319,8 @@ class CallbackHandlers:
                         await update.callback_query.message.reply_text(
                             f"{t('apod.video_title', lang)}\n\n"
                             f"{t('apod.date', lang, date=data.get('date', ''))}\n"
-                            f"{t('apod.media', lang, title=data.get('title', ''))}\n\n"
-                            f"<a href='{video_url}'>{t('apod.watch', lang)}</a>\n\n"
+                            f"{t('apod.media', lang, title=escape_html(data.get('title', '')))}\n\n"
+                            f"<a href='{escape_html(video_url)}'>{t('apod.watch', lang)}</a>\n\n"
                             f"{t('apod.full_below', lang)}",
                             parse_mode='HTML',
                             disable_web_page_preview=False
@@ -314,17 +347,17 @@ class CallbackHandlers:
                             photo=thumbnail or video_url,
                             caption=f"{t('apod.video_title', lang)}\n\n"
                                     f"{t('apod.date', lang, date=data.get('date', ''))}\n"
-                                    f"{t('apod.media', lang, title=data.get('title', ''))}\n\n"
-                                    f"<a href='{video_url}'>{t('apod.watch', lang)}</a>\n\n"
+                                    f"{t('apod.media', lang, title=escape_html(data.get('title', '')))}\n\n"
+                                    f"<a href='{escape_html(video_url)}'>{t('apod.watch', lang)}</a>\n\n"
                                     f"{t('apod.full_below', lang)}",
                             parse_mode='HTML'
                         )
-                    except:
+                    except Exception:
                         await update.callback_query.message.reply_text(
                             f"{t('apod.video_title', lang)}\n\n"
                             f"{t('apod.date', lang, date=data.get('date', ''))}\n"
-                            f"{t('apod.media', lang, title=data.get('title', ''))}\n\n"
-                            f"<a href='{video_url}'>{t('apod.watch', lang)}</a>\n\n"
+                            f"{t('apod.media', lang, title=escape_html(data.get('title', '')))}\n\n"
+                            f"<a href='{escape_html(video_url)}'>{t('apod.watch', lang)}</a>\n\n"
                             f"{t('apod.full_below', lang)}",
                             parse_mode='HTML',
                             disable_web_page_preview=False
@@ -345,7 +378,7 @@ class CallbackHandlers:
                         chat_id=update.effective_chat.id,
                         text=f"{t('apod.title', lang)}\n\n"
                              f"{t('apod.date', lang, date=data.get('date', ''))}\n\n"
-                             f"<a href='{formatted['image']}'>{t('apod.watch_photo', lang)}</a>\n\n",
+                             f"<a href='{escape_html(formatted['image'])}'>{t('apod.watch_photo', lang)}</a>\n\n",
                         parse_mode='HTML'
                     )
 
@@ -801,8 +834,8 @@ class CallbackHandlers:
             msg = t('grb.recent_title', lang)
             for g in grbs:
                 msg += t('grb.recent_entry', lang,
-                         name=g['grb_name'], title=g['title'],
-                         url=g['url'], id=g['circular_id'])
+                         name=escape_html(g['grb_name']), title=escape_html(g['title']),
+                         url=escape_html(g['url']), id=g['circular_id'])
             msg += t('grb.recent_footer', lang)
         await CallbackHandlers._replace_message(update, context,
             msg,
@@ -820,7 +853,10 @@ class CallbackHandlers:
         def chk(key):
             return '✅' if user and user.get(f'subscribed_{key}') else '☑️'
 
-        city = user.get('city', t('settings.city_none', lang)) if user else t('settings.city_none', lang)
+        city = escape_html((user.get('city') if user else None) or t('settings.city_none', lang))
+
+        quiet_label = _quiet_hours_label(user, lang)
+        iss_filter_label = _iss_filter_label(user, lang)
 
         message = t('settings.title', lang)
         message += t('settings.city', lang, city=city)
@@ -828,6 +864,11 @@ class CallbackHandlers:
         for key in SUB_ORDER:
             full_key, _short = SUB_KEYS[key]
             message += f"{chk(key)} {t(full_key, lang)}\n"
+        message += "\n"
+        message += t('settings.quiet_section', lang, value=quiet_label)
+        message += t('settings.iss_section', lang, value=iss_filter_label)
+        if not user or user.get('lat') is None or user.get('lon') is None:
+            message += t('settings.quiet_no_location', lang) + "\n"
 
         keyboard = [
             [
@@ -843,6 +884,12 @@ class CallbackHandlers:
             [
                 InlineKeyboardButton(f"{chk('flares')} {t(SUB_KEYS['flares'][1], lang)}", callback_data='sub_flares'),
                 InlineKeyboardButton(f"{chk('grb')} {t(SUB_KEYS['grb'][1], lang)}", callback_data='sub_grb'),
+            ],
+            [
+                InlineKeyboardButton(t('settings.quiet_btn', lang, value=quiet_label), callback_data='quiet_cycle'),
+            ],
+            [
+                InlineKeyboardButton(t('settings.iss_btn', lang, value=iss_filter_label), callback_data='iss_filter_cycle'),
             ],
             [
                 InlineKeyboardButton(t('settings.change_city', lang), callback_data='set_location'),
@@ -924,7 +971,7 @@ class CallbackHandlers:
                 del user_states[user_id]
 
             await CallbackHandlers._replace_message(update, context,
-                t('city.set', lang, city=city_label, lat=f'{lat:.4f}', lon=f'{lon:.4f}'),
+                t('city.set', lang, city=escape_html(city_label), lat=f'{lat:.4f}', lon=f'{lon:.4f}'),
                 parse_mode='HTML',
                 reply_markup=get_main_menu(lang)
             )
@@ -957,6 +1004,36 @@ class CallbackHandlers:
 
         except Exception as e:
             logger.error(f"Subscription toggle error: {e}")
+            await update.callback_query.answer(t('settings.toggle_error', lang))
+
+    @staticmethod
+    async def handle_quiet_cycle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Cycle the user's quiet-hours preset and redraw settings."""
+        user_id = update.effective_user.id
+        lang = _lang_from(context)
+
+        try:
+            enabled, start, end = cycle_quiet_hours(user_id)
+            idx = QUIET_HOURS_PRESETS.index((enabled, start, end))
+            await update.callback_query.answer(t(f'settings.quiet.p{idx}', lang))
+            await CallbackHandlers.settings(update, context)
+        except Exception as e:
+            logger.error(f"Quiet-hours cycle error: {e}")
+            await update.callback_query.answer(t('settings.toggle_error', lang))
+
+    @staticmethod
+    async def handle_iss_filter_cycle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Cycle the user's ISS brightness-filter preset and redraw settings."""
+        user_id = update.effective_user.id
+        lang = _lang_from(context)
+
+        try:
+            new_value = cycle_iss_filter(user_id)
+            idx = ISS_FILTER_PRESETS.index(new_value)
+            await update.callback_query.answer(t(f'settings.iss.p{idx}', lang))
+            await CallbackHandlers.settings(update, context)
+        except Exception as e:
+            logger.error(f"ISS filter cycle error: {e}")
             await update.callback_query.answer(t('settings.toggle_error', lang))
 
     @staticmethod

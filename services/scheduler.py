@@ -31,7 +31,8 @@ from database import (
     is_grb_notified, mark_grb_notified, cleanup_old_grb_notifications
 )
 from services import NasaAPI, N2YOAPI
-from utils.i18n import t, pick, compass_dir, normalize_lang
+from utils.i18n import t, pick, compass_dir, normalize_lang, escape_html
+from utils.constants import local_hour_for_coords
 from web.seo import SITE_URL, slug_for_name
 
 logger = logging.getLogger(__name__)
@@ -47,14 +48,30 @@ class NotificationScheduler:
         self._notified_eclipses = set()  # Track notified astronomy events
 
     @staticmethod
-    def _is_quiet_hours() -> bool:
-        """Return True between 00:00 and 06:00 Kyiv time."""
-        return datetime.now(KYIV_TZ).hour < 6
+    def _is_quiet_hours_for(user: dict) -> bool:
+        """Per-user quiet-hours check.
+
+        Evaluated in the user's own local time (derived from their saved
+        lat/lon via local_hour_for_coords), not a single Kyiv-wide window —
+        so a user in Tokyo doesn't get woken at their 9am because it's still
+        night in Kyiv. Falls back to the (enabled, 00-06) default preset —
+        the previous hardcoded behavior — for users who haven't set one.
+        """
+        if not user.get('quiet_hours_enabled', True):
+            return False
+        start = user.get('quiet_start')
+        end = user.get('quiet_end')
+        start = 0 if start is None else int(start)
+        end = 6 if end is None else int(end)
+        if start == end:
+            return False
+        hour = local_hour_for_coords(user.get('lat'), user.get('lon'))
+        if start < end:
+            return start <= hour < end
+        return hour >= start or hour < end  # window wraps midnight
 
     async def send_apod_to_subscribers(self):
         """Send APOD to all subscribers - once per day"""
-        if self._is_quiet_hours():
-            return
         try:
             today = datetime.now().strftime('%Y-%m-%d')
 
@@ -155,8 +172,6 @@ class NotificationScheduler:
 
     async def check_iss_passes(self):
         """Check for upcoming ISS passes and notify subscribers"""
-        if self._is_quiet_hours():
-            return
         try:
             logger.info("Checking ISS passes...")
             subscribers = get_iss_subscribers()
@@ -178,6 +193,13 @@ class NotificationScheduler:
                     if lat is None or lon is None:
                         continue
 
+                    if self._is_quiet_hours_for(user):
+                        continue
+
+                    min_magnitude = user.get('iss_min_magnitude')
+                    if min_magnitude is not None:
+                        min_magnitude = float(min_magnitude)
+
                     # Get upcoming passes
                     passes = N2YOAPI.get_iss_passes_raw(lat, lon, days=2)
 
@@ -192,8 +214,12 @@ class NotificationScheduler:
                         pass_time_kyiv = pass_time_utc.astimezone(KYIV_TZ)
                         time_until = (pass_time_utc - now_kyiv).total_seconds()
 
-                        # Notify if pass is in 10-15 minutes
-                        if 600 <= time_until <= 900:
+                        # Notify if pass is in 5-15 minutes. The window must be
+                        # >= the 10-minute check cadence above (now.minute % 10
+                        # == 0), otherwise a pass's countdown can step over a
+                        # narrower window between two checks and never notify
+                        # at all (this happened with the old 600-900s window).
+                        if 300 <= time_until <= 900:
                             # Check if already notified about this specific pass
                             current_pass_timestamp = int(iss_pass['startUTC'])
                             last_notified_pass = user.get('last_iss_pass')
@@ -202,12 +228,22 @@ class NotificationScheduler:
                                 logger.info(f"Already notified user {user_id} about ISS pass at {pass_time_kyiv}")
                                 continue
 
+                            magnitude = iss_pass.get('mag')
+
+                            # Brightness filter: lower/more negative magnitude
+                            # = brighter. Passes with unknown magnitude are
+                            # let through even with a filter set — better to
+                            # over-notify on missing N2YO data than silently
+                            # drop a pass that might be a great one.
+                            if (min_magnitude is not None and magnitude is not None
+                                    and magnitude > min_magnitude):
+                                continue
+
                             duration = iss_pass.get('duration', 0)
                             max_elevation = iss_pass.get('maxEl', 0)
                             start_dir = compass_dir(iss_pass.get('startAzCompass', 'SW'), lang)
                             max_dir = compass_dir(iss_pass.get('maxAzCompass', ''), lang)
                             end_dir = compass_dir(iss_pass.get('endAzCompass', ''), lang)
-                            magnitude = iss_pass.get('mag')
 
                             msg = t('sch.iss.title', lang)
                             msg += t('sch.iss.time', lang,
@@ -246,8 +282,6 @@ class NotificationScheduler:
 
     async def check_upcoming_launches(self):
         """Check for launches happening now and notify subscribers"""
-        if self._is_quiet_hours():
-            return
         try:
             logger.info("Checking upcoming launches...")
 
@@ -267,7 +301,7 @@ class NotificationScheduler:
                 logger.info("No launch subscribers")
                 return
 
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
             notified_count = 0
 
             for launch in launches:
@@ -298,8 +332,9 @@ class NotificationScheduler:
                 mark_launch_notified(launch_id, notification_type)
                 notified_count += 1
 
-            # Cleanup old notifications from database (once per day at 03:00)
-            if now.hour == 3 and now.minute < 5:
+            # Cleanup old notifications from database (once per day at 03:00 Kyiv)
+            now_kyiv = now.astimezone(KYIV_TZ)
+            if now_kyiv.hour == 3 and now_kyiv.minute < 5:
                 cleanup_old_launch_notifications(days=7)
 
             logger.info(f"Launch check completed. Sent {notified_count} notifications.")
@@ -308,9 +343,14 @@ class NotificationScheduler:
             logger.error(f"Launch scheduler error: {e}")
 
     async def check_hazardous_asteroids(self):
-        """Check for hazardous asteroids and notify subscribers"""
-        if self._is_quiet_hours():
-            return
+        """Check for hazardous asteroids and notify subscribers.
+
+        Not quiet-hours gated: each asteroid is marked notified once,
+        globally, the first time it's seen — if that happened to land in a
+        quiet window the alert would be lost forever for every subscriber,
+        not just deferred. These are rare enough that an occasional
+        off-hours ping beats silently dropping a hazardous-asteroid alert.
+        """
         try:
             logger.info("Checking hazardous asteroids...")
 
@@ -385,8 +425,8 @@ class NotificationScheduler:
 
             logger.info(f"Hazardous asteroid check completed. Notified about {notified_count} asteroids")
 
-            # Cleanup old notifications once per day (at 4 AM)
-            now = datetime.now()
+            # Cleanup old notifications once per day (at 4 AM Kyiv)
+            now = datetime.now(KYIV_TZ)
             if now.hour == 4 and now.minute < 5:
                 cleanup_old_neo_notifications(days=30)
 
@@ -394,9 +434,11 @@ class NotificationScheduler:
             logger.error(f"Hazardous asteroid scheduler error: {e}")
 
     async def check_solar_flares(self):
-        """Check for M-class and X-class solar flares and alert subscribers"""
-        if self._is_quiet_hours():
-            return
+        """Check for M-class and X-class solar flares and alert subscribers.
+
+        Not quiet-hours gated — same one-shot global dedup reasoning as
+        check_hazardous_asteroids above.
+        """
         try:
             logger.info("Checking solar flares...")
 
@@ -462,8 +504,8 @@ class NotificationScheduler:
             mark_flare_notified(flare_class, flare_time, flare['flux'])
             logger.info(f"Sent {flare_class}-class solar flare alert to {len(subscribers)} users")
 
-            # Cleanup old notifications once per day (at 5 AM)
-            now = datetime.now()
+            # Cleanup old notifications once per day (at 5 AM Kyiv)
+            now = datetime.now(KYIV_TZ)
             if now.hour == 5 and now.minute < 5:
                 cleanup_old_flare_notifications(days=7)
 
@@ -471,9 +513,12 @@ class NotificationScheduler:
             logger.error(f"Solar flare check error: {e}")
 
     async def check_geomagnetic_storms(self):
-        """Check for geomagnetic storms (Kp >= 5) and notify subscribers"""
-        if self._is_quiet_hours():
-            return
+        """Check for geomagnetic storms (Kp >= 5) and notify subscribers.
+
+        Not quiet-hours gated — same one-shot global dedup reasoning as
+        check_hazardous_asteroids above (and aurora alerts are arguably the
+        one case users most want even overnight).
+        """
         try:
             logger.info("Checking geomagnetic storms...")
 
@@ -575,8 +620,8 @@ class NotificationScheduler:
             mark_storm_notified(kp_str, kp_time, g_scale)
             logger.info(f"Sent geomagnetic storm alert (Kp={kp_str}, {g_scale}) to {len(subscribers)} users")
 
-            # Cleanup old notifications once per day (at 5 AM)
-            now = datetime.now()
+            # Cleanup old notifications once per day (at 5 AM Kyiv)
+            now = datetime.now(KYIV_TZ)
             if now.hour == 5 and now.minute < 5:
                 cleanup_old_storm_notifications(days=7)
 
@@ -584,9 +629,11 @@ class NotificationScheduler:
             logger.error(f"Geomagnetic storm check error: {e}")
 
     async def check_grb_alerts(self):
-        """Check for new GRB events and notify subscribers"""
-        if self._is_quiet_hours():
-            return
+        """Check for new GRB events and notify subscribers.
+
+        Not quiet-hours gated — same one-shot global dedup reasoning as
+        check_hazardous_asteroids above.
+        """
         try:
             logger.info("Checking GRB alerts...")
 
@@ -635,8 +682,8 @@ class NotificationScheduler:
 
             logger.info(f"GRB check completed. Notified about {notified_count} GRBs")
 
-            # Cleanup old notifications once per day (at 6 AM)
-            now = datetime.now()
+            # Cleanup old notifications once per day (at 6 AM Kyiv)
+            now = datetime.now(KYIV_TZ)
             if now.hour == 6 and now.minute < 5:
                 cleanup_old_grb_notifications(days=30)
 
@@ -645,8 +692,6 @@ class NotificationScheduler:
 
     async def check_astronomy_events(self):
         """Check for upcoming eclipses and notify subscribers"""
-        if self._is_quiet_hours():
-            return
         try:
             from services.astronomy import get_next_eclipse
             # Use the neutral type field for the dedup decision; language does
@@ -755,8 +800,6 @@ class NotificationScheduler:
 
     async def send_daily_news(self):
         """Send daily news digest from Spaceflightnow"""
-        if self._is_quiet_hours():
-            return
         try:
             logger.info("Sending daily news...")
 
@@ -858,13 +901,13 @@ class NotificationScheduler:
                         elif 'iss' in category.lower():
                             cat_emoji = "🛰️"
 
-                        message += t('sch.news.entry', lang, i=i, emoji=cat_emoji, title=title_disp)
+                        message += t('sch.news.entry', lang, i=i, emoji=cat_emoji, title=escape_html(title_disp))
                         if excerpt_disp:
                             # Truncate excerpt if too long
                             if len(excerpt_disp) > 150:
                                 excerpt_disp = excerpt_disp[:150] + "..."
-                            message += t('sch.news.excerpt', lang, excerpt=excerpt_disp)
-                        message += t('sch.news.read_more', lang, url=url)
+                            message += t('sch.news.excerpt', lang, excerpt=escape_html(excerpt_disp))
+                        message += t('sch.news.read_more', lang, url=escape_html(url))
 
                     message += t('sch.news.footer_uk' if lang == 'uk'
                                  else 'sch.news.footer_en', lang)
@@ -885,22 +928,26 @@ class NotificationScheduler:
 
             logger.info(f"Sent daily news to {sent_count}/{len(subscribers)} subscribers")
 
-            # Cleanup old notifications once per day (at 5 AM)
-            now = datetime.now()
-            if now.hour == 5 and now.minute < 5:
-                cleanup_old_news_notifications(days=30)
+            # This whole function only runs once/day (main loop gates it to
+            # 10:00 Kyiv), so cleanup just runs every time it does — a
+            # dedicated "hour == 5" gate here was dead code, since it would
+            # never be true while this method is only entered at hour == 10.
+            cleanup_old_news_notifications(days=30)
 
         except Exception as e:
             logger.error(f"Daily news scheduler error: {e}")
 
     async def check_meteor_showers(self):
         """Check for upcoming meteor showers and notify subscribers"""
-        if self._is_quiet_hours():
-            return
         try:
             logger.info("Checking meteor showers...")
 
-            now = datetime.now()
+            # Must use Kyiv wall-clock time, not server-local: this function
+            # only runs when the main loop's Kyiv-aware clock hits 22:00, but
+            # re-checks "now.hour == 22" itself below — on a non-Kyiv server
+            # (e.g. a UTC VPS) a naive datetime.now() would never read 22
+            # here, silently killing meteor shower notifications entirely.
+            now = datetime.now(KYIV_TZ)
 
             # Get upcoming showers
             showers = MeteorShower.get_upcoming_showers(3)
@@ -994,9 +1041,10 @@ class NotificationScheduler:
                     mark_meteor_notified(shower_name, peak_date_str, notification_type)
                     logger.info(f"Sent today notification for {shower_name}")
 
-            # Cleanup old notifications once per day (at 6 AM)
-            if now.hour == 6 and now.minute < 5:
-                cleanup_old_meteor_notifications(days=60)
+            # This function only runs once/day (main loop gates it to 22:00
+            # Kyiv), so an "hour == 6" gate here would never fire — just
+            # clean up every time this runs, same fix as send_daily_news.
+            cleanup_old_meteor_notifications(days=60)
 
             logger.info("Meteor shower check completed")
 
@@ -1018,9 +1066,14 @@ class NotificationScheduler:
                     net = result.get('net')  # ISO format datetime
 
                     if net:
-                        # Parse ISO datetime
+                        # Parse ISO datetime, kept UTC-aware so it can be
+                        # compared safely against an aware "now" regardless
+                        # of the host machine's system timezone.
                         launch_time = datetime.fromisoformat(net.replace('Z', '+00:00'))
-                        launch_time = launch_time.replace(tzinfo=None)  # Make naive
+                        if launch_time.tzinfo is None:
+                            launch_time = launch_time.replace(tzinfo=timezone.utc)
+                        else:
+                            launch_time = launch_time.astimezone(timezone.utc)
 
                         # Get info URL for livestream (SpaceX page or fallback)
                         info_urls = result.get('info_urls', [])
@@ -1051,11 +1104,14 @@ class NotificationScheduler:
 
             for user in subscribers:
                 try:
+                    if self._is_quiet_hours_for(user):
+                        continue
+
                     lang = normalize_lang(user.get('lang'))
                     message = t('sch.launch.title', lang)
-                    message += t('sch.launch.name_line', lang, name=launch_name)
+                    message += t('sch.launch.name_line', lang, name=escape_html(launch_name))
                     message += t('sch.launch.date_line', lang, date=date_str)
-                    message += t('sch.launch.watch', lang, url=live_url)
+                    message += t('sch.launch.watch', lang, url=escape_html(live_url))
 
                     await self.bot.send_message(
                         chat_id=user['chat_id'],
@@ -1069,6 +1125,13 @@ class NotificationScheduler:
 
         except Exception as e:
             logger.error(f"Launch notification error: {e}")
+
+    @staticmethod
+    def _seconds_to_next_minute() -> float:
+        """Seconds until the next wall-clock minute boundary (Kyiv time)."""
+        now = datetime.now(KYIV_TZ)
+        next_minute = (now + timedelta(minutes=1)).replace(second=0, microsecond=0)
+        return max(1.0, (next_minute - now).total_seconds())
 
     async def run_scheduled_tasks(self):
         """Main scheduler loop - runs every minute"""
@@ -1133,12 +1196,17 @@ class NotificationScheduler:
                 if now.hour == 22 and now.minute == 0:
                     await self.check_meteor_showers()
 
-                # Sleep for 1 minute
-                await asyncio.sleep(60)
+                # Sleep until the top of the next minute rather than a flat
+                # 60s: a flat sleep drifts by however long the checks above
+                # took, and that drift can push an iteration past an
+                # exact-minute trigger (now.minute == 0, hour == 22, etc.),
+                # silently skipping that day's/hour's notification entirely.
+                # Anchoring to the wall clock keeps every iteration aligned.
+                await asyncio.sleep(self._seconds_to_next_minute())
 
             except Exception as e:
                 logger.error(f"Scheduler error: {e}")
-                await asyncio.sleep(60)
+                await asyncio.sleep(self._seconds_to_next_minute())
 
 
 async def start_scheduler():

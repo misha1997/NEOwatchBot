@@ -100,7 +100,7 @@ export default function Earth() {
       </section>
 
       {/* ---------- live stats ---------- */}
-      <section className="section" style={{ paddingTop: 8 }}>
+      <section className="section" id="live-stats" style={{ paddingTop: 8 }}>
         <div className="wrap">
           <SectionHead eyebrow={t("earth.stats.eyebrow")} title={t("earth.stats.title")} />
           <div className="grid cols-4">

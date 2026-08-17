@@ -7,7 +7,7 @@ from database import (
 )
 from handlers.callbacks import CallbackHandlers
 from utils.keyboards import get_main_menu
-from utils.i18n import t, normalize_lang, DEFAULT_LANG
+from utils.i18n import t, normalize_lang, DEFAULT_LANG, escape_html
 import logging
 
 logger = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ class MessageHandlers:
 
             if not suggestions:
                 await update.message.reply_text(
-                    t('city.not_found', lang, city=city_name),
+                    t('city.not_found', lang, city=escape_html(city_name)),
                     parse_mode='HTML',
                     reply_markup=InlineKeyboardMarkup([[
                         InlineKeyboardButton(t('menu.back', lang), callback_data='back_menu')
@@ -79,7 +79,7 @@ class MessageHandlers:
                     display = f"{name}, {country}"
                 else:
                     display = name
-                message += f"{i}. {city.get('display_name') or display}\n"
+                message += f"{i}. {escape_html(city.get('display_name') or display)}\n"
 
                 # Encode exact coordinates (handles negative lat/lon; ~25 bytes)
                 try:
@@ -142,7 +142,7 @@ class MessageHandlers:
             del user_states[user_id]
 
             await update.message.reply_text(
-                t('city.set', lang, city=city_label, lat=f'{lat:.4f}', lon=f'{lon:.4f}'),
+                t('city.set', lang, city=escape_html(city_label), lat=f'{lat:.4f}', lon=f'{lon:.4f}'),
                 parse_mode='HTML',
                 reply_markup=get_main_menu(lang)
             )

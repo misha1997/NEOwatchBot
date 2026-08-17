@@ -208,3 +208,29 @@ def country_name(bbox_key: str, lang: str = 'uk') -> str:
         return COUNTRY_NAMES_EN.get(bbox_key, bbox_key)
     return bbox_key
 
+
+def local_hour_for_coords(lat, lon) -> int:
+    """Approximate local wall-clock hour (0-23) for the given coordinates.
+
+    Ukraine (by bounding box) uses the real Europe/Kyiv zone, which handles
+    DST correctly. Everywhere else falls back to a solar-longitude estimate
+    (UTC + round(lon/15)) since this project has no timezone-database
+    dependency — good enough to gate a "quiet hours" window, not a precise
+    political timezone. Missing coordinates fall back to Kyiv time (matches
+    the previous Kyiv-only behavior).
+    """
+    from datetime import datetime, timezone, timedelta
+    from zoneinfo import ZoneInfo
+
+    now_utc = datetime.now(timezone.utc)
+
+    if lat is None or lon is None:
+        return now_utc.astimezone(ZoneInfo('Europe/Kyiv')).hour
+
+    min_lon, min_lat, max_lon, max_lat = COUNTRY_BBOXES['🇺🇦 Україна']
+    if min_lon <= lon <= max_lon and min_lat <= lat <= max_lat:
+        return now_utc.astimezone(ZoneInfo('Europe/Kyiv')).hour
+
+    offset_hours = round(lon / 15.0)
+    return (now_utc + timedelta(hours=offset_hours)).hour
+

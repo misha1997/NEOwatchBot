@@ -441,10 +441,13 @@
 
 /* The shared zoom column defaults to the map card's top-right corner, but in
    fullscreen it would sit under the title bar's close button — shift it left
-   to clear that button instead (kept vertically level with it). */
+   to clear that button instead (kept vertically level with it). Leaflet's own
+   corner controls (SatMapFullscreen) sit at z-index 1000, so this must clear
+   that too or the map paints over it. */
 .cfm-fullscreen-wrap .const-zoom-col {
   top: 18px;
   right: 66px;
+  z-index: 1500;
 }
 
 /* Top-left title bar (mirrors .jms-top-bar) */
@@ -453,6 +456,11 @@
   top: 0;
   left: 0;
   right: 0;
+  /* Leaflet's own control-corner panes (SatMapFullscreen) default to
+     z-index 1000; anything less gets painted over by the map despite being
+     a later/lower sibling with a "correct" z-index — confirmed empirically,
+     not just theoretically, so keep this comfortably above 1000. */
+  z-index: 1500;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -505,6 +513,7 @@
   position: absolute;
   bottom: 22px;
   left: 50%;
+  z-index: 1500;
   transform: translateX(-50%);
   max-width: calc(100vw - 32px);
   width: max-content;

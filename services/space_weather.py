@@ -452,10 +452,10 @@ class SpaceWeatherAPI:
             if not data:
                 return None
 
-            from datetime import datetime
+            from datetime import datetime, timezone
 
             # Today (UTC date matching NOAA data)
-            today = datetime.utcnow().date()
+            today = datetime.now(timezone.utc).date()
 
             # Build dictionary of max Kp per date
             daily_kp = {}

@@ -475,11 +475,11 @@
 }
 #moons .moon-card .body { padding: 16px; }
 #moons .moon-card .moon-head {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap;
 }
 #moons .moon-card .moon-group {
-  font-size: 10.5px; color: var(--text-dim); white-space: nowrap;
-  letter-spacing: .02em;
+  font-size: 10.5px; color: var(--text-dim); white-space: normal;
+  text-align: right; letter-spacing: .02em;
 }
 #moons .moon-card h4 { font-size: 14px; font-weight: 600; }
 #moons .moon-card .moon-stats {
@@ -593,10 +593,31 @@
   .mission-row .ag { display: none; }
   .pressure-wrap { flex-direction: column; height: auto; }
   .pressure-bar { width: 100%; height: 70px; background: linear-gradient(to right, #0a3d5c, #4FD1C5 55%, #cfeeea); }
-  .pressure-marks { height: 260px; }
+  /* .pressure-marks/.depth-marks are `flex: 1 1 0%` — with the wrap now
+     height:auto (no fixed cross size to grow into), flex-basis:0% wins over
+     this height and the marks column collapses to 0px, stacking every
+     %-positioned label on the same line. `flex:none` makes the explicit
+     height authoritative again instead of a flex-grow target. */
+  .pressure-marks { flex: none; height: 260px; }
   .depth-wrap { flex-direction: column; height: auto; }
   .depth-bar { width: 100%; height: 70px; background: linear-gradient(to right, #D8A46E, #B5651D 35%, #6b3410 65%, #2a1408); }
-  .depth-marks { height: 260px; }
+  .depth-marks { flex: none; height: 260px; }
+  /* The longest labels (e.g. Jupiter's "металевий водень, джерело магнітного
+     поля") don't fit on one line at phone width and were silently clipped by
+     the nowrap + page's overflow-x:hidden. Let them wrap onto a second line
+     instead — .ln still fills whatever width is left. */
+  .pmark { align-items: flex-start; }
+  .pmark .txt { white-space: normal; max-width: 78%; line-height: 1.35; }
+  .pmark .ln { margin-top: 7px; }
+}
+
+/* Moon-card grids (Jupiter/Neptune/Uranus eight-moon galleries) share the
+   generic .grid.cols-4 — that already drops to 2 columns at <=900px, but on
+   phones a 2-up card is too cramped for a photo + 4 stats + description, so
+   it goes full-width below the phone breakpoint. Scoped to #moons so it
+   doesn't touch other .cols-4 grids on these same pages. */
+@media (max-width: 640px) {
+  #moons .grid.cols-4 { grid-template-columns: 1fr; }
 }
 
 /* ---------- Jupiter moon system fullscreen (PixiJS) ---------- */

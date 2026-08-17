@@ -76,6 +76,10 @@ def init_db():
                 subscribed_flares BOOLEAN DEFAULT TRUE,
                 subscribed_grb BOOLEAN DEFAULT TRUE,
                 lang VARCHAR(5) NOT NULL DEFAULT 'uk',
+                quiet_hours_enabled BOOLEAN DEFAULT TRUE,
+                quiet_start TINYINT DEFAULT 0,
+                quiet_end TINYINT DEFAULT 6,
+                iss_min_magnitude DECIMAL(3,1) DEFAULT NULL,
                 last_iss_pass INT,
                 last_apod_date VARCHAR(10),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -369,6 +373,30 @@ def init_db():
                 logger.info("Added subscribed_grb column to users table")
         except Error:
             pass
+
+        # Add quiet-hours columns to existing users (migration). Defaults
+        # (enabled, 00:00-06:00) match the previous hardcoded global
+        # behavior so nothing changes for existing users until they cycle
+        # the setting in /settings.
+        for col_name, col_def in (
+            ('quiet_hours_enabled', 'BOOLEAN DEFAULT TRUE'),
+            ('quiet_start', 'TINYINT DEFAULT 0'),
+            ('quiet_end', 'TINYINT DEFAULT 6'),
+            ('iss_min_magnitude', 'DECIMAL(3,1) DEFAULT NULL'),
+        ):
+            try:
+                cursor.execute('''
+                    SELECT COUNT(*) FROM information_schema.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE()
+                    AND TABLE_NAME = 'users'
+                    AND COLUMN_NAME = %s
+                ''', (col_name,))
+                if cursor.fetchone()[0] == 0:
+                    cursor.execute(f'ALTER TABLE users ADD COLUMN {col_name} {col_def}')
+                    conn.commit()
+                    logger.info(f"Added {col_name} column to users table")
+            except Error:
+                pass
 
         # Add lang column to existing users (migration)
         try:
@@ -684,6 +712,95 @@ def toggle_subscription(user_id: int, subscription_type: str) -> bool:
         logger.error(f"Error toggling subscription: {e}")
         conn.rollback()
         return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# Quiet-hours presets, cycled in order by tapping the settings button.
+# (enabled, start_hour, end_hour) — start/end are evaluated in the user's
+# own local time (see utils.constants.local_hour_for_coords), not Kyiv.
+QUIET_HOURS_PRESETS = [
+    (True, 0, 6),
+    (True, 22, 6),
+    (True, 23, 7),
+    (False, 0, 6),
+]
+
+# ISS brightness-filter presets, cycled the same way. None = notify about
+# every pass (previous, unfiltered behavior); a float is the max apparent
+# magnitude allowed (lower/more negative = brighter, so this is a ceiling).
+ISS_FILTER_PRESETS = [None, -1.5, -3.0]
+
+
+def cycle_quiet_hours(user_id: int) -> tuple:
+    """Advance the user's quiet-hours setting to the next preset. Returns
+    the new (enabled, start, end) tuple, or the default preset on error."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'SELECT quiet_hours_enabled, quiet_start, quiet_end FROM users WHERE user_id = %s',
+            (user_id,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return QUIET_HOURS_PRESETS[0]
+
+        current = (bool(row[0]), int(row[1]), int(row[2]))
+        try:
+            idx = QUIET_HOURS_PRESETS.index(current)
+        except ValueError:
+            idx = -1
+        new_preset = QUIET_HOURS_PRESETS[(idx + 1) % len(QUIET_HOURS_PRESETS)]
+
+        cursor.execute(
+            'UPDATE users SET quiet_hours_enabled = %s, quiet_start = %s, quiet_end = %s WHERE user_id = %s',
+            (*new_preset, user_id)
+        )
+        conn.commit()
+        return new_preset
+
+    except Error as e:
+        logger.error(f"Error cycling quiet hours: {e}")
+        conn.rollback()
+        return QUIET_HOURS_PRESETS[0]
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def cycle_iss_filter(user_id: int):
+    """Advance the user's ISS brightness filter to the next preset. Returns
+    the new min-magnitude value (None = unfiltered)."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('SELECT iss_min_magnitude FROM users WHERE user_id = %s', (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return ISS_FILTER_PRESETS[0]
+
+        current = float(row[0]) if row[0] is not None else None
+        try:
+            idx = ISS_FILTER_PRESETS.index(current)
+        except ValueError:
+            idx = -1
+        new_value = ISS_FILTER_PRESETS[(idx + 1) % len(ISS_FILTER_PRESETS)]
+
+        cursor.execute(
+            'UPDATE users SET iss_min_magnitude = %s WHERE user_id = %s',
+            (new_value, user_id)
+        )
+        conn.commit()
+        return new_value
+
+    except Error as e:
+        logger.error(f"Error cycling ISS filter: {e}")
+        conn.rollback()
+        return ISS_FILTER_PRESETS[0]
     finally:
         cursor.close()
         conn.close()

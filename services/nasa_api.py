@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timedelta
 from config import NASA_API_KEY, NASA_NEO_URL, NASA_APOD_URL
 from utils.translator import Translator
-from utils.i18n import t, DEFAULT_LANG
+from utils.i18n import t, DEFAULT_LANG, escape_html
 
 logger = logging.getLogger(__name__)
 
@@ -192,12 +192,12 @@ class NasaAPI:
     @staticmethod
     def format_apod(data, lang=DEFAULT_LANG):
         """Format APOD for Telegram (returns photo + text separately for long captions)"""
-        title = data['title']
+        title = escape_html(data['title'])
         date = data['date']
         explanation = data['explanation']
 
         # Translate explanation (no-op for English users)
-        explanation_tr = Translator.translate_apod(explanation, lang)
+        explanation_tr = escape_html(Translator.translate_apod(explanation, lang))
 
         # Short caption for photo
         caption = t('apod.caption', lang, date=date, title=title)

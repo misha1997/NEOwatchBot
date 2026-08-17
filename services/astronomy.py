@@ -1,10 +1,22 @@
 """Astronomical events — eclipses and planet conjunctions"""
 import math
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import logging
 from utils.i18n import t, pick, days, DEFAULT_LANG
 
 logger = logging.getLogger(__name__)
+
+KYIV_TZ = ZoneInfo('Europe/Kyiv')
+
+
+def _now_kyiv_naive() -> datetime:
+    """Kyiv wall-clock "now" as a naive datetime, for comparison against the
+    naive date tuples above. A plain `datetime.now()` reads the server's
+    system timezone, which can disagree with Kyiv by 2-3h and shift a
+    day-count by one right around midnight — this keeps eclipse/conjunction
+    countdowns consistent with the rest of the app (n2yo_api, scheduler)."""
+    return datetime.now(KYIV_TZ).replace(tzinfo=None)
 
 # Known eclipses 2026–2028 (date, type, visibility)
 # `type` is a language-neutral key used for emoji lookup and the scheduler's
@@ -52,7 +64,7 @@ _TYPE_EMOJI = {
 def _days_until(date_tuple):
     """Return days until given date."""
     target = datetime(*date_tuple)
-    now = datetime.now()
+    now = _now_kyiv_naive()
     return (target - now).days
 
 
@@ -210,7 +222,7 @@ def _detect_retrogrades(now, lang):
 
 def get_weekly_calendar(lang=DEFAULT_LANG):
     """Build the 'this week in the sky' digest (next 7 days)."""
-    now = datetime.now()
+    now = _now_kyiv_naive()
     events = []  # (datetime, order, i18n_key, params)
 
     # 1) Conjunctions from the curated table.

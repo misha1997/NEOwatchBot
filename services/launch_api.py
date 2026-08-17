@@ -3,7 +3,7 @@ import requests
 import logging
 from datetime import datetime
 from parsers.spaceflightnow import SpaceflightNowParser
-from utils.i18n import t, DEFAULT_LANG
+from utils.i18n import t, DEFAULT_LANG, escape_html
 
 logger = logging.getLogger(__name__)
 
@@ -60,13 +60,13 @@ class LaunchAPI:
         unknown = t('launch.unknown', lang)
 
         for i, launch in enumerate(launches, 1):
-            name = launch.get('name') or unknown
-            lsp = launch.get('lsp_name') or unknown
-            rocket = launch.get('rocket', {}).get('configuration', {}).get('name') or unknown
+            name = escape_html(launch.get('name') or unknown)
+            lsp = escape_html(launch.get('lsp_name') or unknown)
+            rocket = escape_html(launch.get('rocket', {}).get('configuration', {}).get('name') or unknown)
 
             pad = launch.get('pad', {})
-            location = pad.get('location', {}).get('name') or unknown
-            pad_name = pad.get('name', '')
+            location = escape_html(pad.get('location', {}).get('name') or unknown)
+            pad_name = escape_html(pad.get('name', ''))
 
             net = launch.get('net', '')
             date_str = LaunchAPI._format_launch_date(net)

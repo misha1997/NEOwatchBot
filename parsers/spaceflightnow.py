@@ -6,7 +6,7 @@ from datetime import datetime
 from email.utils import parsedate_to_datetime
 from xml.etree import ElementTree as ET
 from typing import List, Dict, Optional
-from utils.i18n import t, DEFAULT_LANG
+from utils.i18n import t, DEFAULT_LANG, escape_html
 
 logger = logging.getLogger(__name__)
 
@@ -105,10 +105,10 @@ class SpaceflightNowParser:
                 current_launch_date = launch['date']
                 message += t('sfn.date_line', lang, date=current_launch_date)
 
-            mission = launch['mission'].replace('•', '|')
+            mission = escape_html(launch['mission'].replace('•', '|'))
             message += t('sfn.mission_line', lang, mission=mission)
             message += t('sfn.time_line', lang, time=launch['time'])
-            message += t('sfn.site_line', lang, site=launch['site'])
+            message += t('sfn.site_line', lang, site=escape_html(launch['site']))
 
         return {'text': message, 'image': None}
 

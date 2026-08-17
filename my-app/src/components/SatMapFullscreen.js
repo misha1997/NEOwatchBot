@@ -28,7 +28,7 @@ export default function SatMapFullscreen({ active, groups, toggle, count, lang, 
 
   return (
     <div className="cfm-fullscreen-wrap" style={{ display: 'flex', flexDirection: 'column' }} role="dialog" aria-modal="true" aria-label={lang === "en" ? "Satellites Map" : "Карта супутників"}>
-      <div className="cfm-top-bar" style={{ zIndex: 10 }}>
+      <div className="cfm-top-bar">
         <div className="cfm-top-bar-left">
           <div className="cfm-title">{lang === "en" ? "Satellites Map" : "Карта супутників"}</div>
         </div>

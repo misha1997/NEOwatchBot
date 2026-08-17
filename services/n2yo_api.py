@@ -59,6 +59,19 @@ class N2YOAPI:
             return t('iss.position_api_error', lang)
 
     @staticmethod
+    def _is_in_ukraine(lat, lon) -> bool:
+        """True if (lat, lon) falls inside Ukraine's bounding box.
+
+        Longitude alone (22-40°E) isn't enough — that band also crosses
+        Finland, Romania, Turkey, Egypt, Kenya, etc. — so latitude must be
+        checked too before labelling pass times "Kyiv time".
+        """
+        if lat is None or lon is None:
+            return False
+        min_lon, min_lat, max_lon, max_lat = COUNTRY_BBOXES['🇺🇦 Україна']
+        return min_lon <= lon <= max_lon and min_lat <= lat <= max_lat
+
+    @staticmethod
     def _get_country_from_coords(lat, lon, lang=DEFAULT_LANG):
         """Determine country from coordinates using bounding boxes"""
         for country_key, bbox in COUNTRY_BBOXES.items():
@@ -81,7 +94,7 @@ class N2YOAPI:
                 return t('iss.no_passes', lang)
 
             passes = data['passes'][:5]
-            return N2YOAPI._format_passes(passes, lon, lang)
+            return N2YOAPI._format_passes(passes, lat, lon, lang)
 
         except Exception as e:
             logger.error(f"ISS passes error: {e}")
@@ -104,17 +117,14 @@ class N2YOAPI:
             return None
 
     @staticmethod
-    def _format_passes(passes, lon=None, lang=DEFAULT_LANG):
+    def _format_passes(passes, lat=None, lon=None, lang=DEFAULT_LANG):
         """Format ISS passes for Telegram"""
         message = t('iss.passes_title', lang)
 
-        is_ukraine = False
-        if lon is not None:
-            if 22 <= lon <= 40:
-                is_ukraine = True
+        is_ukraine = N2YOAPI._is_in_ukraine(lat, lon)
 
         from datetime import timezone as dt_timezone, timedelta
-        if is_ukraine or lon is None:
+        if is_ukraine or lat is None or lon is None:
             tz = KYIV_TZ
             tz_label = t('kyiv_time', lang)
         else:
@@ -173,24 +183,21 @@ class N2YOAPI:
 
             # Sort by time and take first 5
             passes_data.sort(key=lambda x: x['startUTC'])
-            return N2YOAPI._format_starlink_passes(passes_data[:5], lon, lang)
+            return N2YOAPI._format_starlink_passes(passes_data[:5], lat, lon, lang)
 
         except Exception as e:
             logger.error(f"Starlink passes error: {e}")
             return t('starlink.error', lang)
 
     @staticmethod
-    def _format_starlink_passes(passes, lon=None, lang=DEFAULT_LANG):
+    def _format_starlink_passes(passes, lat=None, lon=None, lang=DEFAULT_LANG):
         """Format Starlink passes for Telegram"""
         message = t('starlink.title', lang)
 
-        is_ukraine = False
-        if lon is not None:
-            if 22 <= lon <= 40:
-                is_ukraine = True
+        is_ukraine = N2YOAPI._is_in_ukraine(lat, lon)
 
         from datetime import timezone as dt_timezone, timedelta
-        if is_ukraine or lon is None:
+        if is_ukraine or lat is None or lon is None:
             tz = KYIV_TZ
             tz_label = t('kyiv_time', lang)
         else:

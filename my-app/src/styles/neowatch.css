@@ -25,7 +25,8 @@
 }
 
 html {
-  scroll-behavior: smooth
+  scroll-behavior: smooth;
+  overflow-x: hidden
 }
 
 body {
@@ -2337,6 +2338,15 @@ table.data tr:hover td {
 .gal {
   column-count: 4;
   column-gap: 12px
+}
+
+/* Rover/JunoCam photo galleries (Jupiter, Mercury, Venus, Mars) reuse `.gal`
+   for its column layout but use `.rover-photo` (planetarium.css) instead of
+   `.ph` for the tile itself, so they never picked up the masonry spacing
+   below — tiles in the same column touched with no vertical gap. */
+.gal .rover-photo {
+  break-inside: avoid;
+  margin-bottom: 12px
 }
 
 .gal .ph {
@@ -5016,6 +5026,17 @@ table.exo-table tr.exo-row:focus-visible td {
   .foot-grid { grid-template-columns: 1fr; gap: 20px }
   .orbit-wrap svg { max-width: 300px }
   .sat-map { min-height: 300px }
+
+  /* 3 masonry columns (from the 900px tablet breakpoint) squeeze tiles down
+     to ~100px on a phone — with few items (e.g. Jupiter's 4-photo JunoCam
+     gallery) columns can even go unevenly unfilled, wasting a third of the
+     width. 2 columns reads better at this size for every .gal gallery. */
+  .gal { column-count: 2 }
+
+  /* "Земля просто зараз" live-stats cards: population is a long, constantly
+     ticking digit string that gets tight in a half-width card at phone
+     widths. Stack all 4 in one column instead of the generic 2-up grid. */
+  #live-stats .grid.cols-4 { grid-template-columns: 1fr }
 
   table.data th { padding: 7px 8px }
   table.data td { padding: 9px 8px; font-size: 12.5px }

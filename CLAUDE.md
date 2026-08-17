@@ -163,8 +163,8 @@ MySQL with connection pooling:
 - **09:00** - APOD (Astronomy Picture of the Day)
 - **10:00** - Daily news digest from Spaceflightnow (translated to Ukrainian)
 - **22:00** - Meteor shower reminders (1 day before and on peak day)
-- Every 10 minutes - ISS pass notifications (10 min before visible pass)
-- Every 5 minutes - Launch notifications (24h, 2h, 30min before)
+- Every 10 minutes - ISS pass notifications (5-15 min before visible pass)
+- Every 5 minutes - Launch notifications (single alert, -10 to +5 min around actual liftoff — not staged 24h/2h/30min reminders, since Launch Library `net` times slip often enough that advance reminders would frequently be stale)
 - Every hour - Hazardous asteroid check
 
 Duplicate prevention uses database tracking for all notification types.
@@ -194,6 +194,18 @@ DB_HOST/PORT/NAME/USER/PASSWORD  # MySQL credentials
 - **Starlink tracking**: Checks multiple NORAD IDs from `STARLINK_NORAD_IDS` in config
 - **News translation**: Automatic translation of Spaceflightnow articles to Ukrainian
 - **Meteor showers**: Notifications at 22:00 (10 PM) - 1 day before peak and on peak day
+- **Quiet hours**: Per-user, cycled via a settings button through `database.QUIET_HOURS_PRESETS`
+  (`00:00-06:00` / `22:00-06:00` / `23:00-07:00` / off). Evaluated in the user's own local time via
+  `utils.constants.local_hour_for_coords` (Kyiv zone inside Ukraine's bbox, solar-longitude estimate
+  elsewhere — no timezone-database dependency), not a single Kyiv-wide window. Only applied to
+  recurring, per-instance checks (`check_iss_passes`, launch "now" alerts) where missing one
+  instance during quiet hours is fine because there's a next one; **not** applied to one-shot
+  globally-deduped alerts (hazardous asteroids, flares, storms, GRB) or fixed-time daily broadcasts
+  (APOD, daily news, meteor reminders), since those would be silently lost forever for a user rather
+  than just delayed. See `NotificationScheduler._is_quiet_hours_for`.
+- **ISS brightness filter**: Per-user, cycled via a settings button through `database.ISS_FILTER_PRESETS`
+  (all passes / brighter than -1.5m / brighter than -3.0m). Applied in `check_iss_passes`; passes with
+  unknown magnitude are still sent even with a filter set.
 - **Skyfield ephemeris**: `services/planets.py` and `services/astronomy.py` use the `skyfield` library for offline ephemeris (visible planets, retrogrades, supermoon). JPL `de440s.bsp` (~32 MB) downloads on first use into `data/` (gitignored); pre-fetch on deploy via `python3 -c "from skyfield.api import Loader; load=Loader('data'); load('de440s.bsp'); load.timescale()"`. See DEPLOY.md §7a.
 - **Mars rover photos**: `services/mars_rover.py` uses the community **Mars Vista API** (`api.marsvista.dev`, `X-API-Key` header). The former NASA Mars Rover Photos API at `api.nasa.gov/mars-photos` was retired (404 "No such app"). Requires `MARS_VISTA_API_KEY`; without it the 🚀 Марсоходи button shows a "key not configured" hint.
 
@@ -205,6 +217,8 @@ users:
   city, lat (DECIMAL), lon (DECIMAL)
   subscribed_iss, subscribed_apod, subscribed_launches (BOOLEAN)
   subscribed_neo, subscribed_news, subscribed_meteors (BOOLEAN)
+  quiet_hours_enabled (BOOLEAN), quiet_start, quiet_end (TINYINT hour 0-23)
+  iss_min_magnitude (DECIMAL, NULL = unfiltered)
   last_iss_pass, last_apod_date
 
 iss_passes:

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useNavigate } from 'react-router-dom';
 import Scene from '../components/SolarSystem/Scene';
@@ -11,7 +11,15 @@ import * as THREE from 'three';
 export default function SolarSystem3D() {
   const { lang } = useLang();
   const navigate = useNavigate();
-  
+
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 640px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)');
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   // Zustand state
   const timeMultiplier = useSolarSystemStore(s => s.timeMultiplier);
   const setTimeMultiplier = useSolarSystemStore(s => s.setTimeMultiplier);
@@ -96,32 +104,34 @@ export default function SolarSystem3D() {
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '24px',
+        padding: isMobile ? '12px' : '24px',
         color: 'white',
         fontFamily: 'Inter, sans-serif'
       }}>
-        
+
         {/* Top Row: Back button & Controls */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+
           {/* Top Left: Back & Title */}
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', pointerEvents: 'auto' }}>
-            <button 
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', pointerEvents: 'auto' }}>
+            <button
               onClick={() => navigate(-1)}
-              style={btnStyle}
+              style={{ ...btnStyle, padding: isMobile ? '7px 12px' : btnStyle.padding, fontSize: isMobile ? '13px' : btnStyle.fontSize }}
               onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
               onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
             >
               ← {lang === 'uk' ? 'Назад' : 'Back'}
             </button>
-            
-            <div style={{ ...glassPanelStyle, padding: '8px 16px', borderRadius: '20px' }}>
-              <span style={{ fontWeight: '600', letterSpacing: '1px' }}>Solar System 3D</span>
-            </div>
+
+            {!isMobile && (
+              <div style={{ ...glassPanelStyle, padding: '8px 16px', borderRadius: '20px' }}>
+                <span style={{ fontWeight: '600', letterSpacing: '1px', whiteSpace: 'nowrap' }}>Solar System 3D</span>
+              </div>
+            )}
           </div>
-          
+
           {/* Top Right: Compact Controls Panel */}
-          <div style={{ ...glassPanelStyle, pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', width: '200px' }}>
+          <div style={{ ...glassPanelStyle, pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', width: isMobile ? '150px' : '200px', padding: isMobile ? '14px' : glassPanelStyle.padding }}>
             <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', cursor: 'pointer' }}>
               {lang === 'uk' ? 'Реалізм' : 'Real Scale'}
               <input type="checkbox" checked={isRealisticScale} onChange={e => setIsRealisticScale(e.target.checked)} style={{ accentColor: '#4facfe' }} />
@@ -163,10 +173,10 @@ export default function SolarSystem3D() {
         </div>
 
         {/* Bottom Area: Info Panel (Left) & Timeline (Center) */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '20px' }}>
-          
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-end', gap: isMobile ? '10px' : '20px', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+
           {/* Info Panel */}
-          <div style={{ width: '320px', pointerEvents: 'auto' }}>
+          <div style={{ width: isMobile ? '100%' : '320px', pointerEvents: 'auto', order: isMobile ? 1 : 0 }}>
             {focusedPlanet && (
               <div style={{
                 ...glassPanelStyle,
@@ -243,28 +253,30 @@ export default function SolarSystem3D() {
           </div>
 
           {/* Time Slider (Bottom Center-ish) */}
-          <div style={{ 
-            pointerEvents: 'auto', 
+          <div style={{
+            pointerEvents: 'auto',
             ...glassPanelStyle,
-            padding: '12px 24px',
+            padding: isMobile ? '10px 14px' : '12px 24px',
             flexGrow: 1,
-            maxWidth: '600px',
-            margin: '0 auto',
+            maxWidth: isMobile ? '100%' : '600px',
+            width: isMobile ? '100%' : undefined,
+            margin: isMobile ? 0 : '0 auto',
+            order: isMobile ? 2 : 0,
             display: 'flex',
             flexDirection: 'column',
             gap: '8px'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', gap: '8px' }}>
               <span style={{ opacity: 0.5 }}>1900</span>
-              <span style={{ fontWeight: '500', color: '#4facfe', letterSpacing: '1px' }}>
+              <span style={{ fontWeight: '500', color: '#4facfe', letterSpacing: '1px', whiteSpace: 'nowrap' }}>
                 {simDate.toLocaleString(lang === 'uk' ? 'uk-UA' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
               </span>
               <span style={{ opacity: 0.5 }}>2100</span>
             </div>
-            <input 
-              type="range" 
-              min={minTime} 
-              max={maxTime} 
+            <input
+              type="range"
+              min={minTime}
+              max={maxTime}
               step={86400000} // 1 day steps
               value={simDate.getTime()}
               onChange={(e) => {
@@ -275,9 +287,9 @@ export default function SolarSystem3D() {
             />
           </div>
 
-          {/* Empty right area to balance the left Info Panel if needed, 
-              or we could just let the slider center itself because of margin: '0 auto' */}
-          <div style={{ width: '320px' }}></div>
+          {/* Empty right area to balance the left Info Panel on desktop only —
+              on mobile the row wraps, so this spacer would just eat width. */}
+          {!isMobile && <div style={{ width: '320px' }}></div>}
         </div>
 
       </div>

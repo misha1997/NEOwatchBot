@@ -131,6 +131,18 @@ TRANSLATIONS = {
         'settings.toggle_on': 'Сповіщення {name} увімкнено',
         'settings.toggle_off': 'Сповіщення {name} вимкнено',
         'settings.toggle_error': 'Помилка при зміні налаштувань',
+        'settings.quiet_section': '🌙 Тихі години (за вашим локальним часом): <b>{value}</b>\n',
+        'settings.quiet.p0': '00:00–06:00',
+        'settings.quiet.p1': '22:00–06:00',
+        'settings.quiet.p2': '23:00–07:00',
+        'settings.quiet.p3': 'вимкнено',
+        'settings.quiet_btn': '🌙 Тиша: {value}',
+        'settings.quiet_no_location': '🌙 Тихі години рахуються за вашим містом — спершу вкажіть локацію (📍 Змінити місто), інакше час береться за Києвом.',
+        'settings.iss_section': '🛰 Фільтр проходжень МКС: <b>{value}</b>\n',
+        'settings.iss.p0': 'усі проходження',
+        'settings.iss.p1': 'яскраві (яскравіше -1.5ᵐ)',
+        'settings.iss.p2': 'дуже яскраві (яскравіше -3.0ᵐ)',
+        'settings.iss_btn': '🛰 МКС: {value}',
         # short labels for subscription toggle buttons
         'sub.iss': 'МКС',
         'sub.apod': 'Фото дня',
@@ -743,6 +755,18 @@ TRANSLATIONS = {
         'settings.toggle_on': '{name} notifications enabled',
         'settings.toggle_off': '{name} notifications disabled',
         'settings.toggle_error': 'Error changing settings',
+        'settings.quiet_section': '🌙 Quiet hours (your local time): <b>{value}</b>\n',
+        'settings.quiet.p0': '00:00-06:00',
+        'settings.quiet.p1': '22:00-06:00',
+        'settings.quiet.p2': '23:00-07:00',
+        'settings.quiet.p3': 'off',
+        'settings.quiet_btn': '🌙 Quiet: {value}',
+        'settings.quiet_no_location': '🌙 Quiet hours use your saved city\'s local time — set a location first (📍 Change city), otherwise Kyiv time is used.',
+        'settings.iss_section': '🛰 ISS pass filter: <b>{value}</b>\n',
+        'settings.iss.p0': 'all passes',
+        'settings.iss.p1': 'bright (brighter than -1.5m)',
+        'settings.iss.p2': 'very bright (brighter than -3.0m)',
+        'settings.iss_btn': '🛰 ISS: {value}',
         'sub.iss': 'ISS',
         'sub.apod': 'Photo',
         'sub.launches': 'Launches',
@@ -1247,6 +1271,20 @@ TRANSLATIONS = {
 # ---------------------------------------------------------------------------
 # Accessor
 # ---------------------------------------------------------------------------
+def escape_html(text) -> str:
+    """Escape a value for safe interpolation into an HTML-parse_mode message.
+
+    Telegram's HTML parser rejects the whole message on unescaped `&`, `<`
+    or `>` in interpolated data (city names, external API titles, URLs), so
+    any untrusted text merged into a `t(...)` template must pass through
+    this first.
+    """
+    if text is None:
+        return ''
+    text = str(text)
+    return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+
 def t(key: str, lang: str = DEFAULT_LANG, **kwargs) -> str:
     """Translate a key. Falls back to UK, then to the raw key."""
     lang = lang if lang in SUPPORTED_LANGS else DEFAULT_LANG

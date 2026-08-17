@@ -123,8 +123,12 @@ class MeteorShower:
         try:
             return datetime(year, month, day)
         except ValueError:
-            # Leap year issue
-            return datetime(year, month, 28)
+            # Feb 29 in a non-leap year: roll to Mar 1, not back to Feb 28 —
+            # a shower dated "Feb 29" means "the day after Feb 28", so
+            # rolling forward keeps the day-count correct in non-leap years.
+            if month == 2 and day == 29:
+                return datetime(year, 3, 1)
+            raise
     
     @staticmethod
     def get_next_shower():
