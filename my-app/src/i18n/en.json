@@ -199,6 +199,7 @@
     "venus": "Venus — OrbitLight",
     "neptune": "Neptune — OrbitLight",
     "uranus": "Uranus — OrbitLight",
+    "saturn": "Saturn — OrbitLight",
     "news": "Space news — NEOwatch"
   },
   "seo": {
@@ -231,6 +232,7 @@
       "venus": "Venus up close: runaway greenhouse effect, sulfuric acid clouds, retrograde rotation, Magellan radar mapping and the Venera and Akatsuki missions.",
       "neptune": "Neptune up close: the strongest winds in the system, dark spots, five faint rings, the retrograde moon Triton with cryovolcanoes, and a history discovered 'on paper'.",
       "uranus": "Uranus up close: 98° axial tilt, coldest atmosphere, thirteen vertical rings, twenty-eight moons, and the single Voyager 2 flyby.",
+      "saturn": "Saturn up close: the Solar System's most spectacular rings, a hexagonal storm at the north pole, over 140 moons, the Cassini-Huygens and Dragonfly missions and the next opposition.",
       "news": "The top spaceflight stories in Ukrainian — translated and summarized coverage from SpaceflightNow, NASA, ESA and other sources, updated daily."
     }
   },
@@ -3222,6 +3224,198 @@
       "c3_key": "42-year seasons",
       "c3_val": "extreme",
       "c3_foot": "Each pole—42 years of light, then 42 years of darkness"
+    }
+  },
+  "saturn": {
+    "hero": {
+      "eyebrow": "Sixth planet · updated just now",
+      "title": "Saturn<br><span class='accent'>lord of the rings</span>",
+      "sub": "The planet with the most spectacular rings. Although other gas giants have rings, Saturn's are made mostly of water ice and reflect sunlight beautifully.",
+      "dist_label": "Current distance to Earth",
+      "light_time": "Light travel time",
+      "distL": "current distance to Earth",
+      "signalL": "signal travel time",
+      "distUnit": "billion km",
+      "footnote": "Titan (marked on the diagram) is the only moon in the Solar System with a dense atmosphere; the moons shown are only a fraction of the {{count}}+ known"
+    },
+    "weather": {
+      "eyebrow": "A legacy of the Cassini mission",
+      "title": "Saturn right now",
+      "speedK": "Wind speed",
+      "speedV": "1,800",
+      "speedUnit": "km/h",
+      "speedFoot": "Among the fastest winds in the Solar System",
+      "tempK": "Cloud-top temperature",
+      "tempV": "−178",
+      "tempUnit": "°C",
+      "tempFoot": "Upper boundary of the visible ammonia clouds",
+      "rotK": "Rotation period",
+      "rotV": "10 hr 33",
+      "rotUnit": "min",
+      "rotFoot": "Second-fastest rotation after Jupiter",
+      "revK": "Year length",
+      "revV": "29.4",
+      "revUnit": "Earth years",
+      "revFoot": "The axial tilt is why the rings appear wide open, then nearly edge-on"
+    },
+    "compare": {
+      "title": "Scale and conditions",
+      "eyebrow": "Saturn vs Earth",
+      "rows": {
+        "day": {
+          "label": "Day",
+          "s": "10.7 hr",
+          "e": "24 hr"
+        },
+        "year": {
+          "label": "Year",
+          "s": "29.4 Earth years",
+          "e": "365 days"
+        },
+        "gravity": {
+          "label": "Gravity",
+          "s": "1.065 g",
+          "e": "1 g"
+        },
+        "diameter": {
+          "label": "Diameter",
+          "s": "116,460 km",
+          "e": "12,742 km"
+        },
+        "mass": {
+          "label": "Mass",
+          "s": "95 Earths",
+          "e": "1"
+        },
+        "atmosphere": {
+          "label": "Atmosphere",
+          "s": "Hydrogen (96%), Helium",
+          "e": "Nitrogen, Oxygen"
+        },
+        "moons": {
+          "label": "Moons",
+          "s": "146 confirmed",
+          "e": "1 (Moon)"
+        }
+      }
+    },
+    "rings": {
+      "eyebrow": "The most spectacular in the system",
+      "title": "What the rings are made of",
+      "sub": "Saturn's rings stretch from ~7,000 to ~80,000 km above the cloud tops, yet are mostly less than a kilometer thick — if Saturn were shrunk to the size of a football, the rings would be thinner than a sheet of paper.",
+      "c1": { "title": "Composition", "val": "~99% water ice", "foot": "Plus traces of rock and dust" },
+      "c2": { "title": "Thickness", "val": "10 m – 1 km", "foot": "Across a diameter of over 270,000 km" },
+      "c3": { "title": "Origin", "val": "unresolved", "foot": "Debris from a shattered moon, or primordial material — debate continues" }
+    },
+    "hexagon": {
+      "title": "Hexagonal Storm",
+      "eyebrow": "Anomaly at the North Pole",
+      "desc1": "A giant persistent storm in the shape of a perfect hexagon rages at Saturn's north pole. Its diameter is about 30,000 km — two Earths could fit inside.",
+      "desc2": "This is a unique phenomenon in the Solar System. It is thought to be a standing wave in the atmosphere caused by the difference in wind speeds at different latitudes. Winds at its edges reach 320 km/h.",
+      "img_placeholder": "Hexagon image",
+      "diameterLabel": "~30,000 km across"
+    },
+    "moons": {
+      "eyebrow": "The six most famous",
+      "title_block": "Saturn's moons",
+      "sub_block": "From the dense ice ball Mimas to the atmosphere-wrapped Titan — eight moons that shaped how we picture Saturn's system.",
+      "note": "Titan is the only moon in the Solar System with a dense atmosphere (1.45× denser than Earth's), with lakes and seas of liquid methane and ethane on its surface",
+      "mimas": { "name": "Mimas", "tag": "0.9 days · orbit", "desc": "The huge Herschel crater makes it look like the 'Death Star' — nearly a third of the moon's own diameter." },
+      "enceladus": { "name": "Enceladus", "tag": "1.4 days · orbit", "desc": "Icy geysers at the south pole spray water vapor from a subsurface ocean — directly feeding Saturn's E ring." },
+      "tethys": { "name": "Tethys", "tag": "1.9 days · orbit", "desc": "An icy moon scarred by the giant Ithaca Chasma canyon, which runs three-quarters of the way around it." },
+      "dione": { "name": "Dione", "tag": "2.7 days · orbit", "desc": "'Wispy terrain' on its trailing hemisphere creates bright streaks visible from a distance." },
+      "rhea": { "name": "Rhea", "tag": "4.5 days · orbit", "desc": "Saturn's second-largest moon, heavily cratered — it may even have a faint dust ring of its own." },
+      "titan": { "name": "Titan", "tag": "15.9 days · orbit", "desc": "The only moon with a dense atmosphere — with lakes and seas of liquid methane and ethane on its surface." },
+      "hyperion": { "name": "Hyperion", "tag": "21.3 days · orbit", "desc": "A porous, 'sponge-like' shape and chaotic, unpredictable rotation — unique among the large moons." },
+      "iapetus": { "name": "Iapetus", "tag": "79.3 days · orbit", "desc": "A two-toned moon — one hemisphere dark as coal, the other bright as snow. The cause is still not fully settled." }
+    },
+    "system": {
+      "title": "The full system of Saturn's moons",
+      "eyebrow": "Over 140 confirmed satellites",
+      "sub": "From the dense group of moons inside the rings to a huge cloud of small retrograde satellites in distant orbits.",
+      "open_interactive": "Open interactive map",
+      "trojan": "Tethys and Dione trojans",
+      "labels": {
+        "inner": "Inner ring · 8",
+        "main": "Major ice moons · 6",
+        "titan": "Titan · 1",
+        "iapetus": "Iapetus and outer · 3",
+        "inuit": "Inuit group · 13",
+        "norse": "Norse group (retrograde) · 100"
+      },
+      "inner": "Inner moons",
+      "main": "Main moons",
+      "titan": "Titan",
+      "inuit": "Inuit group",
+      "norse": "Norse group",
+      "gallic": "Gallic group",
+      "iapetus": "Iapetus and outer",
+      "fullscreenTitle": "The full system of Saturn's moons",
+      "close": "Close",
+      "play": "Play",
+      "pause": "Pause",
+      "prev": "Previous",
+      "next": "Next",
+      "selectMoon": "Select moon...",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "zoomReset": "Reset zoom",
+      "orbitModeToggle": "Orbit mode",
+      "orbitModeKepler": "Kepler orbits",
+      "orbitModeCircle": "Circular (schematic)",
+      "photoLabel": "True photo",
+      "photoLabelViz": "Visualization",
+      "noPhoto": "No photo",
+      "noPhotoBody": "This moon is too small and distant."
+    },
+    "magnetic": {
+      "eyebrow": "A puzzle for dynamo theory",
+      "title": "Saturn's magnetic field",
+      "c1": { "title": "Axial alignment", "val": "< 0.01° tilt", "foot": "The only planet with an almost perfectly axisymmetric field — a puzzle for dynamo theory" },
+      "c2": { "title": "Field strength", "val": "578× stronger than Earth's", "foot": "Much weaker than Jupiter's, but stronger than Earth's" },
+      "c3": { "title": "Magnetosphere", "val": "20+ Saturn radii", "foot": "Shaped by interaction with the rings and Titan" }
+    },
+    "missions": {
+      "eyebrow": "Who has explored and who is exploring",
+      "title": "Missions to Saturn",
+      "pioneer": "Pioneer 11 (flyby)",
+      "pioneerst": "First flyby",
+      "voyager": "Voyager 1 and 2 (flyby)",
+      "voyagerst": "Continued on to interstellar space",
+      "cassini": "Cassini-Huygens",
+      "cassinist": "13 years in orbit · \"Grand Finale\" 2017",
+      "dragonfly": "Dragonfly (to Titan)",
+      "dragonflyst": "In development · rotorcraft for Titan",
+      "footnote": "The Huygens probe, released from Cassini, made the first and still only landing on a moon in the outer Solar System — on Titan, in January 2005."
+    },
+    "opposition": {
+      "title": "Next Saturn opposition",
+      "eyebrow": "Best time to observe",
+      "countdown_label": "Time until opposition",
+      "foot": "At opposition, Saturn is visible all night and at its brightest",
+      "telescope_label": "What to see through a telescope",
+      "telescope_desc": "The rings are clearly visible even in a small telescope from 50× magnification. Under good conditions, you can see the Cassini division in the rings and the largest moon Titan as a tiny star nearby.",
+      "months": "months",
+      "days": "days"
+    },
+    "facts": {
+      "eyebrow": "Fun facts",
+      "title": "Saturn's records",
+      "c1": { "title": "Least dense planet", "val": "would float", "foot": "The only planet in the Solar System lighter than water" },
+      "c2": { "title": "Most moons", "val": "146+", "foot": "Overtook Jupiter after the 2023 discoveries" },
+      "c3": { "title": "Titan's weather cycle", "val": "Earth-like", "foot": "The only other body in the Solar System with stable surface liquids" }
+    },
+    "tooltip": {
+      "group": "Group:",
+      "a": "Semi-major axis:",
+      "period": "Period:",
+      "direction": "Orbit:",
+      "dirPro": "Prograde",
+      "dirRetro": "Retrograde",
+      "inclination": "Inclination:",
+      "eccentricity": "Eccentricity:",
+      "diameter": "Diameter:",
+      "dash": "—"
     }
   }
 }

@@ -29,7 +29,7 @@ export const NAV_GROUPS = [
     { name: "venus", labelKey: "nav.venus" },
     { name: "earth", labelKey: "nav.earth" },
     { name: "jupiter", labelKey: "nav.jupiter" },
-    { name: "saturn", labelKey: "nav.saturn", disabled: true },
+    { name: "saturn", labelKey: "nav.saturn" },
     { name: "uranus", labelKey: "nav.uranus" },
     { name: "neptune", labelKey: "nav.neptune" },
   ]},

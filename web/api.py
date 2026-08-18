@@ -240,6 +240,12 @@ async def mercury():
     return await data.get_mercury()
 
 
+@router.get("/saturn")
+async def saturn():
+    """Saturn moon catalog (all known satellites) + live distance and opposition date."""
+    return await data.get_saturn()
+
+
 @router.get("/neptune")
 async def neptune():
     """Live Earth-Neptune distance and next opposition date."""

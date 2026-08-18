@@ -47,7 +47,7 @@ export const PLANETS = [
   },
   {
     key: "saturn", labelKey: "nav.saturn", to: "saturn",
-    disabled: true, accent: "#E8D9A0", img: "/planets/Saturn.png",
+    accent: "#E8D9A0", img: "/planets/Saturn.png",
     grad: ["#F3E9B8", "#D9C078", "#A9894A"],
     facts: { dia: "116 460", day: "10.7", year: "29.5", gravity: "10.44", moons: "146", temp: "−178 °C" },
     blurbKey: "planetarium.blurbs.saturn",

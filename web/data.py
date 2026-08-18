@@ -41,6 +41,7 @@ from services.jupiter import get_jupiter as _build_jupiter
 from services.mercury import get_mercury as _build_mercury
 from services.venus import get_venus as _build_venus
 from services.neptune import get_neptune as _build_neptune
+from services.saturn import get_saturn as _build_saturn
 from services.uranus import get_uranus as _build_uranus
 from services.grb_alerts import GRBAlertAPI
 from services.comets import CometAPI
@@ -1917,6 +1918,19 @@ def _neptune_raw() -> dict:
 
 async def get_neptune() -> dict:
     return await asyncio.to_thread(get_or_fetch, "neptune", NEPTUNE_TTL, _neptune_raw)
+
+
+SATURN_TTL = 300
+
+def _saturn_raw() -> dict:
+    try:
+        return _build_saturn()
+    except Exception as e:
+        logger.error("saturn: %s", e)
+        return {}
+
+async def get_saturn() -> dict:
+    return await asyncio.to_thread(get_or_fetch, "saturn", SATURN_TTL, _saturn_raw)
 
 
 URANUS_TTL = 300

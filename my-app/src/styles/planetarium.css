@@ -137,6 +137,8 @@
 .neptune-ring { fill: none; stroke: #6FA8E8; stroke-width: 1; vector-effect: non-scaling-stroke; }
 /* Uranus planetary rings — stylized hint on the hero mini-map (not to scale). */
 .uranus-ring { fill: none; stroke: #9fd9e0; stroke-width: 1; vector-effect: non-scaling-stroke; }
+/* Saturn planetary rings — stylized hint on the hero mini-map (not to scale). */
+.saturn-ring { fill: none; stroke: #D9BC7A; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .mars-moon-label { font-family: var(--font-mono); font-size: 9.5px; fill: var(--text-dim); }
 .mars-disc-img { filter: drop-shadow(0 8px 28px rgba(0,0,0,.55)); }
 .jupiter-disc-img { filter: drop-shadow(0 8px 28px rgba(0,0,0,.55)); }

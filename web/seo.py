@@ -123,6 +123,7 @@ SLUGS: dict[str, dict[str, str]] = {
     "venus":        {"uk": "planetariy/venera", "en": "planetarium/venus"},
     "neptune":      {"uk": "planetariy/neptun", "en": "planetarium/neptune"},
     "uranus":       {"uk": "planetariy/uran",   "en": "planetarium/uranus"},
+    "saturn":       {"uk": "planetariy/saturn", "en": "planetarium/saturn"},
     "solarsystem3d":{"uk": "sonyachna-systema-3d","en": "solar-system-3d"},
 }
 
