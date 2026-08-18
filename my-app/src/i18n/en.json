@@ -3305,7 +3305,46 @@
       "sub": "Saturn's rings stretch from ~7,000 to ~80,000 km above the cloud tops, yet are mostly less than a kilometer thick — if Saturn were shrunk to the size of a football, the rings would be thinner than a sheet of paper.",
       "c1": { "title": "Composition", "val": "~99% water ice", "foot": "Plus traces of rock and dust" },
       "c2": { "title": "Thickness", "val": "10 m – 1 km", "foot": "Across a diameter of over 270,000 km" },
-      "c3": { "title": "Origin", "val": "unresolved", "foot": "Debris from a shattered moon, or primordial material — debate continues" }
+      "c3": { "title": "Origin", "val": "unresolved", "foot": "Debris from a shattered moon, or primordial material — debate continues" },
+      "planetaryRing": "Planetary ring",
+      "radiusLabel": "Orbital radius",
+      "widthLabel": "Ring width",
+      "discovererLabel": "Discovery",
+      "d": {
+        "name": "D Ring",
+        "desc": "Closest to the planet — an extremely faint, almost transparent ring only visible in long-exposure images.",
+        "discoverer": "Pierre Guérin (1969)"
+      },
+      "c": {
+        "name": "C Ring",
+        "desc": "The semi-transparent \"Crepe Ring\" — darker and thinner than the neighboring B and A rings; the planet's disc shows through it.",
+        "discoverer": "William and George Bond (1850)"
+      },
+      "b": {
+        "name": "B Ring",
+        "desc": "The widest and brightest ring in the system — it holds most of the mass of all of Saturn's rings.",
+        "discoverer": "Christiaan Huygens (1655)"
+      },
+      "cassini": {
+        "name": "Cassini Division",
+        "desc": "A dark, nearly 5,000 km-wide gap between the B and A rings, swept clear by an orbital resonance with the moon Mimas.",
+        "discoverer": "Giovanni Cassini (1675)"
+      },
+      "a": {
+        "name": "A Ring",
+        "desc": "The outer of the two great bright rings — it contains the Encke Gap, patrolled by the tiny shepherd moon Pan.",
+        "discoverer": "Christiaan Huygens (1655)"
+      },
+      "f": {
+        "name": "F Ring",
+        "desc": "A narrow, strange ring with a braided, kinked structure — shaped by the shepherd moons Prometheus and Pandora.",
+        "discoverer": "Pioneer 11 (1979)"
+      },
+      "g": {
+        "name": "G Ring",
+        "desc": "A faint dust ring fed by particles knocked off the tiny moon Aegaeon.",
+        "discoverer": "Voyager 1 (1980)"
+      }
     },
     "hexagon": {
       "title": "Hexagonal Storm",

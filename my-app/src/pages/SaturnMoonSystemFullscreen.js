@@ -84,6 +84,25 @@ const DEFAULT_VIEW_BOOST = 1.69;
 // cluster tightly at the centre at the default fit zoom; deep zoom
 // (ZOOM_IN_FACTOR) reveals them at true scale.
 const ORBIT_POWER = 1;
+
+// Saturn's rings (true radii in km), drawn at the SAME linear world mapping
+// as the moon orbits. They sit at 67 000–175 000 km — well inside the inner
+// moons (Mimas 185 540 km ...) — so they map to only a couple of world units
+// and only resolve once the camera zooms into the inner system (the small SVG
+// minimap can't show them at true scale either). `w_km` is the ring's
+// physical width; it sets the stroke width so broad rings (B, C) widen into
+// bands at deep zoom while the Cassini Division stays a thin, near-invisible
+// gap. Sources: NASA Saturn Ring Fact Sheet.
+const SATURN_RINGS = [
+  { key: "d",       r_km: 70000,  w_km: 7500,   alpha: 0.08 },
+  { key: "c",       r_km: 83000,  w_km: 17500,  alpha: 0.20 },
+  { key: "b",       r_km: 105000, w_km: 25500,  alpha: 0.55 },
+  { key: "cassini", r_km: 119800, w_km: 4700,   alpha: 0.06 },
+  { key: "a",       r_km: 129500, w_km: 14600,  alpha: 0.45 },
+  { key: "f",       r_km: 140200, w_km: 500,    alpha: 0.55 },
+  { key: "g",       r_km: 170000, w_km: 9000,   alpha: 0.10 },
+];
+const RING_COLOR = 0xd9bc7a; // Saturn ring accent (matches .saturn-ring / the live disc outline)
 // Zoom limits, as multiples of the default (fit-system) zoom.
 const ZOOM_OUT_FACTOR = 0.85; // farthest: system a bit smaller than fit
 const ZOOM_IN_FACTOR = 150; // closest: very deep zoom to inspect the inner system
@@ -170,6 +189,23 @@ function fmtA(a) {
 }
 function fmtP(p) {
   return p < 1 ? (p * 24).toFixed(1) + " год" : p.toFixed(2) + " діб";
+}
+
+// Draws a high-resolution circle directly into a PIXI.Graphics object,
+// bypassing Pixi's default segment-count heuristic (which derives segment
+// count from the WORLD radius and collapses to a visible polygon for small
+// radii — Saturn's rings sit at only ~1-3 world units, so a plain
+// g.drawCircle() facets badly once the camera zooms in and magnifies those
+// few segments). A fixed, radius-independent segment count keeps every ring
+// smooth at every zoom level.
+function drawSmoothCircle(g, cx, cy, r, segments = 256) {
+  const pts = new Array(segments * 2);
+  for (let i = 0; i < segments; i++) {
+    const a = (i / segments) * Math.PI * 2;
+    pts[i * 2] = cx + r * Math.cos(a);
+    pts[i * 2 + 1] = cy + r * Math.sin(a);
+  }
+  g.drawPolygon(pts);
 }
 
 // Annular hit area for an orbit ring: a hit registers only when the pointer is
@@ -264,6 +300,7 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
   const discRef = useRef(null); // Saturn disc Graphics (redrawn each LOD pass)
   const discRRef = useRef(0); // true-scale disc radius in world units
   const orbitsRef = useRef(null); // orbit circles Container (strokes redrawn each LOD pass)
+  const ringsRef = useRef(null); // planetary rings Container (redrawn each LOD pass)
   const discPhotoRef = useRef(null); // Saturn photo Sprite (cross-fades in on zoom)
   const discPhotoStateRef = useRef({ loaded: false, loading: false, texMax: 1 });
   const planetGlowRef = useRef(null); // soft halo behind the Saturn photo
@@ -290,6 +327,9 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
   // React state for UI re-renders.
   const [orbitsPaused, setOrbitsPaused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(null);
+  const [selectedRingKey, setSelectedRingKey] = useState(null);
+  const selectedRingKeyRef = useRef(selectedRingKey);
+  selectedRingKeyRef.current = selectedRingKey;
   // Orbit display mode: "kepler" (real-eccentricity ellipses, variable speed)
   // or "circle" (simplified circles, uniform speed). Default is "circle" (the
   // simplified overview); the user can toggle to accurate Keplerian ellipses.
@@ -701,6 +741,28 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
         }
       }
 
+      // Planetary rings: redraw with a stroke of max(inv, physical width) so
+      // each ring stays ≥1 px on screen and the broad rings (B, C) widen into
+      // visible bands as you zoom in. Constant screen thickness at any zoom,
+      // same scheme as the orbit strokes above.
+      const rc = ringsRef.current;
+      if (rc) {
+        const rkids = rc.children;
+        for (let i = 0; i < rkids.length; i++) {
+          const g = rkids[i];
+          g.clear();
+          if (g._hl || g._sel) {
+            g.lineStyle(Math.max(2.5 * inv, g._wWorld * 1.5), g._color, 0.85);
+          } else {
+            g.lineStyle(Math.max(inv, g._wWorld), g._color, g._alpha);
+          }
+          drawSmoothCircle(g, 0, 0, g._rWorld);
+          if (g._hit) {
+            g._hit.tol = Math.min(0.5, (10 * inv) / (g._rWorld || 1));
+          }
+        }
+      }
+
       // Saturn disc: true-scale world radius, clamped to a min on-screen
       // radius so the planet stays visible at the default fit zoom (its true
       // size there is ~1 px) and grows to its real relative size as you zoom
@@ -1029,11 +1091,16 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
     const world = worldRef.current;
     const orbits = world.children.find((c) => c.name === "orbits");
     const moonsContainer = world.children.find((c) => c.name === "moons");
+    const rings = world.children.find((c) => c.name === "rings");
 
     // Clear old content and free Pixi resources.
     if (orbits) {
       orbits.removeChildren();
       orbits.destroy({ children: true, texture: true, baseTexture: true });
+    }
+    if (rings) {
+      rings.removeChildren();
+      rings.destroy({ children: true, texture: true, baseTexture: true });
     }
     if (moonsContainer) {
       const oldChildren = moonsContainer.children.slice();
@@ -1050,17 +1117,67 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
     world.addChildAt(newOrbits, 1);
     orbitsRef.current = newOrbits;
 
+    // Clicking a moon opens its description card and flies the camera to it.
+    const onMoonTap = (index) => {
+      setSelectedRingKey(null);
+      setSelectedIndex(index);
+      flyToMoon(index);
+    };
+
+    // Clicking a ring opens its description card and re-centers the camera
+    // on the planet (rings sit close to the disc, unlike distant moons).
+    const onRingTap = (key) => {
+      setSelectedIndex(null);
+      setSelectedRingKey(key);
+      startCameraAnimation(SYS.cx, SYS.cy, cameraRef.current.zoom);
+    };
+
+    // Planetary rings: faint circles at true linear world radii, well inside
+    // the inner moon orbits. Strokes are redrawn each LOD pass to stay a
+    // constant screen thickness; broad rings (B, C) widen into bands at deep
+    // zoom. Placed below the moons so dots/photos render on top, same as the
+    // orbit ellipses.
+    const newRings = new PIXI.Container();
+    newRings.name = "rings";
+    const aMax = geo.length ? Math.max(...geo.map((m) => m.a_km)) : 1;
+    for (const ring of SATURN_RINGS) {
+      const rWorld = (SYS.rMax * Math.pow(ring.r_km / aMax, ORBIT_POWER)) || 0.0001;
+      const g = new PIXI.Graphics();
+      g.position.set(SYS.cx, SYS.cy);
+      g._wWorld = (SYS.rMax * ring.w_km) / aMax; // physical width in world units
+      g._color = RING_COLOR;
+      g._alpha = ring.alpha;
+      g._key = ring.key;
+      g._rWorld = rWorld;
+      g._hl = false;
+      g._sel = ring.key === selectedRingKeyRef.current;
+      g._hit = new RingHit(rWorld, rWorld);
+      g.hitArea = g._hit;
+      g.eventMode = "static";
+      g.cursor = "pointer";
+      g.on("pointerover", () => {
+        g._hl = true;
+        lastZoomRef.current = NaN;
+      });
+      g.on("pointerout", () => {
+        g._hl = false;
+        lastZoomRef.current = NaN;
+      });
+      g.on("pointertap", () => {
+        onRingTap(ring.key);
+      });
+      g.lineStyle(1, RING_COLOR, ring.alpha);
+      drawSmoothCircle(g, 0, 0, rWorld);
+      newRings.addChild(g);
+    }
+    world.addChild(newRings);
+    ringsRef.current = newRings;
+
     // Recreate moons container.
     const newMoonsContainer = new PIXI.Container();
     newMoonsContainer.name = "moons";
     world.addChild(newMoonsContainer);
     moonsContainerRef.current = newMoonsContainer;
-
-    // Clicking a moon opens its description card and flies the camera to it.
-    const onMoonTap = (index) => {
-      setSelectedIndex(index);
-      flyToMoon(index);
-    };
 
     for (let idx = 0; idx < geo.length; idx++) {
       const m = geo[idx];
@@ -1205,6 +1322,7 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
       const idx = geo.findIndex((m) => m.name.toLowerCase() === initialMoonKey);
       if (idx >= 0) {
         initialFocusRef.current = initialMoonKey;
+        setSelectedRingKey(null);
         setSelectedIndex(idx);
         // Defer one frame: moon containers are created at position (0,0) and
         // are only placed on their live orbits by the ticker on the next frame.
@@ -1248,6 +1366,18 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
     lastZoomRef.current = NaN;
   }, [selectedIndex]);
 
+  // Keep the SELECTED planetary ring highlighted (thick) for as long as it is
+  // selected. Forces a LOD refresh so the stroke change shows immediately.
+  useEffect(() => {
+    const rc = ringsRef.current;
+    if (!rc) return;
+    const kids = rc.children;
+    for (let i = 0; i < kids.length; i++) {
+      kids[i]._sel = kids[i]._key === selectedRingKey;
+    }
+    lastZoomRef.current = NaN;
+  }, [selectedRingKey]);
+
   // -------------------------------------------------------------------------
   // Navigation: opens the description card AND flies the camera to the moon.
   // -------------------------------------------------------------------------
@@ -1271,6 +1401,7 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
       selectedIndex != null ? orderedIndices.indexOf(selectedIndex) : 0;
     const next = (current - 1 + orderedIndices.length) % orderedIndices.length;
     const idx = orderedIndices[next];
+    setSelectedRingKey(null);
     setSelectedIndex(idx);
     flyToMoon(idx);
   };
@@ -1283,6 +1414,7 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
       selectedIndex != null ? orderedIndices.indexOf(selectedIndex) : -1;
     const next = (current + 1) % orderedIndices.length;
     const idx = orderedIndices[next];
+    setSelectedRingKey(null);
     setSelectedIndex(idx);
     flyToMoon(idx);
   };
@@ -1308,6 +1440,7 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
   const resetView = () => {
     startCameraAnimation(SYS.cx, SYS.cy, defaultZoomRef.current * DEFAULT_VIEW_BOOST);
     setSelectedIndex(null);
+    setSelectedRingKey(null);
   };
 
   // Programmatic zoom toward the current screen centre (used by the ＋/－
@@ -1333,6 +1466,7 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
   // Render helpers
   // -------------------------------------------------------------------------
   const selected = selectedIndex != null ? geo[selectedIndex] : null;
+  const selectedRing = selectedRingKey != null ? SATURN_RINGS.find((r) => r.key === selectedRingKey) : null;
 
   return createPortal(
     <div ref={wrapRef} className="jms-fullscreen-wrap" role="dialog" aria-modal="true" aria-label={t("saturn.system.fullscreenTitle")}>
@@ -1363,6 +1497,7 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
           onChange={(e) => {
             const idx = e.target.value === "" ? null : Number(e.target.value);
             if (idx != null) {
+              setSelectedRingKey(null);
               setSelectedIndex(idx);
               flyToMoon(idx);
             }
@@ -1430,6 +1565,23 @@ export default function SaturnMoonSystemFullscreen({ onClose, initialMoonKey = n
             <div className="jms-card-row"><span>{t("saturn.tooltip.inclination")}</span><b>{selected.i_deg.toFixed(1)}°</b></div>
             <div className="jms-card-row"><span>{t("saturn.tooltip.eccentricity")}</span><b>{selected.e.toFixed(3)}</b></div>
             <div className="jms-card-row"><span>{t("saturn.tooltip.diameter")}</span><b>{selected.diameter_km != null ? spacer(Math.round(selected.diameter_km)) + " км" : t("saturn.tooltip.dash")}</b></div>
+          </div>
+        </div>
+      )}
+
+      {/* Selected-ring detail card */}
+      {selectedRing && (
+        <div className="jms-card" onClick={(e) => e.stopPropagation()}>
+          <button className="jms-card-close" onClick={() => setSelectedRingKey(null)} aria-label={t("saturn.system.close")}>✕</button>
+          <h3>{t("saturn.rings." + selectedRing.key + ".name")}</h3>
+          <div className="jms-card-no-photo">
+            <span>{t("saturn.rings.planetaryRing")}</span>
+            <p>{t("saturn.rings." + selectedRing.key + ".desc")}</p>
+          </div>
+          <div className="jms-card-rows">
+            <div className="jms-card-row"><span>{t("saturn.rings.radiusLabel")}</span><b>{spacer(Math.round(selectedRing.r_km))} км</b></div>
+            <div className="jms-card-row"><span>{t("saturn.rings.widthLabel")}</span><b>{spacer(Math.round(selectedRing.w_km))} км</b></div>
+            <div className="jms-card-row"><span>{t("saturn.rings.discovererLabel")}</span><b>{t("saturn.rings." + selectedRing.key + ".discoverer")}</b></div>
           </div>
         </div>
       )}
