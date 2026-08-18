@@ -1,12 +1,14 @@
-// Space-weather page (weather.html): current conditions (Kp/wind/Bz/X-ray +
-// storm banner), five NOAA SWPC time-series charts, and the aurora forecast
-// card + OVATION map. Ports loadCurrent + loadSeries from space-weather.js.
-// The current payload and the series payload are each fetched once at the page
-// level so the aurora card and the map share sources. (Mars weather used to
-// live here too — it has moved to the /planetarium/mars page.)
+// Space-weather page (weather.html): storm alert card, current conditions
+// (Kp/wind/Bz/X-ray), five NOAA SWPC time-series charts, and the aurora
+// forecast card + OVATION map. Ports loadCurrent + loadSeries from
+// space-weather.js. The current payload and the series payload are each
+// fetched once at the page level so the storm card, aurora card and the map
+// share sources. (Mars weather used to live here too — it has moved to the
+// /planetarium/mars page.)
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import LocationPill from "../components/LocationPill";
+import StormAlert from "../components/weather/StormAlert";
 import WeatherCurrent from "../components/weather/WeatherCurrent";
 import {
   CurrentSkeleton, ChartPairSkeleton, ChartSingleSkeleton,
@@ -69,6 +71,8 @@ export default function Weather() {
           </div>
         </div>
       </section>
+
+      {w && <StormAlert w={w} />}
 
       {wLoading && !w ? <CurrentSkeleton /> : <WeatherCurrent d={w} />}
 

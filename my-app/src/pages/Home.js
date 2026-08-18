@@ -15,6 +15,7 @@ import TonightPanel from "../components/home/TonightPanel";
 import WeatherCards from "../components/home/WeatherCards";
 import IssPassCards from "../components/home/IssPassCards";
 import LaunchCalendar from "../components/home/LaunchCalendar";
+import NewsCards from "../components/home/NewsCards";
 import SectionsGrid from "../components/home/SectionsGrid";
 
 export default function Home() {
@@ -69,6 +70,14 @@ export default function Home() {
           <SectionHead gold eyebrow={t("home.iss.eyebrow")} title={t("home.iss.title")}
             linkTo="iss" linkLabel={t("home.iss.link")} />
           <IssPassCards />
+        </div>
+      </section>
+
+      <section className="section" style={{ paddingTop: 0 }}>
+        <div className="wrap">
+          <SectionHead eyebrow={t("home.news.eyebrow")} title={t("home.news.title")}
+            linkTo="news" linkLabel={t("home.news.link")} />
+          <NewsCards />
         </div>
       </section>
 

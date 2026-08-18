@@ -7,6 +7,7 @@ service modules. Sync service calls are offloaded to a thread pool via
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, Query, Request
@@ -335,13 +336,17 @@ async def geo_ip(request: Request):
 
 @router.get("/online")
 async def online(request: Request):
-    """Current site visitors online. Counts unique caller IPs that have hit
-    this endpoint in the last ~90 s; the call itself also registers the caller
-    as a heartbeat, so the footer poll both reports and refreshes the count."""
+    """Current site visitors online, plus unique visitors today/this week.
+    "online" counts unique caller IPs that have hit this endpoint in the last
+    ~90 s; the call itself also registers the caller as a heartbeat, so the
+    footer poll both reports and refreshes the count. "day"/"week" are backed
+    by the DB (see web/online.py) and are 0 if it's unavailable."""
     ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
     if not ip:
         ip = request.client.host if request.client else ""
-    return {"online": online_tracker.touch(ip)}
+    await asyncio.to_thread(online_tracker.record_visit, ip)
+    counts = await asyncio.to_thread(online_tracker.get_visit_counts)
+    return {"online": online_tracker.touch(ip), **counts}
 
 
 @router.get("/tle")

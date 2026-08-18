@@ -151,6 +151,10 @@
     "colStatus": "Status",
     "online": "online",
     "onlineTip": "Visitors active in the last 90 s",
+    "visitorsToday": "today",
+    "visitorsTodayTip": "Unique visitors today",
+    "visitorsWeek": "this week",
+    "visitorsWeekTip": "Unique visitors in the last 7 days",
     "copyright": "© 2026 OrbitLight. Data: NASA · NOAA SWPC · ESA · Launch Library 2 · N2YO",
     "made": "Made for those who look up 🌌",
     "feedback": "Feedback",
@@ -406,7 +410,8 @@
       "windFoot": "Density {{density}} cm⁻³ · T {{temp}} MK"
     },
     "storm": {
-      "strong": "Geomagnetic storm.",
+      "badge": "Storm {{g}}",
+      "headline": "Active geomagnetic storm",
       "body": "Kp ≥ 5 — possible radio disruption and aurora south of usual latitudes."
     },
     "s1": {
@@ -525,6 +530,11 @@
         "dur": "duration",
         "mag": "magnitude"
       }
+    },
+    "news": {
+      "eyebrow": "Space news",
+      "title": "Latest headlines",
+      "link": "All news →"
     },
     "launches": {
       "eyebrow": "Rocket launches",

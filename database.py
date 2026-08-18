@@ -273,7 +273,21 @@ def init_db():
                 INDEX idx_notified_at (notified_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
-        
+
+        # Site visitor tally for the footer's day/week stats (see web/online.py).
+        # One row per (visit_date, client_hash); client_hash is a truncated
+        # SHA-256 of the caller's IP, not the raw address. Rows older than a
+        # week are pruned by web/online.py, so this table stays small.
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS site_visits (
+                visit_date DATE NOT NULL,
+                client_hash VARCHAR(32) NOT NULL,
+                first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (visit_date, client_hash),
+                INDEX idx_site_visits_date (visit_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
         # ISS passes history
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS iss_passes (
