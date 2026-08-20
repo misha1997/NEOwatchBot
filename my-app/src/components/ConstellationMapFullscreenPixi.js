@@ -83,31 +83,10 @@ function formatDec(decDeg) {
 
 // --- Gyroscope / "sky-pointing" mode helpers -------------------------------
 //
-// Re-centers the alt/az dome projection on wherever the phone's back camera
-// points, instead of on the true zenith, so the star map pans as you move the
-// phone — same idea as Stellarium Mobile's sensor mode. Implemented as a
-// virtual rotation of the celestial sphere: treat the boresight direction
-// (alt0, az0) as the new "zenith" and re-derive each object's alt'/az' in
-// that frame using the exact same spherical-trig shape as raDecToAltAz above
-// (az plays the role of RA, alt plays the role of Dec, alt0 plays the role of
-// latitude, and az-az0 plays the role of hour angle — no time term needed
-// since this is a static re-pointing, not a sidereal-time conversion).
-function rotateToBoresight(alt, az, boreAlt, boreAz) {
-  const haRad = ((boreAz - az) * Math.PI) / 180; // mirrors raDecToAltAz's `lst - raDeg`: boreAz plays LST's role, az plays RA's role
-  const altRad = (alt * Math.PI) / 180;
-  const boreAltRad = (boreAlt * Math.PI) / 180;
-
-  const sinAltP = Math.sin(boreAltRad) * Math.sin(altRad) + Math.cos(boreAltRad) * Math.cos(altRad) * Math.cos(haRad);
-  const altPrimeDeg = (Math.asin(Math.max(-1, Math.min(1, sinAltP))) * 180) / Math.PI;
-
-  const y = -Math.sin(haRad) * Math.cos(altRad);
-  const x = Math.sin(altRad) * Math.cos(boreAltRad) - Math.cos(altRad) * Math.sin(boreAltRad) * Math.cos(haRad);
-  let azPrimeDeg = (Math.atan2(y, x) * 180) / Math.PI;
-  if (azPrimeDeg < 0) azPrimeDeg += 360;
-
-  return { alt: altPrimeDeg, az: azPrimeDeg };
-}
-
+// Re-centers the sky map on wherever the phone's back camera points, instead
+// of on the true zenith, so the star map pans as you move the phone — same
+// idea as Stellarium Mobile's sensor mode.
+//
 // Projects a true (alt, az) to screen space. Pass boresight=null for the
 // normal whole-sky projection (identical to plain altAzToXY: radius is
 // proportional to angular distance from zenith — azimuthal-equidistant, the
@@ -115,24 +94,39 @@ function rotateToBoresight(alt, az, boreAlt, boreAz) {
 // view of the entire sky at once).
 //
 // With a boresight ({alt, az} of wherever the phone points), this instead
-// re-centers on that direction AND switches to a gnomonic (rectilinear)
-// projection — radius ∝ tan(angular distance) rather than the angle itself —
-// because gyro mode is "look through the phone like a window," and only a
-// true rectilinear projection keeps straight lines straight / avoids the
-// fisheye bowing an equidistant projection would show once you can see more
-// than a few degrees across. Angular distance is clamped before the tan() so
-// a boresight-tracking star at the edge of a wide, zoomed-out FOV doesn't
-// blow up toward infinity.
+// computes a gnomonic (rectilinear) tangent-plane projection centered on that
+// direction — the standard "RA/Dec → standard coordinates" formula from
+// spherical astrometry (FITS WCS calls this the TAN projection), with az/alt
+// in place of RA/Dec and the boresight in place of the reference point. Two
+// things make this the right choice over the earlier polar (radius, angle)
+// approach: (1) gyro mode is "look through the phone like a window," and a
+// true rectilinear projection keeps straight lines straight instead of
+// bowing outward like a fisheye lens once the FOV covers more than a few
+// degrees; (2) unlike a polar decomposition, this formula has no atan2 (angle)
+// step, so it stays numerically smooth as objects approach the boresight —
+// atan2 of near-zero components is exactly what made objects visibly jump
+// sideways near the screen center in the previous version, since a tiny
+// sensor-noise wobble in x/y translates to a huge swing in atan2(y, x) when
+// both are close to zero. cosC is clamped away from zero to cap how far
+// content near the edge of a wide, zoomed-out FOV can stretch (the tangent
+// plane's own horizon, at 90° from the boresight, is a true asymptote).
 function projectWithBoresight(alt, az, boresight, cx, cy, rHor) {
   if (!boresight) return altAzToXY(alt, az, cx, cy, rHor);
-  const rotated = rotateToBoresight(alt, az, boresight.alt, boresight.az);
-  const thetaDeg = Math.min(85, Math.max(0, 90 - rotated.alt));
-  const thetaRad = (thetaDeg * Math.PI) / 180;
-  const r = rHor * Math.tan(thetaRad);
-  const phiRad = (rotated.az * Math.PI) / 180;
+
+  const altRad = (alt * Math.PI) / 180;
+  const boreAltRad = (boresight.alt * Math.PI) / 180;
+  const deltaRad = ((az - boresight.az) * Math.PI) / 180;
+  const cosDelta = Math.cos(deltaRad);
+
+  const cosC = Math.sin(boreAltRad) * Math.sin(altRad) + Math.cos(boreAltRad) * Math.cos(altRad) * cosDelta;
+  const cosCClamped = Math.max(0.08, cosC); // floors the tangent-plane blow-up to ~85° out from the boresight
+
+  const stdX = (Math.cos(altRad) * Math.sin(deltaRad)) / cosCClamped;
+  const stdY = (Math.cos(boreAltRad) * Math.sin(altRad) - Math.sin(boreAltRad) * Math.cos(altRad) * cosDelta) / cosCClamped;
+
   return {
-    x: cx + r * Math.sin(phiRad),
-    y: cy - r * Math.cos(phiRad)
+    x: cx + rHor * stdX,
+    y: cy - rHor * stdY
   };
 }
 
@@ -216,7 +210,7 @@ export default function ConstellationMapFullscreenPixi({
   const updateElementsScaleRef = useRef(null);
   const selectedWorldPosRef = useRef(null); // {alt,az} of the selected star/planet/galaxy (re-projected each frame)
 
-  // Gyroscope / "sky-pointing" mode (see rotateToBoresight above). Refs so the
+  // Gyroscope / "sky-pointing" mode (see projectWithBoresight above). Refs so the
   // orientation event handler and pointer handlers (added once, in the
   // mount-only Pixi init effect) can read live state without re-subscribing.
   const gyroActiveRef = useRef(false);
