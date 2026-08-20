@@ -107,9 +107,21 @@ function formatDec(decDeg) {
 // atan2 of near-zero components is exactly what made objects visibly jump
 // sideways near the screen center in the previous version, since a tiny
 // sensor-noise wobble in x/y translates to a huge swing in atan2(y, x) when
-// both are close to zero. cosC is clamped away from zero to cap how far
-// content near the edge of a wide, zoomed-out FOV can stretch (the tangent
-// plane's own horizon, at 90° from the boresight, is a true asymptote).
+// both are close to zero.
+//
+// Gnomonic projections are only valid for less than a hemisphere and get
+// severely stretched well before reaching 90° from the boresight — the
+// tangent plane's own horizon is a true asymptote (cosC → 0). Rather than
+// clamping cosC and folding far-away objects onto the screen edge (which
+// both puts them at a visibly wrong position — content that's actually
+// behind the phone would incorrectly appear pinned to the rim — and makes
+// them "jump" violently for tiny boresight changes, since clamped output
+// sits right next to a steep asymptote), objects past GYRO_FOV_COS_CUTOFF
+// are hidden entirely: returns null for "not in view," which callers must
+// check. GYRO_MIN_ZOOM (below) keeps the default/minimum on-screen FOV
+// narrow enough that this cutoff is rarely hit during normal use.
+const GYRO_FOV_COS_CUTOFF = Math.cos((80 * Math.PI) / 180); // ~80° half-FOV
+
 function projectWithBoresight(alt, az, boresight, cx, cy, rHor) {
   if (!boresight) return altAzToXY(alt, az, cx, cy, rHor);
 
@@ -119,16 +131,22 @@ function projectWithBoresight(alt, az, boresight, cx, cy, rHor) {
   const cosDelta = Math.cos(deltaRad);
 
   const cosC = Math.sin(boreAltRad) * Math.sin(altRad) + Math.cos(boreAltRad) * Math.cos(altRad) * cosDelta;
-  const cosCClamped = Math.max(0.08, cosC); // floors the tangent-plane blow-up to ~85° out from the boresight
+  if (cosC < GYRO_FOV_COS_CUTOFF) return null;
 
-  const stdX = (Math.cos(altRad) * Math.sin(deltaRad)) / cosCClamped;
-  const stdY = (Math.cos(boreAltRad) * Math.sin(altRad) - Math.sin(boreAltRad) * Math.cos(altRad) * cosDelta) / cosCClamped;
+  const stdX = (Math.cos(altRad) * Math.sin(deltaRad)) / cosC;
+  const stdY = (Math.cos(boreAltRad) * Math.sin(altRad) - Math.sin(boreAltRad) * Math.cos(altRad) * cosDelta) / cosC;
 
   return {
     x: cx + rHor * stdX,
     y: cy - rHor * stdY
   };
 }
+
+// Floor on zoom while gyro mode is active: keeps the on-screen FOV inside the
+// range gnomonic renders well (roughly ≤ 2·atan(screenHalfExtent/(rHor·zoom))
+// across) and away from GYRO_FOV_COS_CUTOFF, so zooming out doesn't reintroduce
+// edge stretching/hidden-object churn.
+const GYRO_MIN_ZOOM = 3.0;
 
 // Shortest-path interpolation between two compass angles (handles the 359°→1°
 // wraparound so smoothing doesn't spin the long way around).
@@ -352,11 +370,19 @@ export default function ConstellationMapFullscreenPixi({
       });
 
       c.lines.forEach((line) => {
-        line.forEach((pt, idx) => {
+        // A point outside the gyro FOV breaks the subpath (moveTo on the next
+        // valid point) instead of drawing a line to/from an undefined position.
+        let started = false;
+        line.forEach((pt) => {
           const ptLoc = raDecToAltAz(pt[0], pt[1], latLon.lat, latLon.lon, currentTime);
           const xyPt = projectWithBoresight(ptLoc.alt, ptLoc.az, boresight, cx, cy, rHor);
-          if (idx === 0) {
+          if (!xyPt) {
+            started = false;
+            return;
+          }
+          if (!started) {
             linesGraphics.moveTo(xyPt.x, xyPt.y);
+            started = true;
           } else {
             linesGraphics.lineTo(xyPt.x, xyPt.y);
           }
@@ -377,13 +403,14 @@ export default function ConstellationMapFullscreenPixi({
     if (!pos) return;
 
     const { cx, cy, rHor } = getViewportParams();
-    const { x, y } = projectWithBoresight(pos.alt, pos.az, boresight, cx, cy, rHor);
+    const xy = projectWithBoresight(pos.alt, pos.az, boresight, cx, cy, rHor);
+    if (!xy) return; // selected object is currently outside the gyro FOV
 
     const r = 15 / z;
     ring.lineStyle({ width: 1.5 / z, color: 0x4fd1c5, alpha: 0.4 });
-    ring.drawCircle(x, y, r * 1.7);
+    ring.drawCircle(xy.x, xy.y, r * 1.7);
     ring.lineStyle({ width: 2 / z, color: 0x4fd1c5, alpha: 0.95 });
-    ring.drawCircle(x, y, r);
+    ring.drawCircle(xy.x, xy.y, r);
   };
 
   // Helper to dynamically update elements' scale on zoom to prevent them from growing large
@@ -442,8 +469,9 @@ export default function ConstellationMapFullscreenPixi({
       for (let i = 0; i < children.length; i++) {
         const sprite = children[i];
         if (sprite.userAlt == null) continue;
-        const { x, y } = projectWithBoresight(sprite.userAlt, sprite.userAz, boresight, cx, cy, rHor);
-        sprite.position.set(x, y);
+        const xy = projectWithBoresight(sprite.userAlt, sprite.userAz, boresight, cx, cy, rHor);
+        sprite.visible = !!xy; // hide stars outside the gyro FOV rather than folding them onto the rim
+        if (xy) sprite.position.set(xy.x, xy.y);
       }
     });
 
@@ -451,19 +479,22 @@ export default function ConstellationMapFullscreenPixi({
     if (objectsContainer) {
       objectsContainer.children.forEach((child) => {
         if (child.userAlt == null) return;
-        const { x, y } = projectWithBoresight(child.userAlt, child.userAz, boresight, cx, cy, rHor);
-        child.position.set(x, y);
+        const xy = projectWithBoresight(child.userAlt, child.userAz, boresight, cx, cy, rHor);
+        child.visible = !!xy;
+        if (xy) child.position.set(xy.x, xy.y);
       });
     }
 
     constLabelsRef.current.forEach(({ node, alt, az }) => {
-      const { x, y } = projectWithBoresight(alt, az, boresight, cx, cy, rHor);
-      node.position.set(x, y);
+      const xy = projectWithBoresight(alt, az, boresight, cx, cy, rHor);
+      node.visible = !!xy;
+      if (xy) node.position.set(xy.x, xy.y);
     });
 
     cardinalLabelsRef.current.forEach(({ node, alt, az }) => {
-      const { x, y } = projectWithBoresight(alt, az, boresight, cx, cy, rHor);
-      node.position.set(x, y);
+      const xy = projectWithBoresight(alt, az, boresight, cx, cy, rHor);
+      node.visible = !!xy;
+      if (xy) node.position.set(xy.x, xy.y);
     });
 
     drawConstellationLines(zoomRef.current, boresight);
@@ -685,7 +716,8 @@ export default function ConstellationMapFullscreenPixi({
     // the same "point under the cursor/finger stays put" math.
     const applyZoomToward = (clientX, clientY, nextZoom) => {
       const prevZoom = zoomRef.current;
-      const clamped = Math.max(1.0, Math.min(6000.0, nextZoom));
+      const minZoom = gyroActiveRef.current ? GYRO_MIN_ZOOM : 1.0;
+      const clamped = Math.max(minZoom, Math.min(6000.0, nextZoom));
       zoomRef.current = clamped;
 
       const rect = app.view.getBoundingClientRect();
@@ -1312,7 +1344,8 @@ export default function ConstellationMapFullscreenPixi({
     if (!world) return;
 
     const prevZoom = zoomRef.current;
-    const nextZoom = zoomIn ? Math.min(6000.0, prevZoom * 1.3) : Math.max(1.0, prevZoom * 0.75);
+    const minZoom = gyroActiveRef.current ? GYRO_MIN_ZOOM : 1.0;
+    const nextZoom = zoomIn ? Math.min(6000.0, prevZoom * 1.3) : Math.max(minZoom, prevZoom * 0.75);
     zoomRef.current = nextZoom;
 
     panOffsetRef.current = {
