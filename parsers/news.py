@@ -103,6 +103,19 @@ _VIDEO_TAG_RE = re.compile(
     r'<video[^>]*>.*?<source[^>]+src="([^"]+\.(?:mp4|webm|ogv|ogg))"[^>]*>.*?</video>',
     re.IGNORECASE | re.DOTALL
 )
+# esa.int mission/topic dossier pages (e.g. .../Meteosat_Third_Generation,
+# as opposed to a real dated Newsroom article) splice a "Latest" content
+# carousel — tab bar "All/Stories/Videos/Images" followed by card labels
+# ("Focus on", "Video 00:51:38", "Press Release N° ...", "Story", "Play"/
+# "Read"/"Open") — directly into the same <p> as the page's own short
+# intro blurb, with no HTML boundary a selector could scope around. It
+# reliably starts with the literal word "Latest" immediately followed by
+# that tab bar, so once a paragraph matches this it and everything after
+# it (all card junk, never real prose) gets dropped.
+_ESA_LATEST_WIDGET_RE = re.compile(
+    r'^Latest\b[\s\S]{0,80}?\bAll\b[\s\S]{0,60}?\bStories\b[\s\S]{0,60}?\bVideos\b[\s\S]{0,60}?\bImages\b',
+    re.IGNORECASE
+)
 
 
 class NewsParser:
@@ -423,6 +436,8 @@ class NewsParser:
                 for m in re.finditer(r'<p[^>]*>(.*?)</p>', content_html, re.DOTALL | re.IGNORECASE):
                     p_text = re.sub(r'<[^>]+>', '', m.group(1))  # Strip nested tags
                     p_text = NewsParser._clean_html_entities(p_text.strip())
+                    if _ESA_LATEST_WIDGET_RE.search(p_text):
+                        break  # rest of the page is the "Latest" carousel, not prose
                     if _IMG_PLACEHOLDER_RE.match(p_text) or _VIDEO_PLACEHOLDER_RE.match(p_text) or (
                         len(p_text) > 30 and not any(
                             k in p_text.lower() for k in
@@ -434,6 +449,18 @@ class NewsParser:
             body_text = "\n\n".join(paragraphs)
             if len(body_text) > 6000:
                 body_text = _MEDIA_TAIL_RE.sub('', body_text[:6000]) + "..."
+
+            # Placeholders dropped by the widget break above leave
+            # body_images/body_videos holding entries nothing in body_text
+            # points at any more — trim them back to what's still referenced
+            # (placeholder numbering is contiguous from 0, so the highest
+            # surviving index is also the new length).
+            kept_img = [int(n) for n in re.findall(r'\[IMG:(\d+)\]', body_text)]
+            if len(kept_img) < len(body_images):
+                body_images = body_images[:max(kept_img) + 1] if kept_img else []
+            kept_vid = [int(n) for n in re.findall(r'\[VIDEO:(\d+)\]', body_text)]
+            if len(kept_vid) < len(body_videos):
+                body_videos = body_videos[:max(kept_vid) + 1] if kept_vid else []
 
             return {"body": body_text, "image": img, "body_images": body_images, "body_videos": body_videos}
         except Exception as e:
