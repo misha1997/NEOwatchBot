@@ -93,7 +93,7 @@ function formatDec(decDeg) {
 // latitude, and az-az0 plays the role of hour angle — no time term needed
 // since this is a static re-pointing, not a sidereal-time conversion).
 function rotateToBoresight(alt, az, boreAlt, boreAz) {
-  const haRad = ((az - boreAz) * Math.PI) / 180;
+  const haRad = ((boreAz - az) * Math.PI) / 180; // mirrors raDecToAltAz's `lst - raDeg`: boreAz plays LST's role, az plays RA's role
   const altRad = (alt * Math.PI) / 180;
   const boreAltRad = (boreAlt * Math.PI) / 180;
 
@@ -108,13 +108,32 @@ function rotateToBoresight(alt, az, boreAlt, boreAz) {
   return { alt: altPrimeDeg, az: azPrimeDeg };
 }
 
-// Projects a true (alt, az) to screen space, optionally re-centered on a
-// boresight ({alt, az} of wherever the phone points). Pass boresight=null for
-// the normal zenith-centered projection (identical to plain altAzToXY).
+// Projects a true (alt, az) to screen space. Pass boresight=null for the
+// normal whole-sky projection (identical to plain altAzToXY: radius is
+// proportional to angular distance from zenith — azimuthal-equidistant, the
+// same mapping a fisheye lens produces, appropriate for a planetarium-dome
+// view of the entire sky at once).
+//
+// With a boresight ({alt, az} of wherever the phone points), this instead
+// re-centers on that direction AND switches to a gnomonic (rectilinear)
+// projection — radius ∝ tan(angular distance) rather than the angle itself —
+// because gyro mode is "look through the phone like a window," and only a
+// true rectilinear projection keeps straight lines straight / avoids the
+// fisheye bowing an equidistant projection would show once you can see more
+// than a few degrees across. Angular distance is clamped before the tan() so
+// a boresight-tracking star at the edge of a wide, zoomed-out FOV doesn't
+// blow up toward infinity.
 function projectWithBoresight(alt, az, boresight, cx, cy, rHor) {
   if (!boresight) return altAzToXY(alt, az, cx, cy, rHor);
   const rotated = rotateToBoresight(alt, az, boresight.alt, boresight.az);
-  return altAzToXY(rotated.alt, rotated.az, cx, cy, rHor);
+  const thetaDeg = Math.min(85, Math.max(0, 90 - rotated.alt));
+  const thetaRad = (thetaDeg * Math.PI) / 180;
+  const r = rHor * Math.tan(thetaRad);
+  const phiRad = (rotated.az * Math.PI) / 180;
+  return {
+    x: cx + r * Math.sin(phiRad),
+    y: cy - r * Math.cos(phiRad)
+  };
 }
 
 // Shortest-path interpolation between two compass angles (handles the 359°→1°
@@ -134,11 +153,15 @@ function lerpAngleDeg(a, b, t) {
 // via `360 - alpha` (alpha increases counter-clockwise per the W3C spec,
 // heading increases clockwise) plus the current screen rotation, since
 // Android's alpha is relative to the physical device frame, not the locked UI
-// orientation. Altitude uses the simpler `90 - beta` approximation (vertical
-// phone ⇒ horizon, flat phone ⇒ zenith), which ignores roll (gamma) — fine
-// for the common "hold the phone upright like a window" posture this feature
-// targets, at the cost of some inaccuracy if the phone is held tilted/rotated
-// about its long axis.
+// orientation. Altitude uses the simpler `beta - 90` approximation, which
+// ignores roll (gamma) — fine for the common "hold the phone upright like a
+// window" posture this feature targets, at the cost of some inaccuracy if
+// the phone is held tilted/rotated about its long axis. The three anchor
+// poses fix the sign: beta=90 is vertical with the screen facing the user,
+// so the phone's back faces the horizon (alt=0); beta=0 is flat with the
+// screen facing straight up, so the back faces straight down (alt=-90);
+// beta=180 is flat with the screen facing straight down, so the back faces
+// the zenith (alt=+90).
 function computeHeadingAlt(event) {
   const beta = event.beta;
   if (beta == null) return null;
@@ -157,7 +180,7 @@ function computeHeadingAlt(event) {
     return null;
   }
 
-  const altitude = Math.max(-90, Math.min(90, 90 - beta));
+  const altitude = Math.max(-90, Math.min(90, beta - 90));
   return { az: heading, alt: altitude };
 }
 
