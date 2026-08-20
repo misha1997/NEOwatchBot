@@ -446,6 +446,8 @@ def _planet_row(r: dict, lang: str = DEFAULT_LANG) -> dict:
         "alt": int(round(float(r["alt"]), 0)),
         "mag": round(float(r["mag"]), 1) if r["mag"] is not None else None,
         "visible": bool(r["visible"]),
+        "illum": round(float(r["illum"]), 3) if r.get("illum") is not None else None,
+        "waxing": bool(r["waxing"]) if r.get("waxing") is not None else None,
     }
 
 
@@ -826,6 +828,8 @@ def _planets_raw(lat: float, lon: float, lang: str = DEFAULT_LANG) -> dict:
             "az_short": _compass_short(az_code, lang),
             "mag": round(float(r["mag"]), 1) if r["mag"] is not None else None,
             "visible": bool(r["visible"]),
+            "illum": round(float(r["illum"]), 3) if r.get("illum") is not None else None,
+            "waxing": bool(r["waxing"]) if r.get("waxing") is not None else None,
         })
     # visible first, then by altitude descending
     items.sort(key=lambda x: (not x["visible"], -x["alt"]))
@@ -879,6 +883,105 @@ def _moon_raw(lang: str = DEFAULT_LANG) -> dict:
 
 async def get_moon(lang: str = DEFAULT_LANG) -> dict:
     return await asyncio.to_thread(get_or_fetch, f"moon:{lang}", 900, lambda: _moon_raw(lang))
+
+
+# ---------------------------------------------------------------------------
+# Observing conditions ("Умови сьогодні") — for the dark-sky/light-pollution
+# page. Combines a new external call (Open-Meteo cloud forecast, no key) with
+# internal helpers already used by /api/weather (Kp) and /api/moon (phase),
+# plus a location-specific Moon altitude from PlanetsAPI.compute_sun_moon.
+# Light pollution itself is NOT computed here — the frontend reads it straight
+# off the map tiles client-side (see my-app/src/lib/lightPollution.js).
+# ---------------------------------------------------------------------------
+
+OBSERVING_TTL = 1800  # 30 min — cloud forecast doesn't change minute to minute
+OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
+
+
+def _cloud_forecast(lat: float, lon: float) -> dict | None:
+    """Next ~12h hourly cloud cover (%) from Open-Meteo, plus the average over
+    the next 8h as a single headline number. `timezone=auto` makes Open-Meteo
+    return naive local-to-the-coordinate timestamps, so we compare them to a
+    naive `datetime.now()` in that same local frame — no UTC conversion needed
+    since we never turn these into epoch ms."""
+    resp = requests.get(
+        OPEN_METEO_URL,
+        params={
+            "latitude": lat, "longitude": lon,
+            "hourly": "cloud_cover",
+            "forecast_days": 2,
+            "timezone": "auto",
+        },
+        timeout=10,
+    )
+    resp.raise_for_status()
+    hourly = (resp.json() or {}).get("hourly") or {}
+    times = hourly.get("time") or []
+    covers = hourly.get("cloud_cover") or []
+    now = datetime.now()
+    upcoming = []
+    for ts, c in zip(times, covers):
+        try:
+            dt = datetime.fromisoformat(ts)
+        except Exception:
+            continue
+        if dt >= now and c is not None:
+            upcoming.append((dt, int(c)))
+    window = upcoming[:8]
+    avg = round(sum(c for _, c in window) / len(window)) if window else None
+    series = [{"t": dt.strftime("%H:%M"), "pct": c} for dt, c in upcoming[:8]]
+    return {"cloud_cover_pct": avg, "cloud_series": series}
+
+
+def _observing_conditions_raw(lat: float, lon: float, lang: str = DEFAULT_LANG) -> dict:
+    cloud = None
+    try:
+        cloud = _cloud_forecast(lat, lon)
+    except Exception as e:
+        logger.error("observing conditions cloud: %s", e)
+
+    kp = None
+    try:
+        kp, _kp_time = SpaceWeatherAPI._get_kp_index()
+    except Exception as e:
+        logger.error("observing conditions kp: %s", e)
+
+    moon_phase_name = None
+    moon_illum = None
+    try:
+        mp = MoonMarsAPI.get_moon_phase(lang) or {}
+        moon_phase_name = mp.get("phase_name")
+        moon_illum = round(mp.get("illumination", 0))
+    except Exception as e:
+        logger.error("observing conditions moon phase: %s", e)
+
+    moon_alt = None
+    try:
+        sm = PlanetsAPI.compute_sun_moon(lat, lon)
+        moon_alt = round(float(sm["moon"]["alt"]), 1)
+    except Exception as e:
+        logger.error("observing conditions moon alt: %s", e)
+
+    return {
+        "lat": lat, "lon": lon,
+        "cloud_cover_pct": (cloud or {}).get("cloud_cover_pct"),
+        "cloud_series": (cloud or {}).get("cloud_series") or [],
+        "moon_phase_name": moon_phase_name,
+        "moon_illumination_pct": moon_illum,
+        "moon_alt": moon_alt,
+        "moon_up_now": bool(moon_alt is not None and moon_alt > 0),
+        "kp": round(kp, 1) if kp is not None else None,
+        "kp_storm": bool(kp is not None and kp >= 5),
+    }
+
+
+async def get_observing_conditions(lat: float, lon: float, lang: str = DEFAULT_LANG) -> dict:
+    """Cloud forecast + Moon phase/altitude + Kp for the dark-sky page's
+    "conditions tonight" card. Light pollution is computed client-side."""
+    key = f"obscond:{round(lat,2)}:{round(lon,2)}:{lang}"
+    return await asyncio.to_thread(
+        get_or_fetch, key, OBSERVING_TTL, lambda: _observing_conditions_raw(lat, lon, lang)
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1996,32 +2099,93 @@ def _earth_raw() -> dict:
     except Exception as e:
         out["sea_level_rise_mm"] = 104.0
         
-    # 4. Fetch latest earthquake > 5.0
-    try:
-        r = requests.get("https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=5.0&limit=1", timeout=5)
-        if r.status_code == 200:
-            data = r.json()
-            features = data.get("features", [])
-            if features:
-                props = features[0].get("properties", {})
-                mag = props.get("mag")
-                place = props.get("place")
-                epoch_time = props.get("time", 0) / 1000.0
-                elapsed_min = int((time.time() - epoch_time) / 60.0)
-                out["latest_earthquake"] = {
-                    "mag": mag,
-                    "place": place,
-                    "time_epoch": epoch_time,
-                    "elapsed_min": elapsed_min
-                }
-    except Exception as e:
-        logger.error("Failed to fetch latest earthquake: %s", e)
-        
     return out
 
 
 async def get_earth() -> dict:
     return await asyncio.to_thread(get_or_fetch, "earth", EARTH_TTL, _earth_raw)
+
+
+# ---------------------------------------------------------------------------
+# Earthquakes — USGS FDSN event feed. Superseded the single "latest quake >
+# M5" fetch that used to live in ``_earth_raw`` above: one call now serves the
+# featured latest-quake card, the last-10 list and the 24h count together, all
+# from the same M2.5+/last-24h query (a live rolling feed, so unlike APOD/
+# galaxies/news there's no DB table — "the last 24h" always re-derives itself
+# from USGS, nothing historical to persist).
+# ---------------------------------------------------------------------------
+
+EARTHQUAKES_TTL = 300  # 5 min
+
+
+def _earthquake_row(feature: dict, now_epoch: float) -> dict:
+    props = feature.get("properties", {}) or {}
+    coords = (feature.get("geometry", {}) or {}).get("coordinates") or [None, None, None]
+    lon, lat = coords[0], coords[1]
+    epoch_time = (props.get("time") or 0) / 1000.0
+    return {
+        "mag": props.get("mag"),
+        "place": props.get("place"),
+        "time_epoch": epoch_time,
+        "elapsed_min": int((now_epoch - epoch_time) / 60.0) if epoch_time else None,
+        "lat": lat,
+        "lon": lon,
+        "depth_km": coords[2],
+        "url": props.get("url"),
+    }
+
+
+def _earthquakes_raw() -> dict:
+    out = {"latest": None, "recent": [], "count_24h": 0}
+    try:
+        start = datetime.now(timezone.utc) - timedelta(hours=24)
+        resp = requests.get(
+            "https://earthquake.usgs.gov/fdsnws/event/1/query",
+            params={
+                "format": "geojson",
+                "starttime": start.strftime("%Y-%m-%dT%H:%M:%S"),
+                "minmagnitude": 2.5,
+                "orderby": "time",
+                "limit": 500,  # generous headroom above a typical M2.5+/day count, for an accurate count_24h
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        features = (resp.json() or {}).get("features", [])
+        now_epoch = time.time()
+        rows = [_earthquake_row(f, now_epoch) for f in features]
+        out["count_24h"] = len(rows)
+        out["recent"] = rows[:10]
+        out["latest"] = rows[0] if rows else None
+    except Exception as e:
+        logger.error("earthquakes fetch: %s", e)
+    return out
+
+
+async def get_earthquakes() -> dict:
+    return await asyncio.to_thread(get_or_fetch, "earthquakes", EARTHQUAKES_TTL, _earthquakes_raw)
+
+
+# ---------------------------------------------------------------------------
+# Earth day info — today's (or next) sunrise/sunset/day-length for the
+# observer's location. PlanetsAPI.compute_day_info does the skyfield work.
+# ---------------------------------------------------------------------------
+
+EARTH_DAY_TTL = 300
+
+
+def _earth_day_raw(lat: float, lon: float) -> dict:
+    try:
+        info = PlanetsAPI.compute_day_info(lat, lon)
+    except Exception as e:
+        logger.error("earth day info: %s", e)
+        info = None
+    return info or {"sunrise": None, "sunset": None, "day_length_hours": None}
+
+
+async def get_earth_day(lat: float, lon: float) -> dict:
+    key = f"earth_day:{round(lat,1)}:{round(lon,1)}"
+    return await asyncio.to_thread(get_or_fetch, key, EARTH_DAY_TTL, lambda: _earth_day_raw(lat, lon))
 
 
 VENUS_TTL = 300

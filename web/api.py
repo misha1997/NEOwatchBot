@@ -122,6 +122,18 @@ async def moon(lang: str = LANG_Q):
     return await data.get_moon(lang)
 
 
+@router.get("/observing-conditions")
+async def observing_conditions(
+    lat: float | None = Query(None),
+    lon: float | None = Query(None),
+    lang: str = LANG_Q,
+):
+    """Cloud forecast, Moon phase/altitude and Kp for the dark-sky page's
+    "conditions tonight" card (defaults to Kyiv)."""
+    la, lo = _loc(lat, lon)
+    return await data.get_observing_conditions(la, lo, lang)
+
+
 @router.get("/meteors")
 async def meteors(lang: str = LANG_Q):
     """Upcoming meteor showers calendar (peak dates, ZHR, radiant, status)."""
@@ -261,8 +273,26 @@ async def uranus():
 
 @router.get("/earth")
 async def earth():
-    """Live Earth climate vital signs (CO2, temperature anomaly) and real-time earthquake data."""
+    """Live Earth climate vital signs: CO2, temperature anomaly, sea-level rise."""
     return await data.get_earth()
+
+
+@router.get("/earth/quakes")
+async def earth_quakes():
+    """Earthquakes in the last 24h (USGS, M2.5+): latest, last 10, and a
+    24h count. Each row carries lat/lon for a Google Maps link."""
+    return await data.get_earthquakes()
+
+
+@router.get("/earth/day")
+async def earth_day(
+    lat: float | None = Query(None),
+    lon: float | None = Query(None),
+):
+    """Today's (current or next) sunrise/sunset/day-length for the observer's
+    location (defaults to Kyiv)."""
+    la, lo = _loc(lat, lon)
+    return await data.get_earth_day(la, lo)
 
 
 @router.get("/venus")

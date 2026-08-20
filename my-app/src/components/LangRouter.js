@@ -18,6 +18,7 @@ const Satellites = lazy(() => import("../pages/Satellites"));
 const Meteors = lazy(() => import("../pages/Meteors"));
 const Asteroids = lazy(() => import("../pages/Asteroids"));
 const Events = lazy(() => import("../pages/Events"));
+const DarkSky = lazy(() => import("../pages/DarkSky"));
 const Launches = lazy(() => import("../pages/Launches"));
 const Deep = lazy(() => import("../pages/Deep"));
 const Voyager = lazy(() => import("../pages/Voyager"));
@@ -49,6 +50,7 @@ const PAGES = {
   meteors: Meteors,
   asteroids: Asteroids,
   events: Events,
+  darksky: DarkSky,
   launches: Launches,
   deep: Deep,
   voyager: Voyager,

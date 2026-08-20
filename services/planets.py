@@ -152,6 +152,25 @@ class PlanetsAPI:
             i_deg = math.degrees(math.acos(cos_i))
 
             mag = _magnitude(key, r, delta, i_deg)
+            illum = (1.0 + math.cos(math.radians(i_deg))) / 2.0
+
+            # Waxing/waning: illuminated fraction one day from now, compared
+            # to now. Cheap (reuses the same vector approach) and avoids the
+            # geocentric-elongation shortcut that works for the Moon but not
+            # for Mercury/Venus (their phase angle is measured at the planet,
+            # not at Earth, so it doesn't share the Moon's near/far-conjunction
+            # symmetry that the elongation angle alone can't resolve).
+            t2 = ts.tt_jd(t.tt + 1.0)
+            pvec2 = body.at(t2).position.au
+            evec2 = earth.at(t2).position.au
+            ps2 = -pvec2
+            pe2 = evec2 - pvec2
+            dot2 = ps2[0]*pe2[0] + ps2[1]*pe2[1] + ps2[2]*pe2[2]
+            nps2 = math.sqrt(ps2[0]**2 + ps2[1]**2 + ps2[2]**2)
+            npe2 = math.sqrt(pe2[0]**2 + pe2[1]**2 + pe2[2]**2)
+            cos_i2 = max(-1.0, min(1.0, dot2 / (nps2 * npe2)))
+            illum2 = (1.0 + math.cos(math.acos(cos_i2))) / 2.0
+
             try:
                 abbr = cm(app)
             except Exception:
@@ -163,6 +182,8 @@ class PlanetsAPI:
                 "mag": mag,
                 "constellation": abbr,
                 "visible": alt_deg > 0.0,
+                "illum": illum,
+                "waxing": illum2 > illum,
             })
         return out
 
@@ -263,6 +284,51 @@ class PlanetsAPI:
             "dark_from": iso_z(next_falling(crossings(-18.0))),
             "dawn": iso_z(next_rising(crossings(-18.0))),
         }
+
+    @staticmethod
+    def compute_day_info(lat, lon):
+        """Today's (current or next) daylight span: sunrise, sunset, length.
+
+        Unlike ``compute_sun_times`` (always forward-looking, for "tonight"),
+        this finds the 0°-altitude rise/set pair that brackets *now* — so it
+        still reports correctly whether it's currently day or night. Searches
+        a ±24h window around now for Sun altitude threshold crossings, then
+        pairs each rising with its very next falling and keeps the first pair
+        that either contains `now` or lies entirely in the future. Returns
+        ``None`` if no pair is found (e.g. polar day/night). Raises on hard
+        failure; the caller wraps in try/except.
+        """
+        from skyfield import almanac
+        eph, ts, wgs84, cm, latin = _get_skyfield()
+        earth, sun = eph[399], eph[10]
+        observer = earth + wgs84.latlon(lat, lon)
+        now = ts.now()
+        t0 = ts.tt_jd(now.tt - 1.0)
+        t1 = ts.tt_jd(now.tt + 1.0)
+
+        def sun_alt(t):
+            return observer.at(t).observe(sun).apparent().altaz()[0].degrees
+
+        def f(t):
+            return sun_alt(t) > 0.0
+        f.step_days = 0.02
+        times, vals = almanac.find_discrete(t0, t1, f)
+        events = list(zip(times, vals))
+
+        for i, (tm, val) in enumerate(events):
+            if not val:  # only pair up risings
+                continue
+            for tm2, val2 in events[i + 1:]:
+                if not val2:  # the next falling after this rising
+                    if tm2.tt >= now.tt:
+                        day_length_h = (tm2.tt - tm.tt) * 24
+                        return {
+                            "sunrise": tm.utc_strftime("%Y-%m-%dT%H:%M:%SZ"),
+                            "sunset": tm2.utc_strftime("%Y-%m-%dT%H:%M:%SZ"),
+                            "day_length_hours": round(day_length_h, 2),
+                        }
+                    break
+        return None
 
     @staticmethod
     def get_visible(lat, lon, lang=DEFAULT_LANG):

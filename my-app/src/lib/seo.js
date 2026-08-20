@@ -29,6 +29,7 @@ export const SLUGS = {
   meteors:        { uk: "meteory",           en: "meteors" },
   asteroids:      { uk: "asteroidy",         en: "asteroids" },
   events:         { uk: "podiyi",            en: "events" },
+  darksky:        { uk: "temne-nebo",        en: "dark-sky" },
   launches:       { uk: "zapusky",           en: "launches" },
   news:           { uk: "novyny",            en: "news" },
   deep:           { uk: "dalniy-kosmos",     en: "deep" },

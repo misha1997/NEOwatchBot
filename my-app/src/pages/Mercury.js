@@ -2,10 +2,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SectionHead from "../components/primitives/SectionHead";
+import LocationPill from "../components/LocationPill";
+import Moon from "../components/viz/Moon";
 import { useSeo } from "../hooks/useSeo";
 import { useApi } from "../hooks/useApi";
-import { getMercury } from "../lib/api";
+import { useLoc } from "../context/LocationContext";
+import { getMercury, getPlanets } from "../lib/api";
 import "../styles/planetarium.css";
+
+const MONTH_KEYS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+function fmtEventDate(iso, t) {
+  const d = new Date(iso);
+  return d.getDate() + " " + t("common.months." + MONTH_KEYS[d.getMonth()]) + " " + d.getFullYear();
+}
 
 const MESSENGER_PHOTOS = [
   { key: "caloris", img_src: "/mercury/caloris.jpg", titleKey: "mercury.surface.c1", date: "MESSENGER" },
@@ -13,6 +23,111 @@ const MESSENGER_PHOTOS = [
   { key: "ice", img_src: "/mercury/ice.jpg", titleKey: "mercury.surface.c3", date: "MESSENGER" },
   { key: "surface", img_src: "/mercury/surface.jpg", titleKey: "mercury.surface.c4", date: "MESSENGER" },
 ];
+
+// Gauge-style elongation diagram for the "best time to observe" card: an arc
+// from the Sun (glowing, at the horizon end) up to Mercury's position at its
+// current apparition, with the angle between them called out — same idea as
+// a speedometer needle. Not to scale (the true elongation varies 18-28° per
+// apparition and isn't in the data); Mercury/Sun colors match the ones
+// already used in this page's resonance diagram (#FFD37A, #B7A08C/#E8E6D8).
+function bezierPoint(p0, p1, p2, tt) {
+  const mt = 1 - tt;
+  return {
+    x: mt * mt * p0.x + 2 * mt * tt * p1.x + tt * tt * p2.x,
+    y: mt * mt * p0.y + 2 * mt * tt * p1.y + tt * tt * p2.y,
+  };
+}
+
+function ElongationDiagram({ eastern, t }) {
+  const w = 300, h = 168;
+  const sun = eastern ? { x: 78, y: 138 } : { x: 222, y: 138 };
+  const ctrl = { x: 150, y: 26 };
+  const end = eastern ? { x: 260, y: 76 } : { x: 40, y: 76 };
+  const merc = bezierPoint(sun, ctrl, end, 0.58);
+  const gradId = "mercGaugeGrad" + (eastern ? "E" : "W");
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} style={{ display: "block", maxWidth: 340, margin: "0 auto" }}>
+      <defs>
+        <linearGradient id={gradId} x1={eastern ? "0%" : "100%"} y1="100%" x2={eastern ? "100%" : "0%"} y2="0%">
+          <stop offset="0%" stopColor="#FFD37A" />
+          <stop offset="45%" stopColor="#8A6A5A" />
+          <stop offset="100%" stopColor="#2a3050" />
+        </linearGradient>
+        <radialGradient id="mercGaugeSunGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#FFE8B0" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="#FFD37A" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      <path d={`M ${sun.x} ${sun.y} Q ${ctrl.x} ${ctrl.y} ${end.x} ${end.y}`}
+        fill="none" stroke={`url(#${gradId})`} strokeWidth="3" strokeLinecap="round" opacity="0.85" />
+
+      <circle cx={sun.x} cy={sun.y} r="30" fill="url(#mercGaugeSunGlow)" />
+      <circle cx={sun.x} cy={sun.y} r="14" fill="#FFD37A" />
+
+      <line x1={sun.x} y1={sun.y} x2={merc.x} y2={merc.y} stroke="#E8E6D8" strokeWidth="1" strokeDasharray="3,3" opacity="0.6" />
+      <circle cx={merc.x} cy={merc.y} r="5" fill="#E8E6D8" />
+      <circle cx={merc.x} cy={merc.y} r="9" fill="none" stroke="#E8E6D8" strokeOpacity="0.35" />
+      <text x={(sun.x + merc.x) / 2} y={(sun.y + merc.y) / 2 - 10}
+        fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)" textAnchor="middle">≤28°</text>
+
+      <line x1="0" y1={h - 20} x2={w} y2={h - 20} stroke="var(--border)" strokeWidth="1" />
+      <text x={w / 2} y={h - 4} fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)" textAnchor="middle">
+        {eastern ? t("mercury.observe.westHorizon") : t("mercury.observe.eastHorizon")}
+      </text>
+    </svg>
+  );
+}
+
+// Small hand-drawn line icons (no icon-library dependency) for the countdown
+// segments and the upcoming-elongation rows.
+function IconMoonStar({ size = 20, color = "var(--gold)" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" />
+      <path d="M18 3v3M16.5 4.5h3" />
+    </svg>
+  );
+}
+function IconClock({ size = 20, color = "var(--gold)" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  );
+}
+function IconHourglass({ size = 20, color = "var(--gold)" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 3h12M6 21h12M7 3c0 5 4 6.5 5 8-1 1.5-5 3-5 8M17 3c0 5-4 6.5-5 8 1 1.5 5 3 5 8" />
+    </svg>
+  );
+}
+function IconSunSmall({ size = 15, color = "#fff" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round">
+      <circle cx="12" cy="12" r="4.5" />
+      <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
+    </svg>
+  );
+}
+function IconMoonSmall({ size = 15, color = "#fff" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none">
+      <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" />
+    </svg>
+  );
+}
+function IconPhaseBadge({ size = 22, color = "var(--text-dim)" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke={color} strokeWidth="1.6" />
+      <path d="M12 3a9 9 0 0 1 0 18Z" fill={color} />
+    </svg>
+  );
+}
 
 function breakdown(ms) {
   const total = Math.max(0, ms);
@@ -32,6 +147,12 @@ export default function Mercury() {
   }, [t]);
 
   const { data } = useApi(getMercury, { deps: [] });
+  const { loc } = useLoc();
+  const { data: planetsData } = useApi(() => getPlanets(loc, lang), {
+    deps: [loc && loc.lat, loc && loc.lon, lang],
+  });
+  const mercuryNow = ((planetsData && planetsData.items) || []).find((r) => r.name_key === "mercury") || null;
+  const upcoming = (data && data.elongations_upcoming) || [];
 
   // ---- hero live distance / signal -----------------------------------------
   const distStr = data?.distance_km
@@ -117,8 +238,46 @@ export default function Mercury() {
         </div>
       </section>
 
+      {/* ---------- visible now, for the observer's location ---------- */}
+      <section className="section" id="visible-now" style={{ paddingTop: 8 }}>
+        <div className="wrap">
+          <SectionHead eyebrow={t("mercury.visibleNow.eyebrow")} title={t("mercury.visibleNow.title")} />
+          <LocationPill />
+          <div className="grid cols-4" style={{ marginTop: 16 }}>
+            <div className="card">
+              <div className="k">{t("mercury.visibleNow.alt")}</div>
+              <div className="v">
+                {mercuryNow ? Math.round(mercuryNow.alt) : "—"}
+                <span className="unit">°</span>
+              </div>
+              <div className="foot">
+                {mercuryNow ? (mercuryNow.visible ? t("mercury.visibleNow.above") : t("mercury.visibleNow.below")) : ""}
+              </div>
+            </div>
+            <div className="card">
+              <div className="k">{t("mercury.visibleNow.az")}</div>
+              <div className="v" style={{ fontSize: 20 }}>{mercuryNow ? mercuryNow.az_dir : "—"}</div>
+              <div className="foot">{mercuryNow ? Math.round(mercuryNow.az) + "°" : ""}</div>
+            </div>
+            <div className="card">
+              <div className="k">{t("mercury.visibleNow.mag")}</div>
+              <div className="v">{mercuryNow && mercuryNow.mag != null ? mercuryNow.mag.toFixed(1) : "—"}</div>
+              <div className="foot">{t("mercury.visibleNow.magFoot")}</div>
+            </div>
+            <div className="card">
+              <div className="k">{t("mercury.visibleNow.status")}</div>
+              <div className={"v" + (mercuryNow && mercuryNow.visible ? " accent" : "")} style={{ fontSize: 18 }}>
+                {mercuryNow
+                  ? (mercuryNow.visible ? t("mercury.visibleNow.visible") : t("mercury.visibleNow.notVisible"))
+                  : t("mercury.visibleNow.loading")}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ---------- mercury right now ---------- */}
-      <section className="section" style={{ paddingTop: 8 }}>
+      <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <SectionHead eyebrow={t("mercury.weather.eyebrow")} title={t("mercury.weather.title")} />
           
@@ -405,45 +564,96 @@ export default function Mercury() {
       <section className="section" id="observe">
         <div className="wrap">
           <SectionHead eyebrow={t("mercury.observe.eyebrow")} title={t("mercury.observe.title")} />
-          
-          <div className="grid cols-2" style={{ alignItems: "center" }}>
-            <div className="card" style={{ padding: 26 }}>
-              <div className="k">
-                {t("mercury.observe.until")}
-                {data?.elongation_next && ` (${lang === "en" ? data.elongation_next.name_en : data.elongation_next.name_uk})`}
+
+          {/* card 1: gauge diagram + headline + description */}
+          <div className="card" style={{ padding: "22px 26px" }}>
+            <div style={{
+              fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: "0.12em",
+              textTransform: "uppercase", color: "var(--text-dim)",
+            }}>
+              {t("mercury.observe.overviewLabel")}
+            </div>
+            <div className="grid cols-2" style={{ alignItems: "center", gap: 24, marginTop: 8 }}>
+              <ElongationDiagram eastern={data?.elongation_next?.type === "eastern"} t={t} />
+              <div>
+                <div style={{ fontSize: 19, fontWeight: 700 }}>
+                  {t("mercury.observe.until")}
+                  {data?.elongation_next && ` (${lang === "en" ? data.elongation_next.name_en : data.elongation_next.name_uk})`}
+                </div>
+                <p style={{ fontSize: 13.5, color: "var(--text-dim)", marginTop: 10, lineHeight: 1.7 }}>
+                  {data?.elongation_next?.type === "eastern" ? t("mercury.observe.footEastern") : t("mercury.observe.footWestern")}
+                </p>
               </div>
-              
+            </div>
+          </div>
+
+          {/* row: countdown-with-icons | phase */}
+          <div className="grid cols-2" style={{ alignItems: "stretch", marginTop: 16 }}>
+            <div className="card" style={{ padding: "20px 22px" }}>
               {passed ? (
                 <div className="jupiter-opposition-now">{t("jupiter.opposition.passed")}</div>
               ) : (
-                <div className="clock" style={{ marginTop: 14 }}>
-                  <div className="seg">
-                    <div className="n">{String(days).padStart(2, "0")}</div>
-                    <span className="u">{t("mercury.observe.days")}</span>
+                <div style={{ display: "flex", justifyContent: "space-around", textAlign: "center" }}>
+                  <div>
+                    <IconMoonStar />
+                    <div className="v" style={{ fontSize: 28, marginTop: 8 }}>{days}</div>
+                    <div className="foot">{t("mercury.observe.days")}</div>
                   </div>
-                  <div className="seg">
-                    <div className="n">{String(hours).padStart(2, "0")}</div>
-                    <span className="u">{t("mercury.observe.hours")}</span>
+                  <div>
+                    <IconClock />
+                    <div className="v" style={{ fontSize: 28, marginTop: 8 }}>{hours}</div>
+                    <div className="foot">{t("mercury.observe.hours")}</div>
                   </div>
-                  <div className="seg">
-                    <div className="n">{String(mins).padStart(2, "0")}</div>
-                    <span className="u">{t("jupiter.opposition.mins")}</span>
+                  <div>
+                    <IconHourglass />
+                    <div className="v" style={{ fontSize: 28, marginTop: 8 }}>{mins}</div>
+                    <div className="foot">{t("jupiter.opposition.mins")}</div>
                   </div>
                 </div>
               )}
-              
-              <div className="foot" style={{ marginTop: 14 }}>
-                {data?.elongation_next?.type === "eastern"
-                  ? t("mercury.observe.footEastern")
-                  : t("mercury.observe.footWestern")}
+            </div>
+
+            <div className="card" style={{ padding: "20px 22px", position: "relative", display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ position: "absolute", top: 16, right: 16 }}>
+                <IconPhaseBadge />
+              </div>
+              <Moon illumination={mercuryNow ? mercuryNow.illum : 0.5} phase={mercuryNow && mercuryNow.waxing ? 0.25 : 0.75} size={64} />
+              <div>
+                <div className="v" style={{ fontSize: 30 }}>
+                  {mercuryNow && mercuryNow.illum != null ? Math.round(mercuryNow.illum * 100) : "—"}
+                  <span className="unit">%</span>
+                </div>
+                <div className="foot">
+                  {mercuryNow ? (mercuryNow.waxing ? t("mercury.phase.waxing") : t("mercury.phase.waning")) : t("mercury.phase.title")}
+                </div>
               </div>
             </div>
-            
-            <div className="card" style={{ padding: 26 }}>
-              <div className="k">{t("mercury.observe.whyK")}</div>
-              <p style={{ color: "var(--text-dim)", fontSize: 13.5, marginTop: 10, lineHeight: 1.7 }}>
-                {t("mercury.observe.whyBody")}
-              </p>
+          </div>
+
+          {/* upcoming elongations */}
+          <div className="card" style={{ padding: "20px 22px", marginTop: 16 }}>
+            <div style={{
+              fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: "0.12em",
+              textTransform: "uppercase", color: "var(--text-dim)", marginBottom: 12,
+            }}>
+              {t("mercury.observe.upcomingK")}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {upcoming.map((e, i) => {
+                const evening = e.type === "eastern";
+                const tint = evening ? "232, 150, 80" : "90, 140, 220";
+                return (
+                  <div key={i} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 14px", borderRadius: 10,
+                    background: `linear-gradient(90deg, rgba(${tint},0.28), rgba(${tint},0.05))`,
+                  }}>
+                    {evening ? <IconSunSmall /> : <IconMoonSmall />}
+                    <span style={{ fontSize: 13.5, flex: 1 }}>{lang === "en" ? e.name_en : e.name_uk}</span>
+                    <span className="mono" style={{ fontSize: 12.5, color: `rgb(${tint})` }}>{fmtEventDate(e.date_iso, t)}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

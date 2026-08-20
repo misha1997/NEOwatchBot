@@ -3,10 +3,24 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SectionHead from "../components/primitives/SectionHead";
 import LocalizedLink from "../components/primitives/LocalizedLink";
+import LocationPill from "../components/LocationPill";
+import EarthTerminatorMap from "../components/EarthTerminatorMap";
 import { useSeo } from "../hooks/useSeo";
 import { useApi } from "../hooks/useApi";
-import { getEarth } from "../lib/api";
+import { useLoc } from "../context/LocationContext";
+import { getEarth, getEarthQuakes, getEarthDay } from "../lib/api";
 import "../styles/planetarium.css";
+
+function quakeColor(mag) {
+  if (mag == null) return "var(--text-dim)";
+  if (mag >= 6) return "var(--coral)";
+  if (mag >= 4.5) return "var(--gold)";
+  return "var(--teal)";
+}
+
+function mapsUrl(lat, lon) {
+  return `https://www.google.com/maps?q=${lat},${lon}`;
+}
 
 export default function Earth() {
   const { t, i18n } = useTranslation();
@@ -18,6 +32,14 @@ export default function Earth() {
   }, [t]);
 
   const { data } = useApi(getEarth, { deps: [] });
+  const { loc } = useLoc();
+  const { data: quakes } = useApi(getEarthQuakes, { deps: [], interval: 300000 });
+  const { data: dayInfo } = useApi(() => getEarthDay(loc), { deps: [loc && loc.lat, loc && loc.lon] });
+
+  const fmtTime = (iso) => {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleTimeString(lang === "uk" ? "uk-UA" : "en-US", { hour: "2-digit", minute: "2-digit" });
+  };
 
   // Real-time population counter simulating ~2.2 people growth per second
   const [population, setPopulation] = useState(() => {
@@ -99,8 +121,46 @@ export default function Earth() {
         </div>
       </section>
 
+      {/* ---------- day/night terminator + your day right now ---------- */}
+      <section className="section" id="daynight" style={{ paddingTop: 8 }}>
+        <div className="wrap">
+          <SectionHead eyebrow={t("earth.daynight.eyebrow")} title={t("earth.daynight.title")} />
+          <LocationPill />
+
+          <div className="map-card" style={{ marginTop: 16 }}>
+            <div className="map-body map-live">
+              <EarthTerminatorMap loc={loc} />
+            </div>
+          </div>
+
+          <div className="grid cols-2" style={{ marginTop: 16, alignItems: "stretch", gap: 20 }}>
+            <div className="card" style={{ padding: "22px 24px" }}>
+              <div className="k">{t("earth.daynight.dayInfo")}</div>
+              <div style={{ display: "flex", gap: 28, marginTop: 16 }}>
+                <div>
+                  <div className="v" style={{ fontSize: 24 }}>{fmtTime(dayInfo && dayInfo.sunrise)}</div>
+                  <div className="foot">{t("earth.daynight.sunrise")}</div>
+                </div>
+                <div>
+                  <div className="v" style={{ fontSize: 24 }}>{fmtTime(dayInfo && dayInfo.sunset)}</div>
+                  <div className="foot">{t("earth.daynight.sunset")}</div>
+                </div>
+              </div>
+            </div>
+            <div className="card" style={{ padding: "22px 24px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <div className="k">{t("earth.daynight.dayLength")}</div>
+              <div className="v" style={{ fontSize: 26, marginTop: 10 }}>
+                {dayInfo && dayInfo.day_length_hours != null
+                  ? `${Math.floor(dayInfo.day_length_hours)}${t("earth.daynight.hUnit")} ${Math.round((dayInfo.day_length_hours % 1) * 60)}${t("earth.daynight.mUnit")}`
+                  : "—"}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ---------- live stats ---------- */}
-      <section className="section" id="live-stats" style={{ paddingTop: 8 }}>
+      <section className="section" id="live-stats" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <SectionHead eyebrow={t("earth.stats.eyebrow")} title={t("earth.stats.title")} />
           <div className="grid cols-4">
@@ -169,6 +229,74 @@ export default function Earth() {
                 <span className="unit">mm</span>
               </div>
               <div className="foot">{t("earth.climate.seaLevelFoot")}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- earthquakes ---------- */}
+      <section className="section" id="earthquakes" style={{ paddingTop: 0 }}>
+        <div className="wrap">
+          <SectionHead eyebrow={t("earth.quakes.eyebrow")} title={t("earth.quakes.title")} />
+
+          <div className="grid cols-2" style={{ alignItems: "stretch", gap: 20 }}>
+            <div className="card" style={{ padding: "22px 24px" }}>
+              <div style={{
+                fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: "0.12em",
+                textTransform: "uppercase", color: "var(--text-dim)",
+              }}>
+                {t("earth.quakes.latestLabel")}
+              </div>
+              {quakes && quakes.latest ? (
+                <>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginTop: 10 }}>
+                    <div className="v" style={{ fontSize: 40, color: quakeColor(quakes.latest.mag) }}>
+                      {quakes.latest.mag != null ? quakes.latest.mag.toFixed(1) : "—"}
+                    </div>
+                    <div className="foot">{t("earth.quakes.magUnit")}</div>
+                  </div>
+                  <a href={mapsUrl(quakes.latest.lat, quakes.latest.lon)} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 15, fontWeight: 600, marginTop: 8, display: "block", color: "var(--text)" }}>
+                    {quakes.latest.place} ↗
+                  </a>
+                  <div className="foot" style={{ marginTop: 6 }}>
+                    {formatElapsed(quakes.latest.elapsed_min)}
+                    {quakes.latest.depth_km != null ? ` · ${t("earth.quakes.depth")} ${Math.round(quakes.latest.depth_km)} ${t("earth.quakes.km")}` : ""}
+                  </div>
+                </>
+              ) : (
+                <div className="foot" style={{ marginTop: 10 }}>{t("earth.quakes.loading")}</div>
+              )}
+            </div>
+
+            <div className="card" style={{ padding: "22px 24px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+              <div className="v" style={{ fontSize: 44 }}>{quakes ? quakes.count_24h : "—"}</div>
+              <div className="foot">{t("earth.quakes.count24hFoot")}</div>
+            </div>
+          </div>
+
+          <div className="card" style={{ padding: "20px 22px", marginTop: 16 }}>
+            <div style={{
+              fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: "0.12em",
+              textTransform: "uppercase", color: "var(--text-dim)", marginBottom: 6,
+            }}>
+              {t("earth.quakes.recentLabel")}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {((quakes && quakes.recent) || []).map((q, i) => (
+                <a key={i} href={mapsUrl(q.lat, q.lon)} target="_blank" rel="noopener noreferrer"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12, padding: "10px 4px",
+                    borderTop: i > 0 ? "1px solid var(--border)" : "none",
+                    textDecoration: "none", color: "inherit",
+                  }}>
+                  <span style={{ width: 38, textAlign: "right", fontFamily: "var(--font-mono)", fontWeight: 600, color: quakeColor(q.mag) }}>
+                    {q.mag != null ? q.mag.toFixed(1) : "—"}
+                  </span>
+                  <span style={{ fontSize: 13, flex: 1 }}>{q.place}</span>
+                  <span className="foot mono">{formatElapsed(q.elapsed_min)}</span>
+                </a>
+              ))}
             </div>
           </div>
         </div>
@@ -256,20 +384,10 @@ export default function Earth() {
               </div>
             </div>
           </div>
-          {data?.latest_earthquake && (
-            <div className="card" style={{ marginTop: 30, borderLeft: "3px solid var(--gold)", padding: "16px 20px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span className="dot live" style={{ backgroundColor: "var(--gold)" }} />
-                <span style={{ fontSize: 13.5, color: "var(--text-dim)" }}>
-                  {t("earth.seismic.title")}:{" "}
-                  <strong style={{ color: "var(--text)" }}>
-                    {t("earth.seismic.mag")} {data.latest_earthquake.mag}
-                  </strong>
-                  , {data.latest_earthquake.place} ({formatElapsed(data.latest_earthquake.elapsed_min)})
-                </span>
-              </div>
-            </div>
-          )}
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)", marginTop: 16 }}>
+            {t("earth.interior.quakesNote")}{" "}
+            <a href="#earthquakes" className="section-link" style={{ display: "inline" }}>{t("earth.quakes.title")} →</a>
+          </p>
         </div>
       </section>
 

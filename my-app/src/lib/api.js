@@ -52,6 +52,10 @@ export const getDebris = () => fetchJSON(API + "/debris");
 export const getJupiter = () => fetchJSON(API + "/jupiter");
 export const getMercury = () => fetchJSON(API + "/mercury");
 export const getEarth = () => fetchJSON(API + "/earth");
+// Earthquakes in the last 24h (USGS, M2.5+): {latest, recent[], count_24h}.
+export const getEarthQuakes = () => fetchJSON(API + "/earth/quakes");
+// Today's (current/next) sunrise/sunset/day-length for a location.
+export const getEarthDay = (loc) => fetchJSON(API + "/earth/day" + locParams(loc));
 export const getVenus = () => fetchJSON(API + "/venus");
 export const getNeptune = () => fetchJSON(API + "/neptune");
 export const getSaturn = () => fetchJSON(API + "/saturn");
@@ -79,6 +83,10 @@ export const getSky = (loc, lang) =>
 export const getPlanets = (loc, lang) =>
   fetchJSON(API + "/planets" + withLang(locParams(loc), lang));
 export const getMoon = (lang) => fetchJSON(API + "/moon" + withLang("", lang));
+// Cloud forecast + Moon alt/illum + Kp for the dark-sky page's "conditions
+// tonight" card. Light pollution itself is read client-side (lib/lightPollution.js).
+export const getObservingConditions = (loc, lang) =>
+  fetchJSON(API + "/observing-conditions" + withLang(locParams(loc), lang));
 export const getNeo = (lang) => fetchJSON(API + "/neo" + withLang("", lang));
 export const getMeteors = (lang) => fetchJSON(API + "/meteors" + withLang("", lang));
 export const getEvents = (lang) => fetchJSON(API + "/events" + withLang("", lang));

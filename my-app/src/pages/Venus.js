@@ -2,10 +2,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SectionHead from "../components/primitives/SectionHead";
+import LocationPill from "../components/LocationPill";
+import Moon from "../components/viz/Moon";
 import { useSeo } from "../hooks/useSeo";
 import { useApi } from "../hooks/useApi";
-import { getVenus } from "../lib/api";
+import { useLoc } from "../context/LocationContext";
+import { getVenus, getPlanets } from "../lib/api";
 import "../styles/planetarium.css";
+
+const MONTH_KEYS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+function fmtEventDate(iso, t) {
+  const d = new Date(iso);
+  return d.getDate() + " " + t("common.months." + MONTH_KEYS[d.getMonth()]) + " " + d.getFullYear();
+}
 
 const MAGELLAN_PHOTOS = [
   { key: "map", img_src: "/venus/map.jpg", titleKey: "venus.surface.p1", date: "1991-05-25" },
@@ -13,6 +23,102 @@ const MAGELLAN_PHOTOS = [
   { key: "lakshmi", img_src: "/venus/lakshmi.jpg", titleKey: "venus.surface.p3", date: "1991-11-15" },
   { key: "mead", img_src: "/venus/mead.jpg", titleKey: "venus.surface.p4", date: "1990-12-05" },
 ];
+
+// Gauge-style elongation diagram for the "brightest now" card — same idea as
+// Mercury.js's ElongationDiagram (a picture of "how far from the Sun, and
+// which horizon" beats a bare countdown), rebuilt here with Venus's own
+// colors (#E8C77A, matching the retrograde-diagram sphere above) and max
+// elongation (~47°, roughly double Mercury's ~28°). Not to scale.
+function bezierPoint(p0, p1, p2, tt) {
+  const mt = 1 - tt;
+  return {
+    x: mt * mt * p0.x + 2 * mt * tt * p1.x + tt * tt * p2.x,
+    y: mt * mt * p0.y + 2 * mt * tt * p1.y + tt * tt * p2.y,
+  };
+}
+
+function ElongationDiagram({ evening, t }) {
+  const w = 300, h = 168;
+  const sun = evening ? { x: 78, y: 138 } : { x: 222, y: 138 };
+  const ctrl = { x: 150, y: 26 };
+  const end = evening ? { x: 260, y: 76 } : { x: 40, y: 76 };
+  const venus = bezierPoint(sun, ctrl, end, 0.62);
+  const gradId = "venusGaugeGrad" + (evening ? "E" : "W");
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} style={{ display: "block", maxWidth: 340, margin: "0 auto" }}>
+      <defs>
+        <linearGradient id={gradId} x1={evening ? "0%" : "100%"} y1="100%" x2={evening ? "100%" : "0%"} y2="0%">
+          <stop offset="0%" stopColor="#FFD37A" />
+          <stop offset="45%" stopColor="#B88A4A" />
+          <stop offset="100%" stopColor="#2a3050" />
+        </linearGradient>
+        <radialGradient id="venusGaugeSunGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#FFE8B0" stopOpacity="0.85" />
+          <stop offset="100%" stopColor="#FFD37A" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      <path d={`M ${sun.x} ${sun.y} Q ${ctrl.x} ${ctrl.y} ${end.x} ${end.y}`}
+        fill="none" stroke={`url(#${gradId})`} strokeWidth="3" strokeLinecap="round" opacity="0.85" />
+
+      <circle cx={sun.x} cy={sun.y} r="30" fill="url(#venusGaugeSunGlow)" />
+      <circle cx={sun.x} cy={sun.y} r="14" fill="#FFD37A" />
+
+      <line x1={sun.x} y1={sun.y} x2={venus.x} y2={venus.y} stroke="#E8C77A" strokeWidth="1" strokeDasharray="3,3" opacity="0.6" />
+      <circle cx={venus.x} cy={venus.y} r="5.5" fill="#E8C77A" />
+      <circle cx={venus.x} cy={venus.y} r="10" fill="none" stroke="#E8C77A" strokeOpacity="0.35" />
+      <text x={(sun.x + venus.x) / 2} y={(sun.y + venus.y) / 2 - 10}
+        fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)" textAnchor="middle">≤47°</text>
+
+      <line x1="0" y1={h - 20} x2={w} y2={h - 20} stroke="var(--border)" strokeWidth="1" />
+      <text x={w / 2} y={h - 4} fill="var(--text-dim)" fontSize="11" fontFamily="var(--font-mono)" textAnchor="middle">
+        {evening ? t("venus.observe.westHorizon") : t("venus.observe.eastHorizon")}
+      </text>
+    </svg>
+  );
+}
+
+// Small hand-drawn line icons (no icon-library dependency) — same set as Mercury.js.
+function IconMoonStar({ size = 20, color = "var(--gold)" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" />
+      <path d="M18 3v3M16.5 4.5h3" />
+    </svg>
+  );
+}
+function IconClock({ size = 20, color = "var(--gold)" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  );
+}
+function IconSunSmall({ size = 15, color = "#fff" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round">
+      <circle cx="12" cy="12" r="4.5" />
+      <path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" />
+    </svg>
+  );
+}
+function IconMoonSmall({ size = 15, color = "#fff" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none">
+      <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z" />
+    </svg>
+  );
+}
+function IconPhaseBadge({ size = 22, color = "var(--text-dim)" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke={color} strokeWidth="1.6" />
+      <path d="M12 3a9 9 0 0 1 0 18Z" fill={color} />
+    </svg>
+  );
+}
 
 export default function Venus() {
   const { t, i18n } = useTranslation();
@@ -24,6 +130,12 @@ export default function Venus() {
   }, [t]);
 
   const { data } = useApi(getVenus, { deps: [] });
+  const { loc } = useLoc();
+  const { data: planetsData } = useApi(() => getPlanets(loc, lang), {
+    deps: [loc && loc.lat, loc && loc.lon, lang],
+  });
+  const venusNow = ((planetsData && planetsData.items) || []).find((r) => r.name_key === "venus") || null;
+  const upcoming = (data && data.events_upcoming) || [];
 
   // ---- hero live stats -----------------------------------------------------
   const distStr = data?.distance_km
@@ -120,8 +232,46 @@ export default function Venus() {
         </div>
       </section>
 
+      {/* ---------- visible now, for the observer's location ---------- */}
+      <section className="section" id="visible-now" style={{ paddingTop: 8 }}>
+        <div className="wrap">
+          <SectionHead eyebrow={t("venus.visibleNow.eyebrow")} title={t("venus.visibleNow.title")} />
+          <LocationPill />
+          <div className="grid cols-4" style={{ marginTop: 16 }}>
+            <div className="card">
+              <div className="k">{t("venus.visibleNow.alt")}</div>
+              <div className="v">
+                {venusNow ? Math.round(venusNow.alt) : "—"}
+                <span className="unit">°</span>
+              </div>
+              <div className="foot">
+                {venusNow ? (venusNow.visible ? t("venus.visibleNow.above") : t("venus.visibleNow.below")) : ""}
+              </div>
+            </div>
+            <div className="card">
+              <div className="k">{t("venus.visibleNow.az")}</div>
+              <div className="v" style={{ fontSize: 20 }}>{venusNow ? venusNow.az_dir : "—"}</div>
+              <div className="foot">{venusNow ? Math.round(venusNow.az) + "°" : ""}</div>
+            </div>
+            <div className="card">
+              <div className="k">{t("venus.visibleNow.mag")}</div>
+              <div className="v">{venusNow && venusNow.mag != null ? venusNow.mag.toFixed(1) : "—"}</div>
+              <div className="foot">{t("venus.visibleNow.magFoot")}</div>
+            </div>
+            <div className="card">
+              <div className="k">{t("venus.visibleNow.status")}</div>
+              <div className={"v" + (venusNow && venusNow.visible ? " accent" : "")} style={{ fontSize: 18 }}>
+                {venusNow
+                  ? (venusNow.visible ? t("venus.visibleNow.visible") : t("venus.visibleNow.notVisible"))
+                  : t("venus.visibleNow.loading")}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ---------- live stats ---------- */}
-      <section className="section" style={{ paddingTop: 8 }}>
+      <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <SectionHead eyebrow={t("venus.stats.eyebrow")} title={t("venus.stats.title")} />
           <div className="grid cols-4">
@@ -408,31 +558,86 @@ export default function Venus() {
       <section className="section" id="observe" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <SectionHead eyebrow={t("venus.observe.eyebrow")} title={t("venus.observe.title")} />
-          <div className="grid cols-2" style={{ alignItems: "center" }}>
-            <div className="card" style={{ padding: 26 }}>
-              <div className="k">{t("venus.observe.target")}</div>
-              {!passed && (
-                <div className="clock" style={{ marginTop: 14 }}>
-                  <div className="seg">
-                    <div className="n">{days}</div>
-                    <span className="u">{t("venus.observe.unitDays")}</span>
+
+          {/* card 1: gauge diagram + headline + description */}
+          <div className="card" style={{ padding: "22px 26px" }}>
+            <div style={{
+              fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: "0.12em",
+              textTransform: "uppercase", color: "var(--text-dim)",
+            }}>
+              {t("venus.observe.overviewLabel")}
+            </div>
+            <div className="grid cols-2" style={{ alignItems: "center", gap: 24, marginTop: 8 }}>
+              <ElongationDiagram evening={!!(data?.event_next && data.event_next.type.includes("evening"))} t={t} />
+              <div>
+                <div style={{ fontSize: 19, fontWeight: 700 }}>{eventLabel || t("venus.observe.target")}</div>
+                <p style={{ fontSize: 13.5, color: "var(--text-dim)", marginTop: 10, lineHeight: 1.7 }}>{eventFoot}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* row: countdown-with-icons | phase */}
+          <div className="grid cols-2" style={{ alignItems: "stretch", marginTop: 16 }}>
+            <div className="card" style={{ padding: "20px 22px" }}>
+              {passed ? (
+                <div className="jupiter-opposition-now">{t("jupiter.opposition.passed")}</div>
+              ) : (
+                <div style={{ display: "flex", justifyContent: "space-around", textAlign: "center" }}>
+                  <div>
+                    <IconMoonStar />
+                    <div className="v" style={{ fontSize: 28, marginTop: 8 }}>{days}</div>
+                    <div className="foot">{t("venus.observe.unitDays")}</div>
                   </div>
-                  <div className="seg">
-                    <div className="n">{hours}</div>
-                    <span className="u">{t("venus.observe.unitHours")}</span>
+                  <div>
+                    <IconClock />
+                    <div className="v" style={{ fontSize: 28, marginTop: 8 }}>{hours}</div>
+                    <div className="foot">{t("venus.observe.unitHours")}</div>
                   </div>
                 </div>
               )}
-              <div className="foot" style={{ marginTop: 14 }}>
-                {eventLabel ? `${eventLabel}: ` : ""}
-                {eventFoot}
+            </div>
+
+            <div className="card" style={{ padding: "20px 22px", position: "relative", display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ position: "absolute", top: 16, right: 16 }}>
+                <IconPhaseBadge />
+              </div>
+              <Moon illumination={venusNow ? venusNow.illum : 0.5} phase={venusNow && venusNow.waxing ? 0.25 : 0.75} size={64} />
+              <div>
+                <div className="v" style={{ fontSize: 30 }}>
+                  {venusNow && venusNow.illum != null ? Math.round(venusNow.illum * 100) : "—"}
+                  <span className="unit">%</span>
+                </div>
+                <div className="foot">
+                  {venusNow ? (venusNow.waxing ? t("venus.phase.waxing") : t("venus.phase.waning")) : t("venus.phase.title")}
+                </div>
               </div>
             </div>
-            <div className="card" style={{ padding: 26 }}>
-              <div className="k">{t("venus.observe.phases")}</div>
-              <p style={{ color: "var(--text-dim)", fontSize: 13.5, marginTop: 10, lineHeight: 1.7 }}>
-                {t("venus.observe.phasesBody")}
-              </p>
+          </div>
+
+          {/* upcoming events */}
+          <div className="card" style={{ padding: "20px 22px", marginTop: 16 }}>
+            <div style={{
+              fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: "0.12em",
+              textTransform: "uppercase", color: "var(--text-dim)", marginBottom: 12,
+            }}>
+              {t("venus.observe.upcomingK")}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {upcoming.map((e, i) => {
+                const evening = e.type.includes("evening");
+                const tint = evening ? "232, 150, 80" : "90, 140, 220";
+                return (
+                  <div key={i} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 14px", borderRadius: 10,
+                    background: `linear-gradient(90deg, rgba(${tint},0.28), rgba(${tint},0.05))`,
+                  }}>
+                    {evening ? <IconSunSmall /> : <IconMoonSmall />}
+                    <span style={{ fontSize: 13.5, flex: 1 }}>{lang === "en" ? e.name_en : e.name_uk}</span>
+                    <span className="mono" style={{ fontSize: 12.5, color: `rgb(${tint})` }}>{fmtEventDate(e.date_iso, t)}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

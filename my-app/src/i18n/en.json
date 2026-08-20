@@ -90,6 +90,7 @@
     "mast": "MAST",
     "meteors": "Meteors",
     "events": "Events",
+    "darksky": "Dark sky",
     "orbit_group": "Orbit",
     "iss": "ISS",
     "satellites": "Satellites",
@@ -186,6 +187,7 @@
     "meteors": "Meteor showers — OrbitLight",
     "asteroids": "Asteroids — OrbitLight",
     "events": "Astronomical events — OrbitLight",
+    "darksky": "Dark sky & light pollution map — OrbitLight",
     "launches": "Rocket launches — OrbitLight",
     "deep": "Deep space — OrbitLight",
     "voyager": "Voyager — OrbitLight",
@@ -219,6 +221,7 @@
       "meteors": "Meteor showers: full calendar, peak dates, ZHR, radiants and best viewing times all year round — alerts the day before each peak on OrbitLight.",
       "asteroids": "Asteroids: upcoming Earth close approaches, LD distances, hazardous objects and a live NASA NEO catalogue of near-Earth objects updated daily.",
       "events": "Astronomy events: solar and lunar eclipses, planetary conjunctions, Moon phases, retrograde stations and a weekly event calendar on OrbitLight.",
+      "darksky": "Dark-sky map: light pollution overlay from the David Lorenz Light Pollution Atlas plus a live cloud, Moon and geomagnetic verdict for your location.",
       "launches": "Rocket launches: schedule, missions, launch vehicles and livestreams — alerts at 24 h, 2 h and 30 min before each liftoff on OrbitLight.",
       "deep": "Deep space: space-debris statistics, GCN gamma-ray bursts, Voyager distances, Mars weather and the latest news from beyond Earth orbit.",
       "voyager": "Voyager 1 & 2: current distance, speed, light-time from Earth and the story of the interstellar mission — computed live on OrbitLight.",
@@ -2177,6 +2180,25 @@
       "signalL": "signal travel time",
       "distUnit": "M km"
     },
+    "visibleNow": {
+      "eyebrow": "For your location",
+      "title": "Visible now",
+      "alt": "Altitude",
+      "az": "Direction",
+      "mag": "Magnitude",
+      "magFoot": "Lower = brighter",
+      "status": "Status",
+      "visible": "Above the horizon",
+      "notVisible": "Below the horizon",
+      "loading": "Checking…",
+      "above": "above the horizon",
+      "below": "below the horizon"
+    },
+    "phase": {
+      "title": "Current phase",
+      "waxing": "Waxing — illuminated fraction growing",
+      "waning": "Waning — illuminated fraction shrinking"
+    },
     "orbit": {
       "eyebrow": "Orbital dynamics",
       "title": "Mercury's eccentric orbit",
@@ -2301,13 +2323,17 @@
     "observe": {
       "eyebrow": "Linked with sky",
       "title": "Best times for observation",
+      "overviewLabel": "Elongation overview",
       "until": "Until greatest elongation",
       "days": "days",
       "hours": "hours",
       "whyK": "Why Mercury is hard to see",
       "whyBody": "Mercury never departs more than 28° from the Sun in our sky. Therefore, it can only be spotted in a brief window just after sunset or before sunrise, and only a few times a year during greatest elongations.",
       "footEastern": "Best visibility above the western horizon immediately after sunset",
-      "footWestern": "Best visibility above the eastern horizon immediately before sunrise"
+      "footWestern": "Best visibility above the eastern horizon immediately before sunrise",
+      "upcomingK": "Upcoming greatest elongations",
+      "westHorizon": "western horizon, after sunset",
+      "eastHorizon": "eastern horizon, before sunrise"
     },
     "facts": {
       "eyebrow": "Interesting facts",
@@ -2440,6 +2466,27 @@
       "lightTimeL": "light travel time from the Sun",
       "moonLabel": "Moon · 384,400 km · 27.3 days/orbit"
     },
+    "daynight": {
+      "eyebrow": "Live",
+      "title": "Day & night right now",
+      "dayInfo": "Your day",
+      "sunrise": "Sunrise",
+      "sunset": "Sunset",
+      "dayLength": "Daylight length",
+      "hUnit": "h",
+      "mUnit": "m"
+    },
+    "quakes": {
+      "eyebrow": "USGS · live",
+      "title": "Earthquakes",
+      "latestLabel": "Latest",
+      "magUnit": "magnitude",
+      "loading": "Loading…",
+      "depth": "depth",
+      "km": "km",
+      "count24hFoot": "earthquakes M2.5+ in the last 24h",
+      "recentLabel": "Recent (click to open on the map)"
+    },
     "stats": {
       "eyebrow": "Live stats",
       "title": "Earth right now",
@@ -2501,7 +2548,8 @@
       "m2": "70–2,890 km · mantle, up to ~3,700°C, visco-plastic",
       "m3": "2,890–5,150 km · outer core, liquid iron-nickel, source of the magnetic field",
       "m4": "5,150–6,371 km · inner core, solid despite high heat — holds under pressure",
-      "m5": "Center · ~5,400°C — almost as hot as the Sun's surface"
+      "m5": "Center · ~5,400°C — almost as hot as the Sun's surface",
+      "quakesNote": "The core's convection also drives plate tectonics — see recent"
     },
     "atmosphere": {
       "eyebrow": "Composition: 78% N₂, 21% O₂, 0.93% Ar, 0.04% CO₂",
@@ -2590,6 +2638,25 @@
       "orbitLabel": "Venus' orbit · 108 million km, almost a perfect circle",
       "orbitEarthLabel": "Earth's orbit (for scale)",
       "footnote": "Venus' orbit is the roundest of all planets (eccentricity only 0.007) and the closest approach to Earth among all planets in the Solar System"
+    },
+    "visibleNow": {
+      "eyebrow": "For your location",
+      "title": "Visible now",
+      "alt": "Altitude",
+      "az": "Direction",
+      "mag": "Magnitude",
+      "magFoot": "Lower = brighter",
+      "status": "Status",
+      "visible": "Above the horizon",
+      "notVisible": "Below the horizon",
+      "loading": "Checking…",
+      "above": "above the horizon",
+      "below": "below the horizon"
+    },
+    "phase": {
+      "title": "Current phase",
+      "waxing": "Waxing — illuminated fraction growing",
+      "waning": "Waning — illuminated fraction shrinking"
     },
     "stats": {
       "eyebrow": "Akatsuki · atmospheric monitoring",
@@ -2686,7 +2753,12 @@
       "unitDays": "days",
       "unitHours": "hours",
       "phases": "Phases of Venus",
-      "phasesBody": "Through a telescope, Venus displays phases similar to the Moon's — from a thin crescent to a nearly full disc. Galileo's observation of these phases in 1610 was one of the first direct proofs in favor of Copernicus' heliocentric model."
+      "phasesBody": "Through a telescope, Venus displays phases similar to the Moon's — from a thin crescent to a nearly full disc. Galileo's observation of these phases in 1610 was one of the first direct proofs in favor of Copernicus' heliocentric model.",
+      "upcomingK": "Upcoming events",
+      "liveBadge": "Live tracking",
+      "overviewLabel": "Visibility overview",
+      "westHorizon": "western horizon, after sunset",
+      "eastHorizon": "eastern horizon, before sunrise"
     },
     "records": {
       "eyebrow": "Interesting facts",
@@ -3465,6 +3537,78 @@
       "eccentricity": "Eccentricity:",
       "diameter": "Diameter:",
       "dash": "—"
+    }
+  },
+  "darksky": {
+    "hero": {
+      "eyebrow": "Observing conditions",
+      "title": "Dark <span class=\"accent\">sky</span>",
+      "sub": "A light-pollution map and a plain verdict — is tonight worth taking the telescope out, for your saved location.",
+      "map": "To the map →"
+    },
+    "legend": { "title": "Legend", "hint": "Click anywhere on the map to see how light pollution there has changed over time" },
+    "fullscreen": "Fullscreen",
+    "fullscreenHint": "Open the fullscreen map — pan, zoom, and click anywhere to read that point's light-pollution history",
+    "close": "Close",
+    "popup": {
+      "loading": "Reading the map…",
+      "trend": "Light pollution, {{from}}–{{to}}",
+      "lpi": "LPI ≈ {{n}}",
+      "noData": "No data for this point"
+    },
+    "tier": {
+      "excellent": "Very dark sky",
+      "good": "Dark sky",
+      "moderate": "Moderate glow",
+      "bright": "Light-polluted sky",
+      "poor": "Heavy light pollution"
+    },
+    "attribution": "Light-pollution data: Light Pollution Atlas, David Lorenz",
+    "verdict": {
+      "eyebrow": "For your location",
+      "title": "Conditions tonight",
+      "loading": "Crunching the numbers…",
+      "excellent": "Excellent",
+      "good": "Good",
+      "moderate": "Moderate",
+      "poor": "Poor",
+      "unknown": "Unknown",
+      "note": {
+        "excellent": "Clear dark sky — a good night for faint deep-sky targets.",
+        "good": "Decent conditions for observing.",
+        "moderate": "So-so conditions — stick to brighter targets.",
+        "poor": "Clouds or light pollution will make observing difficult.",
+        "unknown": "Not enough data for a verdict yet."
+      }
+    },
+    "card": {
+      "cloud": "Cloud cover",
+      "cloudUnknown": "no data",
+      "zone": "Light pollution",
+      "zoneChecking": "checking…",
+      "zoneUnknown": "unknown",
+      "moon": "Moon",
+      "moonUp": "above the horizon",
+      "moonDown": "below the horizon",
+      "kp": "Geomagnetic activity",
+      "kpStorm": "aurora possible",
+      "kpCalm": "quiet"
+    },
+    "s1": {
+      "eyebrow": "How to read the map",
+      "title": "Light-pollution zones",
+      "sub": "The map shows the David Lorenz Light Pollution Atlas, built from VIIRS satellite night-light data. Zones run from 0 (pristine) to 7b (city-center bright) — the atlas's author explicitly warns not to treat a zone as an exact Bortle-scale number, only as a relative guide."
+    },
+    "tips": {
+      "t1_tag": "01 · SPOT",
+      "t1_title": "Find a dark patch",
+      "t1_body": "Pan the map away from cities — the greener/bluer zones are darker skies. A 30-60 min drive out of a big city already helps a lot.",
+      "t2_tag": "02 · MOON",
+      "t2_title": "Check the Moon",
+      "t2_body": "A bright Moon above the horizon washes out faint galaxies and nebulae, but doesn't stop you from observing planets, the Moon itself, or double stars.",
+      "t3_tag": "03 · CLOUDS",
+      "t3_title": "Watch the clouds",
+      "t3_body": "The cloud forecast above is the single biggest factor — even a perfectly dark site is useless under an overcast sky."
     }
   }
 }

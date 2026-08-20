@@ -107,6 +107,7 @@ SLUGS: dict[str, dict[str, str]] = {
     "meteors":      {"uk": "meteory",           "en": "meteors"},
     "asteroids":    {"uk": "asteroidy",         "en": "asteroids"},
     "events":       {"uk": "podiyi",            "en": "events"},
+    "darksky":      {"uk": "temne-nebo",        "en": "dark-sky"},
     "launches":     {"uk": "zapusky",           "en": "launches"},
     "news":         {"uk": "novyny",            "en": "news"},
     "deep":         {"uk": "dalniy-kosmos",     "en": "deep"},
@@ -392,7 +393,7 @@ def build_sitemap_index_xml() -> str:
 def _priority_changefreq(name: str) -> tuple[str, str]:
     if name == "home":
         return "1.0", "daily"
-    if name in ("news", "events", "iss", "satellites", "weather", "launches"):
+    if name in ("news", "events", "iss", "satellites", "weather", "launches", "darksky"):
         return "0.8", "daily"
     return "0.6", "weekly"
 

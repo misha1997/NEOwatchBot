@@ -14,19 +14,22 @@ _EVENTS = [
 ]
 
 
-def _next_event(now: datetime) -> dict | None:
+def _upcoming_events(now: datetime, limit: int = 4) -> list[dict]:
+    out = []
     for iso, etype, name_uk, name_en, foot_uk, foot_en in _EVENTS:
         dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
         if dt > now:
-            return {
+            out.append({
                 "date_iso": iso,
                 "type": etype,
                 "name_uk": name_uk,
                 "name_en": name_en,
                 "foot_uk": foot_uk,
                 "foot_en": foot_en,
-            }
-    return None
+            })
+            if len(out) >= limit:
+                break
+    return out
 
 
 def _earth_venus_distance_km() -> float | None:
@@ -46,14 +49,15 @@ _C_KM_S = 299792.458
 
 
 def get_venus() -> dict:
-    """Return live Venus distance, light time, and next event details."""
+    """Return live Venus distance, light time, next event + upcoming list."""
     now = datetime.now(timezone.utc)
     dist_km = _earth_venus_distance_km()
     light_time_min = (dist_km / _C_KM_S / 60.0) if dist_km is not None else None
-    evt = _next_event(now)
+    upcoming = _upcoming_events(now)
     return {
         "now_ms": int(now.timestamp() * 1000),
         "distance_km": dist_km,
         "light_time_min": light_time_min,
-        "event_next": evt,
+        "event_next": upcoming[0] if upcoming else None,
+        "events_upcoming": upcoming,
     }

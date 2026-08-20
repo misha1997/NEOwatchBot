@@ -15,6 +15,7 @@ export const NAV_GROUPS = [
     { name: "constellations", labelKey: "nav.constellations" },
     { name: "meteors", labelKey: "nav.meteors" },
     { name: "events", labelKey: "nav.events" },
+    { name: "darksky", labelKey: "nav.darksky" },
   ]},
   { labelKey: "nav.orbit_group", items: [
     { name: "iss", labelKey: "nav.iss" },
@@ -24,10 +25,10 @@ export const NAV_GROUPS = [
   ]},
   { labelKey: "nav.planetarium", items: [
     { name: "planetarium", labelKey: "nav.planetariumHub", end: true },
-    { name: "mars", labelKey: "nav.mars" },
     { name: "mercury", labelKey: "nav.mercury" },
     { name: "venus", labelKey: "nav.venus" },
     { name: "earth", labelKey: "nav.earth" },
+    { name: "mars", labelKey: "nav.mars" },
     { name: "jupiter", labelKey: "nav.jupiter" },
     { name: "saturn", labelKey: "nav.saturn" },
     { name: "uranus", labelKey: "nav.uranus" },
