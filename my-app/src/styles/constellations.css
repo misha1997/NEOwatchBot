@@ -508,6 +508,48 @@
   border-radius: 50%;
   font-size: 15px;
 }
+.cfm-btn-active {
+  border-color: var(--gold, #c9a24a);
+  background: rgba(201, 162, 74, 0.22);
+  color: var(--gold, #c9a24a);
+}
+
+/* Sky-pointing (gyro) toggle: button + live heading readout + error toast,
+   stacked under the top-bar button so they don't fight the title for space. */
+.cfm-gyro-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.cfm-gyro-badge {
+  position: absolute;
+  top: 42px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gold, #c9a24a);
+  background: rgba(9, 10, 20, 0.75);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.cfm-gyro-error {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  width: 220px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 1.4;
+  color: #ff9a9a;
+  background: rgba(9, 10, 20, 0.9);
+  border: 1px solid rgba(255, 90, 95, 0.4);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
 
 .cfm-bottom-bar {
   position: absolute;

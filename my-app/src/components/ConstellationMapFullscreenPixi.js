@@ -81,6 +81,86 @@ function formatDec(decDeg) {
   return `${sign}${d.toString().padStart(2, "0")}° ${m.toString().padStart(2, "0")}' ${s.toString().padStart(2, "0")}"`;
 }
 
+// --- Gyroscope / "sky-pointing" mode helpers -------------------------------
+//
+// Re-centers the alt/az dome projection on wherever the phone's back camera
+// points, instead of on the true zenith, so the star map pans as you move the
+// phone — same idea as Stellarium Mobile's sensor mode. Implemented as a
+// virtual rotation of the celestial sphere: treat the boresight direction
+// (alt0, az0) as the new "zenith" and re-derive each object's alt'/az' in
+// that frame using the exact same spherical-trig shape as raDecToAltAz above
+// (az plays the role of RA, alt plays the role of Dec, alt0 plays the role of
+// latitude, and az-az0 plays the role of hour angle — no time term needed
+// since this is a static re-pointing, not a sidereal-time conversion).
+function rotateToBoresight(alt, az, boreAlt, boreAz) {
+  const haRad = ((az - boreAz) * Math.PI) / 180;
+  const altRad = (alt * Math.PI) / 180;
+  const boreAltRad = (boreAlt * Math.PI) / 180;
+
+  const sinAltP = Math.sin(boreAltRad) * Math.sin(altRad) + Math.cos(boreAltRad) * Math.cos(altRad) * Math.cos(haRad);
+  const altPrimeDeg = (Math.asin(Math.max(-1, Math.min(1, sinAltP))) * 180) / Math.PI;
+
+  const y = -Math.sin(haRad) * Math.cos(altRad);
+  const x = Math.sin(altRad) * Math.cos(boreAltRad) - Math.cos(altRad) * Math.sin(boreAltRad) * Math.cos(haRad);
+  let azPrimeDeg = (Math.atan2(y, x) * 180) / Math.PI;
+  if (azPrimeDeg < 0) azPrimeDeg += 360;
+
+  return { alt: altPrimeDeg, az: azPrimeDeg };
+}
+
+// Projects a true (alt, az) to screen space, optionally re-centered on a
+// boresight ({alt, az} of wherever the phone points). Pass boresight=null for
+// the normal zenith-centered projection (identical to plain altAzToXY).
+function projectWithBoresight(alt, az, boresight, cx, cy, rHor) {
+  if (!boresight) return altAzToXY(alt, az, cx, cy, rHor);
+  const rotated = rotateToBoresight(alt, az, boresight.alt, boresight.az);
+  return altAzToXY(rotated.alt, rotated.az, cx, cy, rHor);
+}
+
+// Shortest-path interpolation between two compass angles (handles the 359°→1°
+// wraparound so smoothing doesn't spin the long way around).
+function lerpAngleDeg(a, b, t) {
+  let diff = ((b - a + 540) % 360) - 180;
+  return (a + diff * t + 360) % 360;
+}
+
+// Reads a DeviceOrientationEvent and derives where the phone's back points, as
+// {az, alt} in the same convention as the astronomical az/alt used elsewhere
+// in this file (az: 0=N, 90=E, clockwise; alt: 0=horizon, 90=zenith).
+//
+// Azimuth comes from compass heading rather than the full 3-axis rotation
+// matrix: iOS Safari's webkitCompassHeading is already a true heading (and is
+// UI-orientation aware), and Android's absolute `alpha` converts to heading
+// via `360 - alpha` (alpha increases counter-clockwise per the W3C spec,
+// heading increases clockwise) plus the current screen rotation, since
+// Android's alpha is relative to the physical device frame, not the locked UI
+// orientation. Altitude uses the simpler `90 - beta` approximation (vertical
+// phone ⇒ horizon, flat phone ⇒ zenith), which ignores roll (gamma) — fine
+// for the common "hold the phone upright like a window" posture this feature
+// targets, at the cost of some inaccuracy if the phone is held tilted/rotated
+// about its long axis.
+function computeHeadingAlt(event) {
+  const beta = event.beta;
+  if (beta == null) return null;
+
+  let heading;
+  if (typeof event.webkitCompassHeading === "number" && !Number.isNaN(event.webkitCompassHeading)) {
+    heading = event.webkitCompassHeading;
+  } else if (event.alpha != null) {
+    const screenAngle =
+      typeof window !== "undefined" && window.screen && window.screen.orientation && typeof window.screen.orientation.angle === "number"
+        ? window.screen.orientation.angle
+        : window.orientation || 0;
+    heading = (360 - event.alpha + screenAngle) % 360;
+    if (heading < 0) heading += 360;
+  } else {
+    return null;
+  }
+
+  const altitude = Math.max(-90, Math.min(90, 90 - beta));
+  return { az: heading, alt: altitude };
+}
+
 export default function ConstellationMapFullscreenPixi({
   onClose,
   activeConst,
@@ -111,7 +191,19 @@ export default function ConstellationMapFullscreenPixi({
   // Cache constellations data to redraw it during zoom/pan events
   const constellationsDataRef = useRef(null);
   const updateElementsScaleRef = useRef(null);
-  const selectedWorldPosRef = useRef(null); // {x,y} of the selected star/planet/galaxy, in world coords
+  const selectedWorldPosRef = useRef(null); // {alt,az} of the selected star/planet/galaxy (re-projected each frame)
+
+  // Gyroscope / "sky-pointing" mode (see rotateToBoresight above). Refs so the
+  // orientation event handler and pointer handlers (added once, in the
+  // mount-only Pixi init effect) can read live state without re-subscribing.
+  const gyroActiveRef = useRef(false);
+  const boresightRef = useRef({ alt: 90, az: 0 }); // smoothed look direction
+  const lastGyroTickRef = useRef(0);
+  const orientationHandlerRef = useRef(null);
+  const savedViewRef = useRef(null); // {zoom, pan} to restore when gyro mode ends
+  const constLabelsRef = useRef([]); // [{node, alt, az}] constellation name labels
+  const cardinalLabelsRef = useRef([]); // [{node, alt, az}] N/S/E/W labels
+  const reprojectAllRef = useRef(null);
 
   // States for detailed view and tooltip
   const [selectedObj, setSelectedObj] = useState(null);
@@ -121,6 +213,10 @@ export default function ConstellationMapFullscreenPixi({
   const [planetsData, setPlanetsData] = useState([]);
   const [galaxiesData, setGalaxiesData] = useState([]);
   const [detailedGalaxy, setDetailedGalaxy] = useState(null);
+  const [gyroSupported, setGyroSupported] = useState(false);
+  const [gyroActive, setGyroActive] = useState(false);
+  const [gyroError, setGyroError] = useState(null);
+  const [gyroHeading, setGyroHeading] = useState(null);
 
   // Store zoom/pan refs to modify in event listeners directly without re-rendering React
   const zoomRef = useRef(3.0);
@@ -200,8 +296,10 @@ export default function ConstellationMapFullscreenPixi({
     };
   };
 
-  // Helper to redraw constellation lines at the current zoom level to keep them thin and sharp
-  const drawConstellationLines = (z) => {
+  // Helper to redraw constellation lines at the current zoom level to keep them thin and sharp.
+  // `boresight` re-centers the lines on wherever the phone points (gyro mode); null draws the
+  // normal zenith-centered projection.
+  const drawConstellationLines = (z, boresight = null) => {
     const linesGraphics = linesGraphicsRef.current;
     if (!linesGraphics || !constellationsDataRef.current) return;
 
@@ -239,7 +337,7 @@ export default function ConstellationMapFullscreenPixi({
       c.lines.forEach((line) => {
         line.forEach((pt, idx) => {
           const ptLoc = raDecToAltAz(pt[0], pt[1], latLon.lat, latLon.lon, currentTime);
-          const xyPt = altAzToXY(ptLoc.alt, ptLoc.az, cx, cy, rHor);
+          const xyPt = projectWithBoresight(ptLoc.alt, ptLoc.az, boresight, cx, cy, rHor);
           if (idx === 0) {
             linesGraphics.moveTo(xyPt.x, xyPt.y);
           } else {
@@ -251,20 +349,24 @@ export default function ConstellationMapFullscreenPixi({
   };
 
   // Helper to redraw the selection highlight ring around the tapped star/planet/galaxy,
-  // keeping it a constant screen size (inverse-scaled) as the user zooms.
-  const drawSelectionRing = (z) => {
+  // keeping it a constant screen size (inverse-scaled) as the user zooms. `boresight`
+  // re-centers it in gyro mode, same as drawConstellationLines above.
+  const drawSelectionRing = (z, boresight = null) => {
     const ring = selectionRingRef.current;
     if (!ring) return;
     ring.clear();
 
-    const pos = selectedWorldPosRef.current;
+    const pos = selectedWorldPosRef.current; // {alt, az}
     if (!pos) return;
+
+    const { cx, cy, rHor } = getViewportParams();
+    const { x, y } = projectWithBoresight(pos.alt, pos.az, boresight, cx, cy, rHor);
 
     const r = 15 / z;
     ring.lineStyle({ width: 1.5 / z, color: 0x4fd1c5, alpha: 0.4 });
-    ring.drawCircle(pos.x, pos.y, r * 1.7);
+    ring.drawCircle(x, y, r * 1.7);
     ring.lineStyle({ width: 2 / z, color: 0x4fd1c5, alpha: 0.95 });
-    ring.drawCircle(pos.x, pos.y, r);
+    ring.drawCircle(x, y, r);
   };
 
   // Helper to dynamically update elements' scale on zoom to prevent them from growing large
@@ -299,12 +401,58 @@ export default function ConstellationMapFullscreenPixi({
       });
     }
 
-    // Redraw constellation lines
-    drawConstellationLines(z);
-    // Redraw the selection highlight ring
-    drawSelectionRing(z);
+    // Redraw constellation lines and the selection ring, re-centered on the
+    // current boresight if gyro mode is on (e.g. the user pinch/button-zoomed
+    // mid-session) so they don't snap back to the zenith-centered layout.
+    const activeBoresight = gyroActiveRef.current ? boresightRef.current : null;
+    drawConstellationLines(z, activeBoresight);
+    drawSelectionRing(z, activeBoresight);
   };
   updateElementsScaleRef.current = updateElementsScale;
+
+  // Re-projects every on-screen object (stars, planets/galaxies, constellation
+  // + cardinal labels, lines, selection ring) onto a new boresight direction.
+  // Called on every (throttled) orientation-sensor tick while gyro mode is on;
+  // pass boresight=null to snap everything back to the normal zenith-centered
+  // layout when gyro mode ends. Sprite *scale* (inverse zoom) is untouched
+  // here — only position changes, since Pixi's world container transform
+  // already handles the visual zoom of position for us.
+  const reprojectAll = (boresight) => {
+    const { cx, cy, rHor } = getViewportParams();
+
+    starsContainersRef.current.forEach((container) => {
+      const children = container.children;
+      for (let i = 0; i < children.length; i++) {
+        const sprite = children[i];
+        if (sprite.userAlt == null) continue;
+        const { x, y } = projectWithBoresight(sprite.userAlt, sprite.userAz, boresight, cx, cy, rHor);
+        sprite.position.set(x, y);
+      }
+    });
+
+    const objectsContainer = objectsContainerRef.current;
+    if (objectsContainer) {
+      objectsContainer.children.forEach((child) => {
+        if (child.userAlt == null) return;
+        const { x, y } = projectWithBoresight(child.userAlt, child.userAz, boresight, cx, cy, rHor);
+        child.position.set(x, y);
+      });
+    }
+
+    constLabelsRef.current.forEach(({ node, alt, az }) => {
+      const { x, y } = projectWithBoresight(alt, az, boresight, cx, cy, rHor);
+      node.position.set(x, y);
+    });
+
+    cardinalLabelsRef.current.forEach(({ node, alt, az }) => {
+      const { x, y } = projectWithBoresight(alt, az, boresight, cx, cy, rHor);
+      node.position.set(x, y);
+    });
+
+    drawConstellationLines(zoomRef.current, boresight);
+    drawSelectionRing(zoomRef.current, boresight);
+  };
+  reprojectAllRef.current = reprojectAll;
 
   // Load Star Catalog & API data
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -372,6 +520,30 @@ export default function ConstellationMapFullscreenPixi({
   };
 
   const objectImageUrl = getObjectImageUrl(selectedObj, detailedGalaxy);
+
+  // Gyro toggle only makes sense on a touch/coarse-pointer device with the
+  // orientation API — desktop Chrome exposes the constructor without a real
+  // sensor, so gate on pointer type too rather than API presence alone.
+  useEffect(() => {
+    const coarse = typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+    const hasApi = typeof window.DeviceOrientationEvent !== "undefined";
+    setGyroSupported(coarse && hasApi);
+  }, []);
+
+  useEffect(() => {
+    gyroActiveRef.current = gyroActive;
+  }, [gyroActive]);
+
+  // Remove any live orientation listener if the component unmounts while
+  // gyro mode is still on (e.g. the user closes fullscreen without toggling it off).
+  useEffect(() => {
+    return () => {
+      if (orientationHandlerRef.current) {
+        window.removeEventListener("deviceorientationabsolute", orientationHandlerRef.current);
+        window.removeEventListener("deviceorientation", orientationHandlerRef.current);
+      }
+    };
+  }, []);
 
   // PixiJS App Initialization (runs ONCE on mount)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -516,6 +688,7 @@ export default function ConstellationMapFullscreenPixi({
     };
 
     const handleWindowPointerDown = (e) => {
+      if (gyroActiveRef.current) return; // gyro drives the view; manual pan/pinch is disabled
       if (!canvasWrapRef.current || !canvasWrapRef.current.contains(e.target)) return;
       pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -544,6 +717,7 @@ export default function ConstellationMapFullscreenPixi({
     };
 
     const handleWindowPointerMove = (e) => {
+      if (gyroActiveRef.current) return; // gyro drives the view; manual pan/pinch is disabled
       const pt = pointersRef.current.get(e.pointerId);
       if (pt) {
         pt.x = e.clientX;
@@ -687,6 +861,8 @@ export default function ConstellationMapFullscreenPixi({
     linesGraphics.clear();
     labelsContainer.removeChildren();
     objectsContainer.removeChildren();
+    constLabelsRef.current = [];
+    cardinalLabelsRef.current = [];
 
     // --- 1. Populate Star Sprites ---
     celestialData.forEach((s) => {
@@ -697,6 +873,8 @@ export default function ConstellationMapFullscreenPixi({
       const sprite = new PIXI.Sprite(starTexture);
       sprite.anchor.set(0.5);
       sprite.position.set(xy.x, xy.y);
+      sprite.userAlt = starLoc.alt; // true sky position, used to re-project in gyro mode
+      sprite.userAz = starLoc.az;
 
       // Star size with inverse-scaling applied directly at creation
       const r = dotRadius(s[3]);
@@ -870,7 +1048,15 @@ export default function ConstellationMapFullscreenPixi({
           });
 
           labelsContainer.addChild(textNode);
+          constLabelsRef.current.push({ node: textNode, alt: centerLoc.alt, az: centerLoc.az });
         });
+
+        // Data arrived after the initial layout — if gyro mode is already on,
+        // re-project these freshly created labels/lines onto the current
+        // boresight immediately instead of flashing at their zenith-centered spots.
+        if (gyroActiveRef.current && reprojectAllRef.current) {
+          reprojectAllRef.current(boresightRef.current);
+        }
       })
       .catch((err) => console.error("Failed to load constellations metadata:", err));
 
@@ -888,24 +1074,28 @@ export default function ConstellationMapFullscreenPixi({
     textN.anchor.set(0.5, 1);
     textN.position.set(cx, cy - rHor - 8);
     labelsContainer.addChild(textN);
+    cardinalLabelsRef.current.push({ node: textN, alt: 0, az: 0 });
 
     // S
     const textS = new PIXI.Text("S", cardinalStyle);
     textS.anchor.set(0.5, 0);
     textS.position.set(cx, cy + rHor + 16);
     labelsContainer.addChild(textS);
+    cardinalLabelsRef.current.push({ node: textS, alt: 0, az: 180 });
 
     // E
     const textE = new PIXI.Text("E", cardinalStyle);
     textE.anchor.set(1, 0.5);
     textE.position.set(cx - rHor - 8, cy);
     labelsContainer.addChild(textE);
+    cardinalLabelsRef.current.push({ node: textE, alt: 0, az: 90 });
 
     // W
     const textW = new PIXI.Text("W", cardinalStyle);
     textW.anchor.set(0, 0.5);
     textW.position.set(cx + rHor + 8, cy);
     labelsContainer.addChild(textW);
+    cardinalLabelsRef.current.push({ node: textW, alt: 0, az: 270 });
 
     const ringStyle = new PIXI.TextStyle({
       fontFamily: "var(--font-mono)",
@@ -967,6 +1157,8 @@ export default function ConstellationMapFullscreenPixi({
       const objSprite = new PIXI.Container();
       objSprite.addChild(objGraphics);
       objSprite.position.set(xy.x, xy.y);
+      objSprite.userAlt = p.alt; // true sky position, used to re-project in gyro mode
+      objSprite.userAz = p.az;
       objSprite.scale.set(1 / z); // Inverse scaled to keep screen size constant
       
       // Set a comfortable hit testing area of 14px radius on screen
@@ -1027,6 +1219,8 @@ export default function ConstellationMapFullscreenPixi({
       const galContainer = new PIXI.Container();
       galContainer.addChild(galGraphics);
       galContainer.position.set(xy.x, xy.y);
+      galContainer.userAlt = galLoc.alt; // true sky position, used to re-project in gyro mode
+      galContainer.userAz = galLoc.az;
       galContainer.rotation = 0.35;
       galContainer.scale.set(1 / z); // Inverse scaled to keep screen size constant
       
@@ -1072,6 +1266,13 @@ export default function ConstellationMapFullscreenPixi({
       objectsContainer.addChild(galContainer);
     });
 
+    // Stars/planets/galaxies/cardinal labels above were just recreated at their
+    // zenith-centered positions — if gyro mode is already on, immediately
+    // re-project them onto the current boresight (constellation lines/labels
+    // get the same treatment once their async fetch resolves, above).
+    if (gyroActiveRef.current && reprojectAllRef.current) {
+      reprojectAllRef.current(boresightRef.current);
+    }
   }, [celestialData, planetsData, galaxiesData, currentTime, seasonFilter, latLon, activeConst, lang, setActiveConst]);
 
   // Highlight the tapped star/planet/galaxy with a ring on the sky itself (not
@@ -1082,10 +1283,10 @@ export default function ConstellationMapFullscreenPixi({
     if (!selectedObj || selectedObj.type === "constellation" || selectedObj.alt == null || selectedObj.az == null) {
       selectedWorldPosRef.current = null;
     } else {
-      const { cx, cy, rHor } = getViewportParams();
-      selectedWorldPosRef.current = altAzToXY(selectedObj.alt, selectedObj.az, cx, cy, rHor);
+      selectedWorldPosRef.current = { alt: selectedObj.alt, az: selectedObj.az };
     }
-    drawSelectionRing(zoomRef.current);
+    drawSelectionRing(zoomRef.current, gyroActiveRef.current ? boresightRef.current : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedObj]);
 
   // Handle zooming using floating UI buttons
@@ -1119,6 +1320,111 @@ export default function ConstellationMapFullscreenPixi({
 
     // Apply base scale to elements
     updateElementsScale(3.0);
+  };
+
+  // Orientation-sensor tick: derive where the phone points, smooth it (compass
+  // sensors are noisy), throttle to ~10Hz to bound the re-projection cost of
+  // potentially tens of thousands of star sprites, and re-render the scene
+  // around that boresight.
+  const GYRO_TICK_MS = 100;
+  const GYRO_SMOOTHING = 0.25;
+  const handleOrientation = (event) => {
+    const now = performance.now();
+    if (now - lastGyroTickRef.current < GYRO_TICK_MS) return;
+    lastGyroTickRef.current = now;
+
+    const result = computeHeadingAlt(event);
+    if (!result) return;
+
+    const prev = boresightRef.current;
+    const nextBoresight = {
+      alt: prev.alt + (result.alt - prev.alt) * GYRO_SMOOTHING,
+      az: lerpAngleDeg(prev.az, result.az, GYRO_SMOOTHING)
+    };
+    boresightRef.current = nextBoresight;
+    setGyroHeading(Math.round(nextBoresight.az));
+
+    if (reprojectAllRef.current) reprojectAllRef.current(nextBoresight);
+  };
+
+  const handleToggleGyro = async () => {
+    const world = worldRef.current;
+
+    if (gyroActive) {
+      // Turn off: drop the listener, snap the scene back to zenith-centered,
+      // and restore whatever zoom/pan the user had before enabling it.
+      if (orientationHandlerRef.current) {
+        window.removeEventListener("deviceorientationabsolute", orientationHandlerRef.current);
+        window.removeEventListener("deviceorientation", orientationHandlerRef.current);
+        orientationHandlerRef.current = null;
+      }
+      boresightRef.current = { alt: 90, az: 0 };
+      gyroActiveRef.current = false;
+      setGyroHeading(null);
+      setGyroActive(false);
+
+      const saved = savedViewRef.current;
+      savedViewRef.current = null;
+      const restoredZoom = saved ? saved.zoom : 3.0;
+      const restoredPan = saved ? saved.pan : { x: 0, y: 0 };
+      zoomRef.current = restoredZoom;
+      panOffsetRef.current = restoredPan;
+      if (world) {
+        world.scale.set(restoredZoom);
+        world.position.set(window.innerWidth / 2 + restoredPan.x, window.innerHeight / 2 + restoredPan.y);
+      }
+      if (redrawDomeRef.current) redrawDomeRef.current(restoredZoom);
+      if (reprojectAllRef.current) reprojectAllRef.current(null);
+      if (updateElementsScaleRef.current) updateElementsScaleRef.current(restoredZoom);
+      return;
+    }
+
+    setGyroError(null);
+
+    // iOS 13+ Safari requires an explicit, gesture-triggered permission prompt;
+    // every other browser exposing the API grants it implicitly.
+    let granted = true;
+    if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+      try {
+        const res = await DeviceOrientationEvent.requestPermission();
+        granted = res === "granted";
+      } catch (e) {
+        granted = false;
+      }
+    }
+    if (!granted) {
+      setGyroError(
+        lang === "en"
+          ? "Motion access denied — enable it in Settings to use sky-pointing mode."
+          : "Доступ до датчиків руху відхилено — увімкни його в налаштуваннях, щоб користуватись режимом наведення на небо."
+      );
+      return;
+    }
+
+    savedViewRef.current = { zoom: zoomRef.current, pan: { ...panOffsetRef.current } };
+    boresightRef.current = { alt: 45, az: 0 };
+    lastGyroTickRef.current = 0;
+
+    orientationHandlerRef.current = handleOrientation;
+    if ("ondeviceorientationabsolute" in window) {
+      window.addEventListener("deviceorientationabsolute", handleOrientation);
+    } else {
+      window.addEventListener("deviceorientation", handleOrientation);
+    }
+
+    const arZoom = 8;
+    zoomRef.current = arZoom;
+    panOffsetRef.current = { x: 0, y: 0 };
+    if (world) {
+      world.scale.set(arZoom);
+      world.position.set(window.innerWidth / 2, window.innerHeight / 2);
+    }
+    if (redrawDomeRef.current) redrawDomeRef.current(arZoom);
+    if (updateElementsScaleRef.current) updateElementsScaleRef.current(arZoom);
+    if (reprojectAllRef.current) reprojectAllRef.current(boresightRef.current);
+
+    gyroActiveRef.current = true;
+    setGyroActive(true);
   };
 
   // Keyboard navigation Escape to close
@@ -1261,7 +1567,25 @@ export default function ConstellationMapFullscreenPixi({
               : "Повноекранна WebGL-карта — наближуй, щоб вивчати 60 000+ реальних зірок, планет та галактик."}
           </div>
         </div>
-        <button className="cfm-btn cfm-btn-close" onClick={onClose} aria-label={lang === "en" ? "Close" : "Закрити"}>✕</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          {gyroSupported && (
+            <div className="cfm-gyro-group">
+              <button
+                type="button"
+                className={`cfm-btn ${gyroActive ? "cfm-btn-active" : ""}`}
+                onClick={handleToggleGyro}
+                title={lang === "en" ? "Point your phone at the sky" : "Наведи телефон на небо"}
+                aria-pressed={gyroActive}
+                aria-label={lang === "en" ? "Toggle sky-pointing mode" : "Перемкнути режим наведення на небо"}
+              >
+                🧭
+              </button>
+              {gyroActive && gyroHeading != null && <div className="cfm-gyro-badge">{gyroHeading}°</div>}
+              {gyroError && <div className="cfm-gyro-error">{gyroError}</div>}
+            </div>
+          )}
+          <button className="cfm-btn cfm-btn-close" onClick={onClose} aria-label={lang === "en" ? "Close" : "Закрити"}>✕</button>
+        </div>
       </div>
 
       {/* Bottom floating controls panel */}
