@@ -18,6 +18,12 @@ DEEPL_API_KEY = os.getenv('DEEPL_API_KEY')
 _chat_id_val = os.getenv('FEEDBACK_CHAT_ID', '')
 FEEDBACK_CHAT_ID = int(_chat_id_val) if (_chat_id_val.isdigit() or (_chat_id_val.startswith('-') and _chat_id_val[1:].isdigit())) else None
 
+# Web Push (VAPID). Generate with `python3 scripts/gen_vapid_keys.py` once and
+# put the output in .env; production needs the same three vars set.
+VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY', '')
+VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY', '')
+VAPID_CLAIM_EMAIL = os.getenv('VAPID_CLAIM_EMAIL', '')
+
 # NASA API
 NASA_NEO_URL = "https://api.nasa.gov/neo/rest/v1/feed"
 NASA_APOD_URL = "https://api.nasa.gov/planetary/apod"

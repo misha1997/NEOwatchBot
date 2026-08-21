@@ -28,9 +28,11 @@ from database import (
     is_meteor_notified, mark_meteor_notified, cleanup_old_meteor_notifications,
     is_flare_notified, mark_flare_notified, cleanup_old_flare_notifications,
     is_storm_notified, mark_storm_notified, cleanup_old_storm_notifications,
-    is_grb_notified, mark_grb_notified, cleanup_old_grb_notifications
+    is_grb_notified, mark_grb_notified, cleanup_old_grb_notifications,
+    get_push_subscriptions, delete_push_subscription, update_push_last_iss_pass
 )
 from services import NasaAPI, N2YOAPI
+from services.webpush import send_web_push
 from utils.i18n import t, pick, compass_dir, normalize_lang, escape_html
 from utils.constants import local_hour_for_coords
 from web.seo import SITE_URL, slug_for_name
@@ -69,6 +71,29 @@ class NotificationScheduler:
         if start < end:
             return start <= hour < end
         return hour >= start or hour < end  # window wraps midnight
+
+    @staticmethod
+    async def _notify_push_subscribers(type_column: str, build_message):
+        """Fan out a browser push notification to every push_subscriptions
+        row with <type_column> = TRUE — the site's counterpart to the
+        Telegram-send loops below, sharing the same trigger/dedup logic.
+        `build_message(lang)` -> (title, body, url). Deletes a subscription
+        if the push service reports it's gone (uninstalled browser, etc).
+        """
+        try:
+            subs = get_push_subscriptions(type_column)
+        except Exception as e:
+            logger.error(f"Failed to load push subscribers ({type_column}): {e}")
+            return
+        for sub in subs:
+            try:
+                lang = normalize_lang(sub.get('lang'))
+                title, body, url = build_message(lang)
+                result = send_web_push(sub, title, body, url)
+                if result == 'gone':
+                    delete_push_subscription(sub['endpoint'])
+            except Exception as e:
+                logger.error(f"Push notify failed for subscription {sub.get('id')}: {e}")
 
     async def send_apod_to_subscribers(self):
         """Send APOD to all subscribers - once per day"""
@@ -112,18 +137,47 @@ class NotificationScheduler:
                     media_type = data.get('media_type', 'image')
 
                     if media_type == 'video':
-                        # APOD videos are YouTube embeds — send_video rejects
-                        # those ("Wrong type of the web page content"). Send
-                        # the thumbnail as a photo and link the video below.
-                        thumb = formatted.get('image')
-                        if thumb:
-                            await self.bot.send_photo(
-                                chat_id=chat_id,
-                                photo=thumb,
-                                caption=formatted['caption'][:1024],
-                                parse_mode=ParseMode.HTML
-                            )
+                        # Direct video files (NASA-hosted mp4 etc.) can be sent
+                        # as real Telegram videos; YouTube/other embed links
+                        # can't ("Wrong type of the web page content") — those
+                        # fall back to a thumbnail (if NASA provided one) plus
+                        # a clickable link. Each send attempt is wrapped on
+                        # its own so a failed photo/video never skips the
+                        # text+link message that follows (previously an
+                        # exception here — e.g. no thumbnail, so `photo` was
+                        # the raw video URL — aborted delivery for that user
+                        # entirely, with no fallback and no dedup update).
                         video_url = formatted.get('video_url') or ''
+                        clean_url = video_url.split('?')[0].lower()
+                        is_direct_video = clean_url.endswith(('.mp4', '.mov', '.avi', '.mkv', '.webm'))
+
+                        sent_media = False
+                        if is_direct_video:
+                            try:
+                                await self.bot.send_video(
+                                    chat_id=chat_id,
+                                    video=video_url,
+                                    caption=formatted['caption'][:1024],
+                                    parse_mode=ParseMode.HTML,
+                                    supports_streaming=True
+                                )
+                                sent_media = True
+                            except Exception as e:
+                                logger.warning(f"APOD send_video failed for {chat_id}: {e}")
+
+                        if not sent_media:
+                            thumb = formatted.get('image')
+                            if thumb:
+                                try:
+                                    await self.bot.send_photo(
+                                        chat_id=chat_id,
+                                        photo=thumb,
+                                        caption=formatted['caption'][:1024],
+                                        parse_mode=ParseMode.HTML
+                                    )
+                                except Exception as e:
+                                    logger.warning(f"APOD send_photo (video thumb) failed for {chat_id}: {e}")
+
                         link_line = (
                             f"\n🎬 <a href='{video_url}'>{t('apod.watch_video', lang)}</a>\n"
                             if video_url else ''
@@ -275,6 +329,59 @@ class NotificationScheduler:
                 except Exception as e:
                     logger.error(f"Failed to check ISS for {user.get('user_id')}: {e}")
 
+            # Web push subscribers (anonymous, own lat/lon) — same per-location
+            # pass check as above, deduped via push_subscriptions.last_iss_pass
+            # instead of users.last_iss_pass. No brightness filter/quiet hours
+            # in v1 (push subscriptions don't carry those columns).
+            try:
+                push_subs = get_push_subscriptions('subscribed_iss')
+            except Exception as e:
+                logger.error(f"Failed to load ISS push subscribers: {e}")
+                push_subs = []
+
+            for sub in push_subs:
+                try:
+                    lat = sub.get('lat')
+                    lon = sub.get('lon')
+                    if lat is None or lon is None:
+                        continue
+
+                    passes = N2YOAPI.get_iss_passes_raw(lat, lon, days=2)
+                    if not passes or 'passes' not in passes:
+                        continue
+
+                    for iss_pass in passes['passes']:
+                        pass_time_utc = datetime.fromtimestamp(iss_pass['startUTC'], tz=timezone.utc)
+                        time_until = (pass_time_utc - now_kyiv).total_seconds()
+
+                        if 300 <= time_until <= 900:
+                            current_pass_timestamp = int(iss_pass['startUTC'])
+                            if sub.get('last_iss_pass') == current_pass_timestamp:
+                                continue
+
+                            lang = normalize_lang(sub.get('lang'))
+                            pass_time_kyiv = pass_time_utc.astimezone(KYIV_TZ)
+                            duration = iss_pass.get('duration', 0)
+                            max_elevation = iss_pass.get('maxEl', 0)
+                            start_dir = compass_dir(iss_pass.get('startAzCompass', 'SW'), lang)
+
+                            if lang == 'en':
+                                title = "🛰 The ISS is passing overhead"
+                                body = f"{pass_time_kyiv.strftime('%H:%M')} · {duration}s · up to {max_elevation}° · look {start_dir}"
+                            else:
+                                title = "🛰 МКС пролітає над тобою"
+                                body = f"{pass_time_kyiv.strftime('%H:%M')} · {duration}с · до {max_elevation}° · дивись на {start_dir}"
+                            url = f"{SITE_URL}{'' if lang == 'en' else '/ua'}/iss"
+
+                            result = send_web_push(sub, title, body, url)
+                            if result == 'gone':
+                                delete_push_subscription(sub['endpoint'])
+                            else:
+                                update_push_last_iss_pass(sub['id'], current_pass_timestamp)
+                            break  # Only notify about next pass
+                except Exception as e:
+                    logger.error(f"Failed to check ISS for push subscription {sub.get('id')}: {e}")
+
             logger.info("ISS check completed")
 
         except Exception as e:
@@ -418,6 +525,25 @@ class NotificationScheduler:
                     except Exception as e:
                         logger.error(f"Failed to notify {user['user_id']} about hazardous asteroid: {e}")
 
+                def build_push_message(lang, name=name, approach_date=approach_date, distance_km=distance_km):
+                    dist_str = (f"{distance_km/1_000_000:.2f} млн км" if distance_km >= 1_000_000
+                                else f"{distance_km/1000:,.0f}".replace(',', ' ') + " тис. км")
+                    if lang == 'en':
+                        dist_str = (f"{distance_km/1_000_000:.2f}M km" if distance_km >= 1_000_000
+                                    else f"{distance_km/1000:,.0f}".replace(',', ' ') + "K km")
+                        return (
+                            "☄️ Hazardous asteroid approach",
+                            f"{name} · {approach_date} · {dist_str}",
+                            SITE_URL + "/asteroids",
+                        )
+                    return (
+                        "☄️ Небезпечний астероїд наближається",
+                        f"{name} · {approach_date} · {dist_str}",
+                        SITE_URL + "/ua/asteroids",
+                    )
+
+                await self._notify_push_subscribers('subscribed_neo', build_push_message)
+
                 # Mark as notified
                 mark_neo_notified(asteroid_id, approach_date)
                 notified_count += 1
@@ -499,6 +625,21 @@ class NotificationScheduler:
                     )
                 except Exception as e:
                     logger.error(f"Failed to notify {user['user_id']} about solar flare: {e}")
+
+            def build_push_message(lang):
+                if lang == 'en':
+                    return (
+                        f"☀️ {flare_class}-class solar flare",
+                        f"Flux {flare['flux']:.2e} · {flare_time}",
+                        SITE_URL + "/weather",
+                    )
+                return (
+                    f"☀️ Спалах на Сонці класу {flare_class}",
+                    f"Потік {flare['flux']:.2e} · {flare_time}",
+                    SITE_URL + "/ua/weather",
+                )
+
+            await self._notify_push_subscribers('subscribed_flares', build_push_message)
 
             # Mark as notified
             mark_flare_notified(flare_class, flare_time, flare['flux'])
@@ -616,6 +757,22 @@ class NotificationScheduler:
                 except Exception as e:
                     logger.error(f"Failed to notify {user['user_id']} about geomagnetic storm: {e}")
 
+            def build_push_message(lang):
+                scale_str = g_scale or f"Kp {kp:.1f}"
+                if lang == 'en':
+                    return (
+                        f"{kp_emoji} Geomagnetic storm ({scale_str})",
+                        "Aurora may be visible tonight" if kp >= 5 else f"Kp {kp:.1f} · {kp_time}",
+                        SITE_URL + "/weather",
+                    )
+                return (
+                    f"{kp_emoji} Магнітна буря ({scale_str})",
+                    "Сьогодні вночі можливе полярне сяйво" if kp >= 5 else f"Kp {kp:.1f} · {kp_time}",
+                    SITE_URL + "/ua/weather",
+                )
+
+            await self._notify_push_subscribers('subscribed_flares', build_push_message)
+
             # Mark as notified
             mark_storm_notified(kp_str, kp_time, g_scale)
             logger.info(f"Sent geomagnetic storm alert (Kp={kp_str}, {g_scale}) to {len(subscribers)} users")
@@ -674,6 +831,13 @@ class NotificationScheduler:
                         )
                     except Exception as e:
                         logger.error(f"Failed to notify {user['user_id']} about GRB: {e}")
+
+                def build_push_message(lang, grb_name=grb_name):
+                    if lang == 'en':
+                        return ("💥 New gamma-ray burst", grb_name, SITE_URL + "/deep")
+                    return ("💥 Новий гамма-спалах", grb_name, SITE_URL + "/ua/deep")
+
+                await self._notify_push_subscribers('subscribed_grb', build_push_message)
 
                 # Mark as notified
                 mark_grb_notified(grb_name, grb['circular_id'])
@@ -1120,6 +1284,21 @@ class NotificationScheduler:
                     )
                 except Exception as e:
                     logger.error(f"Failed to notify {user['user_id']}: {e}")
+
+            def build_push_message(lang):
+                if lang == 'en':
+                    return (
+                        "🚀 Launch happening now",
+                        f"{launch_name} · {date_str}",
+                        live_url,
+                    )
+                return (
+                    "🚀 Запуск ракети зараз",
+                    f"{launch_name} · {date_str}",
+                    live_url,
+                )
+
+            await self._notify_push_subscribers('subscribed_launches', build_push_message)
 
             logger.info(f"Sent launch notification to {len(subscribers)} users for {launch_name}")
 

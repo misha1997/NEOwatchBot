@@ -211,14 +211,16 @@ class NasaAPI:
         full_text = f"🌌 <b>{title}</b>\n📅 {date}\n\n{explanation_tr}\n\n🌐 apod.nasa.gov"
 
         # For image APODs: prefer the HD url, fall back to the standard url.
-        # For video APODs: `url` is a YouTube embed link, which Telegram's
-        # send_video rejects ("Wrong type of the web page content"). Use the
-        # thumbnail as the photo and expose the video link separately so the
-        # scheduler can send a photo + a clickable link instead.
+        # For video APODs: `url` is either a direct file (caller can send it
+        # with send_video) or a YouTube/other embed link (Telegram's
+        # send_video rejects those — "Wrong type of the web page content").
+        # NASA doesn't always ship a thumbnail for videos, so `image_url` can
+        # legitimately be empty here — callers must not fall back to `url`
+        # itself as a photo, since a video file/page is not a valid image.
         media_type = data.get('media_type', 'image')
         video_url = data.get('url', '') if media_type == 'video' else ''
         if media_type == 'video':
-            image_url = data.get('thumbnail') or data.get('url', '')
+            image_url = data.get('thumbnail') or ''
         else:
             image_url = data.get('hdurl') or data.get('url', '')
 

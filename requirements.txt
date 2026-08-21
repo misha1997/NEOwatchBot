@@ -5,6 +5,7 @@ fuzzywuzzy
 python-Levenshtein
 python-dotenv
 mysql-connector-python
+pywebpush
 skyfield
 fastapi
 uvicorn[standard]

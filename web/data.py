@@ -1519,7 +1519,10 @@ def _apod_raw(lang: str = DEFAULT_LANG) -> dict:
 
 
 async def get_apod(lang: str = DEFAULT_LANG) -> dict:
-    return await asyncio.to_thread(get_or_fetch, f"apod:{lang}", APOD_TTL, lambda: _apod_raw(lang))
+    return await asyncio.to_thread(
+        get_or_fetch, f"apod:{lang}", APOD_TTL, lambda: _apod_raw(lang),
+        cacheable=lambda v: v.get("available", False),
+    )
 
 
 # ---------------------------------------------------------------------------

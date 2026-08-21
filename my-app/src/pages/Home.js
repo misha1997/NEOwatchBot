@@ -49,10 +49,7 @@ export default function Home() {
       <section className="section" id="tonight">
         <div className="wrap">
           <SectionHead eyebrow={t("home.tonight.eyebrow")} title={t("home.tonight.title", { city })} />
-          <p className="section-sub">{t("home.tonight.sub", {
-            lat: Math.abs(Math.round(loc ? loc.lat : 50)),
-            ns: ((loc ? loc.lat : 50) >= 0) ? t("common.latN") : t("common.latS"),
-          })}</p>
+          <p className="section-sub">{t("home.tonight.sub")}</p>
           <TonightPanel />
         </div>
       </section>

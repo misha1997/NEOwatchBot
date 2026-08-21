@@ -14,7 +14,8 @@ from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from config import DEFAULT_LAT, DEFAULT_LON
+from config import DEFAULT_LAT, DEFAULT_LON, VAPID_PUBLIC_KEY
+from database import delete_push_subscription, upsert_push_subscription
 from web import data, online as online_tracker
 from web.feedback import FeedbackNotConfigured, send_feedback_telegram
 
@@ -442,3 +443,63 @@ async def mast_lightcurve(target: str = Query(..., min_length=1, description="Ta
 async def mast_hubble_jwst():
     """Recent science observations from HST/JWST."""
     return await data.get_mast_hubble_jwst()
+
+
+# --- Web Push (VAPID) --------------------------------------------------
+# Anonymous browser subscriptions, not tied to a Telegram user — see
+# database.push_subscriptions and services/scheduler.py's push fan-out.
+
+class PushKeys(BaseModel):
+    p256dh: str = Field(..., min_length=1, max_length=255)
+    auth: str = Field(..., min_length=1, max_length=255)
+
+
+class PushSubscribePayload(BaseModel):
+    endpoint: str = Field(..., min_length=1, max_length=500)
+    keys: PushKeys
+    lat: float | None = None
+    lon: float | None = None
+    lang: str = Field("uk", max_length=5)
+
+
+class PushUnsubscribePayload(BaseModel):
+    endpoint: str = Field(..., min_length=1, max_length=500)
+
+
+@router.get("/push/vapid-public-key")
+async def push_vapid_public_key():
+    """Public key the frontend passes to `pushManager.subscribe()`.
+
+    503 when the server has no VAPID key configured — the bell should hide
+    itself / show "unavailable" rather than let the browser prompt fail.
+    """
+    if not VAPID_PUBLIC_KEY:
+        return JSONResponse({"ok": False, "error": "unavailable"}, status_code=503)
+    return {"key": VAPID_PUBLIC_KEY}
+
+
+@router.post("/push/subscribe")
+async def push_subscribe(payload: PushSubscribePayload):
+    """Create or refresh a push subscription (upsert on the endpoint)."""
+    lang = payload.lang if payload.lang in ("uk", "en") else "uk"
+    try:
+        await asyncio.to_thread(
+            upsert_push_subscription,
+            payload.endpoint, payload.keys.p256dh, payload.keys.auth,
+            payload.lat, payload.lon, lang,
+        )
+    except Exception as exc:  # noqa: BLE001 — must not 500-stack
+        logger.error("Push subscribe failed: %s", exc)
+        return JSONResponse({"ok": False, "error": "save_failed"}, status_code=500)
+    return {"ok": True}
+
+
+@router.post("/push/unsubscribe")
+async def push_unsubscribe(payload: PushUnsubscribePayload):
+    """Remove a push subscription (explicit opt-out from the bell)."""
+    try:
+        await asyncio.to_thread(delete_push_subscription, payload.endpoint)
+    except Exception as exc:  # noqa: BLE001 — must not 500-stack
+        logger.error("Push unsubscribe failed: %s", exc)
+        return JSONResponse({"ok": False, "error": "delete_failed"}, status_code=500)
+    return {"ok": True}

@@ -129,6 +129,10 @@
       "en": "EN"
     }
   },
+  "push": {
+    "enable": "Enable browser notifications",
+    "disable": "Disable browser notifications"
+  },
   "footer": {
     "tagline": "LIGHT FROM ORBIT",
     "intro": "A guide to space: ISS, asteroids, meteors, space weather and rocket launches — live.",

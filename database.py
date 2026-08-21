@@ -352,6 +352,37 @@ def init_db():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ''')
 
+        # Web Push subscriptions (anonymous site visitors, not tied to a
+        # Telegram users row — keyed by the browser's own subscription
+        # endpoint). last_iss_pass mirrors users.last_iss_pass (a raw Unix
+        # timestamp, not a TIMESTAMP column) since ISS-pass dedup is
+        # per-subscriber/per-location the same way it is per-Telegram-user.
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                endpoint VARCHAR(500) NOT NULL,
+                p256dh VARCHAR(255) NOT NULL,
+                auth VARCHAR(255) NOT NULL,
+                lat DECIMAL(10, 8),
+                lon DECIMAL(11, 8),
+                lang VARCHAR(5) NOT NULL DEFAULT 'uk',
+                subscribed_iss BOOLEAN DEFAULT TRUE,
+                subscribed_launches BOOLEAN DEFAULT TRUE,
+                subscribed_neo BOOLEAN DEFAULT TRUE,
+                subscribed_flares BOOLEAN DEFAULT TRUE,
+                subscribed_grb BOOLEAN DEFAULT TRUE,
+                last_iss_pass INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY idx_endpoint (endpoint),
+                INDEX idx_subscribed_iss (subscribed_iss),
+                INDEX idx_subscribed_launches (subscribed_launches),
+                INDEX idx_subscribed_neo (subscribed_neo),
+                INDEX idx_subscribed_flares (subscribed_flares),
+                INDEX idx_subscribed_grb (subscribed_grb)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ''')
+
         # Add subscribed_flares column to existing users (migration)
         try:
             cursor.execute('''
@@ -955,6 +986,101 @@ def get_grb_subscribers() -> List[Dict]:
     except Error as e:
         logger.error(f"Error getting GRB subscribers: {e}")
         return []
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def upsert_push_subscription(endpoint: str, p256dh: str, auth: str,
+                              lat: Optional[float], lon: Optional[float], lang: str):
+    """Create or refresh a browser push subscription.
+
+    Re-subscribing (e.g. after a location change) hits the same endpoint, so
+    this just updates lat/lon/lang/last_seen_at in place rather than erroring
+    on the UNIQUE KEY — the per-type subscribed_* flags are left untouched
+    since they're not part of this call.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+            INSERT INTO push_subscriptions (endpoint, p256dh, auth, lat, lon, lang)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                p256dh = VALUES(p256dh), auth = VALUES(auth),
+                lat = VALUES(lat), lon = VALUES(lon), lang = VALUES(lang)
+        ''', (endpoint, p256dh, auth, lat, lon, lang))
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error upserting push subscription: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def delete_push_subscription(endpoint: str):
+    """Remove a push subscription (explicit unsubscribe, or a push service
+    reporting the endpoint is gone — see services/webpush.py's "gone" return).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('DELETE FROM push_subscriptions WHERE endpoint = %s', (endpoint,))
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error deleting push subscription: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_push_subscriptions(type_column: str) -> List[Dict]:
+    """Get all push subscriptions with <type_column> = TRUE.
+
+    type_column must be one of the fixed subscribed_* column names below —
+    never build this string from request input, it's interpolated directly
+    into the query.
+    """
+    valid_columns = {
+        'subscribed_iss', 'subscribed_launches', 'subscribed_neo',
+        'subscribed_flares', 'subscribed_grb',
+    }
+    if type_column not in valid_columns:
+        raise ValueError(f"Invalid push subscription column: {type_column}")
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(f'SELECT * FROM push_subscriptions WHERE {type_column} = TRUE')
+        return cursor.fetchall()
+    except Error as e:
+        logger.error(f"Error getting push subscriptions ({type_column}): {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def update_push_last_iss_pass(subscription_id: int, pass_timestamp: int):
+    """Update last notified ISS pass for a push subscription (mirrors
+    update_last_iss_pass for Telegram users)."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'UPDATE push_subscriptions SET last_iss_pass = %s WHERE id = %s',
+            (pass_timestamp, subscription_id)
+        )
+        conn.commit()
+    except Error as e:
+        logger.error(f"Error updating push subscription last ISS pass: {e}")
+        conn.rollback()
     finally:
         cursor.close()
         conn.close()

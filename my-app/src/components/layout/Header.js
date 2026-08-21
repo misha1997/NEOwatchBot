@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { NAV_GROUPS, BOT_URL } from "../../lib/constants";
 import { useLang } from "../../context/LanguageContext";
 import { pathFor, switchLangPath } from "../../lib/seo";
+import PushBell from "./PushBell";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -115,6 +116,7 @@ export default function Header() {
             <LangBtn code="uk" />
             <LangBtn code="en" />
           </span>
+          <PushBell />
           <a href={BOT_URL} className="cta-btn" target="_blank" rel="noreferrer">{t("header.openBot")}</a>
         </nav>
         <button className={"burger" + (open ? " open" : "")} aria-label={t("header.menu")} aria-expanded={open}

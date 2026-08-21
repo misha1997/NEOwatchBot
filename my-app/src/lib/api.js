@@ -141,5 +141,38 @@ export async function sendFeedback({ name, email, message }) {
   return data || { ok: true };
 }
 
+// Web Push (header bell). getPushVapidKey resolves to null (not throws) on
+// 503 "not configured" so the bell can just hide itself.
+export async function getPushVapidKey() {
+  const r = await fetch(API + "/push/vapid-public-key");
+  if (!r.ok) return null;
+  const data = await r.json();
+  return data.key || null;
+}
+
+export async function postPushSubscribe(subscription, lat, lon, lang) {
+  const r = await fetch(API + "/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      endpoint: subscription.endpoint,
+      keys: subscription.keys,
+      lat, lon, lang,
+    }),
+  });
+  if (!r.ok) throw new Error("push/subscribe " + r.status);
+  return r.json();
+}
+
+export async function postPushUnsubscribe(endpoint) {
+  const r = await fetch(API + "/push/unsubscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint }),
+  });
+  if (!r.ok) throw new Error("push/unsubscribe " + r.status);
+  return r.json();
+}
+
 // Pass fetchJSON through for ad-hoc use.
 export { fetchJSON };

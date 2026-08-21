@@ -376,6 +376,39 @@ nav.links a.active {
   color: var(--gold)
 }
 
+/* ---------- push notification bell (header) ---------- */
+.push-bell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-left: 6px;
+  font-size: 16px;
+  line-height: 1;
+  background: rgba(237, 238, 245, .05);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  opacity: .7;
+  transition: opacity .2s, border-color .2s, background .2s;
+}
+
+.push-bell:hover {
+  opacity: 1;
+}
+
+.push-bell.on {
+  opacity: 1;
+  border-color: rgba(232, 185, 77, .55);
+  background: rgba(232, 185, 77, .12);
+}
+
+.push-bell.busy {
+  opacity: .4;
+  cursor: default;
+}
+
 /* ---------- eyebrow / labels ---------- */
 .eyebrow {
   font-family: var(--font-mono);
