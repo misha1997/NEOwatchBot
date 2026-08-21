@@ -198,7 +198,7 @@ def _loc(name: str, lang: str) -> str:
     return f"{SITE_URL}/{pfx}/{slug}"
 
 
-_OG_IMAGE = SITE_URL + "/web-app-manifest-512x512.png"
+_OG_IMAGE = SITE_URL + "/og-image.png"
 
 _PUB_DATE_RE = re.compile(r"^(\d{1,2})\.(\d{1,2})\.(\d{4})$")
 
@@ -329,8 +329,8 @@ def render_head(name: str, lang: str, extra_jsonld: str = "",
         # them (Telegram/Facebook/X all handle a missing size fine).
         head += (
             f'    <meta property="og:image:type" content="image/png" />\n'
-            f'    <meta property="og:image:width" content="512" />\n'
-            f'    <meta property="og:image:height" content="512" />\n'
+            f'    <meta property="og:image:width" content="1200" />\n'
+            f'    <meta property="og:image:height" content="630" />\n'
             f'    <meta property="og:image:alt" content="{e(_OG_IMAGE_ALT.get(lang, _OG_IMAGE_ALT["en"]))}" />\n'
         )
     head += (
